@@ -25,6 +25,7 @@ vi.stubGlobal('sessionStorage', storageStub());
 import { createMemoryBackend } from './index';
 import type { GomokuState } from '../../domain/gomoku/game';
 import { idx } from '../../domain/gomoku/board';
+import { ABANDONED_AFTER_MS } from '../../domain/rooms';
 import type { Room } from '../../domain/types';
 
 describe('two players in a room', () => {
@@ -124,11 +125,13 @@ describe('two players in a room', () => {
     await host.rooms.reap('gomoku');
     expect(room).not.toBeNull(); // still fresh
 
-    // Wind the clock back past the timeout by rewriting the stored heartbeat.
+    // Age the room past the abandonment window: every sign of life has to be old, including the
+    // last update, or the room counts as still being played in.
     const store = JSON.parse(localStorage.getItem('partygames:memory')!);
-    const old = new Date(Date.now() - 10 * 60_000).toISOString();
+    const old = new Date(Date.now() - 2 * ABANDONED_AFTER_MS).toISOString();
     store.rooms[roomId].presence = { admin: old };
     store.rooms[roomId].createdAt = old;
+    store.rooms[roomId].updatedAt = old;
     localStorage.setItem('partygames:memory', JSON.stringify(store));
 
     await host.rooms.reap('gomoku');

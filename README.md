@@ -25,9 +25,12 @@ Every game lives in a **room**:
 1. Somebody opens a room and gets a four-character code (`K7PQ`).
 2. Friends find the room in the list, or type the code, and **ask to join**.
 3. The owner lets them in. (Nobody gets in without that.)
-4. Each device in the room checks in every 25 seconds. Once every check-in has been quiet for 90
-   seconds the room is empty, and the next client to look at the list **deletes it**. A room never
-   outlives the people in it, and no server-side scheduler is needed.
+4. Each device in the room checks in every 25 seconds. A room with no sign of life for **15
+   minutes** — no check-in, no move, nothing — is abandoned, and the next client to look at the
+   list deletes it. A room never outlives the people in it, and no server-side scheduler is needed.
+   (A player is shown as away after 90 seconds, but that only changes the "2 online" label. The
+   deletion window has to be much longer: a locked phone stops running timers entirely, so a host
+   who switches to Messages to send the code stops checking in straight away.)
 5. If the owner leaves, the longest-standing remaining player becomes the owner. The last player
    out closes the room.
 

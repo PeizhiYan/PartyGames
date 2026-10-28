@@ -33,9 +33,16 @@ One document per room, holding the players, the join queue, the game state, and 
   (`PRESENCE_INTERVAL_MS`). A heartbeat deliberately does **not** touch `updatedAt`, so idle rooms
   don't keep jumping to the top of the list — the rules allow `updatedAt` to stay put for exactly
   that case.
-- **Cleanup** is client-side: `isStale()` says a room whose every heartbeat is older than 90s is
-  abandoned, and `RoomRepo.reap()` deletes those. It runs whenever anyone opens a room list. There
-  is no scheduler, which is what keeps this portable off Firebase.
+- **Cleanup** is client-side: `isStale()` marks a room with no sign of life for
+  `ABANDONED_AFTER_MS` (15 min), and `RoomRepo.reap()` deletes those. It runs whenever anyone opens
+  a room list. There is no scheduler, which is what keeps this portable off Firebase.
+- **`PRESENCE_TIMEOUT_MS` (90s) and `ABANDONED_AFTER_MS` (15 min) are different numbers on
+  purpose.** The first only drives the "2 online" label. Deleting on that timescale was a real bug:
+  a backgrounded tab or a locked phone stops running timers, so a host who opened Messages to send
+  the code stopped checking in at once and the room was deleted before the invitation arrived.
+  "Sign of life" therefore means the latest of every check-in, `updatedAt` and `createdAt` — a move
+  keeps a room alive as much as a heartbeat does — and a room whose timestamps cannot be read at
+  all is never deleted.
 - **Ownership** moves to the longest-standing remaining player when the owner leaves; the last
   player out deletes the room.
 
