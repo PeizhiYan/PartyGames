@@ -1,13 +1,15 @@
 rules_version = '2';
 
-// Shared by every app in this Firebase project: one rules file covers the whole database, and every
-// `firebase deploy --only firestore` replaces it. Each app keeps its data under /apps/{appId}/ and
-// gets its own `match /apps/<appId>` block; anything not matched is denied. Sign-in (Firebase Auth)
-// is shared too: a person has the same uid in every app.
+// Shared by every app in this Firebase project (vibed-apps): one rules file covers the whole
+// database, and every `firebase deploy --only firestore` replaces it. Each app keeps its data
+// under /apps/{appId}/ and gets its own `match /apps/<appId>` block; anything not matched is
+// denied. Sign-in (Firebase Auth) is shared too: a person has the same uid in every app.
 //
-// IMPORTANT: the CoffeeGlass block below is a verbatim copy of ../CoffeeGlass/firestore.rules.
-// Deploying from either repo replaces the rules for BOTH apps, so whenever one changes, copy it
-// across before deploying — otherwise the other app silently drops back to an older ruleset.
+// THIS FILE IS THE SAME IN EVERY APP'S REPO — CoffeeGlass and PartyGames today. Each of them
+// deploys it for the whole project, so the last deploy wins, and a copy that has lost an app's
+// block locks that app out of its own data. Change it in one repo, copy it to the other, then
+// deploy. `diff CoffeeGlass/firestore.rules PartyGames/firestore.rules` must come back empty;
+// both CI workflows also refuse to deploy a file that is missing a block.
 service cloud.firestore {
   match /databases/{database}/documents {
 

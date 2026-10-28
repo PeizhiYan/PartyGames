@@ -152,9 +152,9 @@ Cloudflare). To attach a domain to the site:
 ### ⚠️ The rules file covers the whole project
 
 `firestore.rules` is deployed for the **entire database**, so a `firebase deploy --only firestore`
-from this repo replaces CoffeeGlass's rules too. Before deploying, make sure this file also contains
-the `match /apps/coffeeglass { ... }` block from that repo. There is a note saying so at the top of
-the file.
+from this repo sets CoffeeGlass's rules too, and vice versa. The file therefore carries a
+`match /apps/<appId>` block for every app in the project and is kept byte-identical in both repos.
+See "Two apps, one rules file" below before changing it.
 
 ### What the rules do and don't do
 
@@ -195,16 +195,23 @@ One-time setup:
 When you change `.env`, change the matching variable too — the deployed app is built from the
 variables, not from your `.env`.
 
-### ⚠️ Two apps, one rules file, two pipelines
+### Two apps, one rules file, two pipelines
 
 CoffeeGlass deploys `--only hosting,firestore` from its own CI, and this repo does the same. They
-share one Firestore rules file for the whole project, so **whichever pipeline ran last decides the
-rules for both apps**. If one repo's copy is missing the other's `match /apps/<id>` block, that app
-loses access to its own data the next time the other one deploys.
+share one Firestore rules file for the whole project, so whichever pipeline ran last decides the
+rules for both apps — which is only safe because **`firestore.rules` is byte-identical in both
+repos**. As long as the copies match, the deploy order doesn't matter.
 
-So: whenever either rules file changes, copy the change into the other repo. The workflow refuses to
-deploy a rules file that has lost a block, which catches the accident on this side; keep the same
-list of apps in CoffeeGlass's workflow.
+When you change the rules, change them in one repo, copy the file to the other, and check that
+
+```bash
+diff ../CoffeeGlass/firestore.rules firestore.rules
+```
+
+comes back empty before deploying. Both workflows also refuse to deploy a file that has lost an
+app's `match /apps/<id>` block, which catches the worst case: an app silently losing access to all
+of its own data. Adding a third app means adding its block, copying the file across, and adding its
+id to the check in both workflows.
 
 ## Being the admin
 
