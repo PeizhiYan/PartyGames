@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import GameArt from '../components/art/GameArt';
 import RoomList from '../components/RoomList';
 import Icon from '../components/ui/Icon';
 import Sheet from '../components/ui/Sheet';
@@ -73,18 +74,24 @@ export default function GameLobbyPage() {
 
   return (
     <>
-      <header className="page-header">
-        <div className="row">
-          <Link to="/" className="icon-button" aria-label="Back to the games"><Icon name="left" /></Link>
-          <div>
-            <h1>{game.name}</h1>
-            <p className="muted" style={{ margin: 0, fontSize: '0.9rem' }}>{game.tagline}</p>
-          </div>
+      <header className="lobby-hero">
+        <GameArt game={game.id} />
+        <Link to="/" className="icon-button lobby-back" aria-label="Back to the games"><Icon name="left" /></Link>
+        <div className="lobby-hero-text">
+          <h1>{game.name}</h1>
+          <p>{game.tagline}</p>
         </div>
+      </header>
+      <div className="row between" style={{ marginBottom: 16 }}>
+        <span className="muted" style={{ fontSize: '0.9rem' }}>
+          {game.minPlayers === game.maxPlayers
+            ? `${game.maxPlayers} players`
+            : `${game.solo ? 1 : game.minPlayers}–${game.maxPlayers} players`}
+        </span>
         <button type="button" className="primary" onClick={() => setCreating(true)}>
           <Icon name="plus" /> New room
         </button>
-      </header>
+      </div>
 
       {game.solo && (
         <Link to={`/g/${game.id}/solo`} className="card row between" style={{ textDecoration: 'none', color: 'inherit' }}>

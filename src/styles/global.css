@@ -297,34 +297,99 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .google-button { background: #fff; color: #1f1f1f; border-color: #dadce0; padding: 10px 22px; font-weight: 600; margin: 8px 0; }
 
 /* Home: the games on the console's screen */
-.game-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+/* Home: one art-led card per game. */
+/*
+ * auto-FILL, not auto-fit: with only two games, auto-fit collapses the empty tracks and stretches
+ * the cards to half the page each. auto-fill keeps the tracks, so a card stays card-sized however
+ * few games there are. ~230px gives three or four across a desktop and one on a phone.
+ */
+.game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+@media (max-width: 560px) { .game-grid { grid-template-columns: 1fr; } }
 .game-card {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
+  align-items: stretch;
+  gap: 0;
+  padding: 0;
+  overflow: hidden;
   text-align: left;
-  padding: 18px;
   border-radius: 20px;
   background: var(--surface);
   border: 1px solid var(--border);
   box-shadow: var(--shadow);
-  min-height: 0;
   font-weight: 500;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 220ms var(--spring), box-shadow 220ms, border-color 200ms;
 }
-.game-card:hover { border-color: var(--accent); }
-.game-card-emoji {
-  font-size: 1.6rem;
-  width: 52px;
-  height: 52px;
-  display: grid;
-  place-items: center;
-  border-radius: 16px;
-  background: var(--accent-soft);
-  margin-bottom: 6px;
+.game-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 28px rgb(40 25 10 / 0.16);
 }
-.game-card strong { font-size: 1.15rem; }
-.game-card span { color: var(--text-muted); font-weight: 400; font-size: 0.9rem; line-height: 1.4; }
+.game-card:active { transform: translateY(0) scale(0.99); }
+
+.game-card-art {
+  display: block;
+  position: relative;
+  aspect-ratio: 2 / 1;
+  overflow: hidden;
+  background: var(--inset, var(--bg));
+}
+.game-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 400ms var(--spring);
+}
+.game-card:hover .game-art { transform: scale(1.04); }
+
+.game-card-body { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px 16px; }
+.game-card strong { font-size: 1.2rem; letter-spacing: -0.01em; }
+.game-card-tagline { color: var(--text-muted); font-weight: 400; font-size: 0.9rem; line-height: 1.45; }
+.game-card-meta { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+.game-card-go { margin-left: auto; color: var(--accent); display: inline-flex; transition: transform 220ms var(--spring); }
+.game-card:hover .game-card-go { transform: translateX(3px); }
+
+/* The same art again at the top of a game's lobby, so the two screens feel like one place. */
+.lobby-hero {
+  position: relative;
+  border-radius: 20px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  aspect-ratio: 5 / 2;
+  max-height: 210px;
+  box-shadow: var(--shadow);
+}
+.lobby-hero .game-art { position: absolute; inset: 0; }
+.lobby-hero::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(transparent 35%, rgb(12 6 2 / 0.78));
+}
+.lobby-hero-text { position: absolute; left: 18px; right: 18px; bottom: 14px; color: #fff; }
+.lobby-hero-text h1 { color: #fff; text-shadow: 0 2px 10px rgb(0 0 0 / 0.5); }
+.lobby-hero-text p { margin: 2px 0 0; font-size: 0.9rem; color: rgb(255 255 255 / 0.85); }
+.lobby-back {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 1;
+  background: rgb(0 0 0 / 0.38);
+  color: #fff;
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.lobby-back:hover:not(:disabled) { background: rgb(0 0 0 / 0.55); color: #fff; }
+
+@media (prefers-reduced-motion: reduce) {
+  .game-card, .game-art, .game-card-go { transition: none; }
+  .game-card:hover { transform: none; }
+  .game-card:hover .game-art { transform: none; }
+}
+
 .home-hero { display: flex; align-items: center; gap: 14px; margin-bottom: 22px; }
 .home-hero img { filter: drop-shadow(0 8px 20px rgb(60 30 140 / 0.3)); }
 .home-hero h1 { font-size: 1.8rem; }
