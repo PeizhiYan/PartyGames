@@ -61,6 +61,7 @@ One document per room, holding the players, the join queue, the game state, and 
 | Firestore transactions, queries, presence | `src/adapters/firebase/rooms.ts` |
 | The dev backend (two tabs can play each other) | `src/adapters/memory/index.ts` |
 | Theme tokens, every shared class | `src/styles/global.css` |
+| Each game's cover art | `src/components/art/GameArt.tsx` |
 | Accent + light/dark choice | `src/lib/theme.ts` |
 
 ## Adding a game
@@ -68,7 +69,9 @@ One document per room, holding the players, the join queue, the game state, and 
 1. `src/domain/<game>/game.ts` exporting a `GameDefinition`.
 2. Add it to `GAMES` in `src/domain/games.ts`.
 3. `src/components/<game>/<Game>Room.tsx`, taking `{ room, uid }`.
-4. Add it to the `Game` pick in `src/pages/RoomPage.tsx`.
+4. Add it to the `Game` pick in `src/pages/RoomPage.tsx`, and draw its cover in
+   `src/components/art/GameArt.tsx` (320x160, shown at 2:1 on the card and 5:2 on the lobby
+   banner, so keep anything important away from the very top and bottom).
 5. Add its id to `d.game in ['gomoku', 'monopoly']` in `firestore.rules`.
 
 For a game playable alone, set `solo: true` and add a branch to `SoloGame` in `src/App.tsx`

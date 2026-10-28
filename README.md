@@ -39,6 +39,9 @@ on the game's own screen.
 
 ## Features
 
+- Each game has its own drawn cover art (`src/components/art/GameArt.tsx`), shown on the home
+  screen and again as the banner on that game's lobby — inline SVG, so it scales to any card size
+  without a second request.
 - **Gomoku** – a 15×15 board on a canvas that scales to the screen. Tap an intersection to play
   there; with a mouse, a ghost stone follows the pointer. Against another player the stone sits on
   your own board for **three seconds** before it is sent, ringed and with a draining bar, so a

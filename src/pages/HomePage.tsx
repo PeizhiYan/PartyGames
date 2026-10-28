@@ -1,5 +1,7 @@
 import { Link } from 'react-router-dom';
+import GameArt from '../components/art/GameArt';
 import InstallCard from '../components/InstallCard';
+import Icon from '../components/ui/Icon';
 import { GAMES } from '../domain/games';
 import { useCurrentUser } from '../hooks/useAuth';
 import { firstName } from '../lib/format';
@@ -22,13 +24,21 @@ export default function HomePage() {
       <div className="game-grid">
         {GAMES.map((game) => (
           <Link key={game.id} to={`/g/${game.id}`} className="game-card">
-            <span className="game-card-emoji" aria-hidden>{game.emoji}</span>
-            <strong>{game.name}</strong>
-            <span>{game.tagline}</span>
-            <span className="badge badge-accent" style={{ marginTop: 10 }}>
-              {game.minPlayers === game.maxPlayers
-                ? `${game.maxPlayers} players`
-                : `${game.solo ? 1 : game.minPlayers}–${game.maxPlayers} players`}
+            <span className="game-card-art">
+              <GameArt game={game.id} />
+            </span>
+            <span className="game-card-body">
+              <strong>{game.name}</strong>
+              <span className="game-card-tagline">{game.tagline}</span>
+              <span className="game-card-meta">
+                <span className="badge badge-accent">
+                  {game.minPlayers === game.maxPlayers
+                    ? `${game.maxPlayers} players`
+                    : `${game.solo ? 1 : game.minPlayers}–${game.maxPlayers} players`}
+                </span>
+                {game.solo && <span className="badge">vs computer</span>}
+                <span className="game-card-go" aria-hidden><Icon name="right" size={18} /></span>
+              </span>
             </span>
           </Link>
         ))}
