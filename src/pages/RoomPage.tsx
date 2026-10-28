@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import GomokuRoom from '../components/gomoku/GomokuRoom';
 import MonopolyRoom from '../components/monopoly/MonopolyRoom';
+import OfflineNotice from '../components/OfflineNotice';
 import Avatar from '../components/ui/Avatar';
 import Icon from '../components/ui/Icon';
 import Sheet from '../components/ui/Sheet';
@@ -92,6 +93,7 @@ export default function RoomPage() {
   return (
     <div className="room-screen">
       <RoomHeader room={room} uid={user.uid} onLeave={() => navigate(`/g/${game.id}`)} />
+      <OfflineNotice suggestSolo={false} />
       <Game room={room} uid={user.uid} />
     </div>
   );
