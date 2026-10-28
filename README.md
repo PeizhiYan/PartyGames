@@ -171,6 +171,41 @@ Function and tighten `allow delete`.
 Dice are rolled on the player's device and checked by the reducer for being two numbers from 1 to 6.
 Nothing of value rides on a roll the app can't verify.
 
+## Automatic deploys (GitHub Actions)
+
+`.github/workflows/deploy_to_firebase.yml` runs on every push to `main`, including merged pull
+requests. It runs lint, typecheck, the unit tests and the rules tests, checks the rules file still
+covers every app in the project, builds, then deploys hosting and Firestore rules. If any check
+fails, nothing is deployed. You can also start it by hand from the **Actions** tab
+(**Deploy to Firebase → Run workflow**).
+
+One-time setup:
+
+1. **Service account.** Google Cloud Console → **IAM & Admin → Service accounts → Create service
+   account** (e.g. `github-deploy`). Give it **Firebase Admin** and **Service Usage Consumer**.
+   Open it → **Keys → Add key → Create new key → JSON**. If CoffeeGlass already has one, reuse it.
+2. **GitHub → the repo → Settings → Secrets and variables → Actions**:
+   - **Secrets** → `FIREBASE_SERVICE_ACCOUNT`, value = the whole JSON key file. Then delete the
+     downloaded file.
+   - **Variables** → one per line of your `.env`: `VITE_ADMIN_EMAIL`, `VITE_FIREBASE_API_KEY`,
+     `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`, `VITE_FIREBASE_STORAGE_BUCKET`,
+     `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`. These ship in the bundle and are
+     public, so they are variables, not secrets.
+
+When you change `.env`, change the matching variable too — the deployed app is built from the
+variables, not from your `.env`.
+
+### ⚠️ Two apps, one rules file, two pipelines
+
+CoffeeGlass deploys `--only hosting,firestore` from its own CI, and this repo does the same. They
+share one Firestore rules file for the whole project, so **whichever pipeline ran last decides the
+rules for both apps**. If one repo's copy is missing the other's `match /apps/<id>` block, that app
+loses access to its own data the next time the other one deploys.
+
+So: whenever either rules file changes, copy the change into the other repo. The workflow refuses to
+deploy a rules file that has lost a block, which catches the accident on this side; keep the same
+list of apps in CoffeeGlass's workflow.
+
 ## Being the admin
 
 `VITE_ADMIN_EMAIL` controls what the UI offers; the real check is the hard-coded email in

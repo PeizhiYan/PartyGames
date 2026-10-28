@@ -1,0 +1,71 @@
+# Checks, builds and deploys to Firebase (hosting + Firestore rules) on every push to main,
+# which includes merged pull requests. Can also be started by hand from the Actions tab.
+# One-time setup: see "Automatic deploys" in README.md.
+name: Deploy to Firebase
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Never run two deploys at once; a newer push cancels the run in progress and deploys instead.
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy_firebase:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      # The Firestore emulator (rules tests) needs Java.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - run: npm ci
+      - run: npm install -g firebase-tools
+
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run test:rules
+
+      # One rules file covers the whole Firebase project, so deploying from here replaces the rules
+      # for EVERY app in it. A file that has lost an app's block would silently lock that app out
+      # of its own data, so refuse to deploy one. Add new apps to this list as they arrive, and
+      # keep ../CoffeeGlass/firestore.rules carrying the same blocks — see README.
+      - name: Check firestore.rules still covers every app in the project
+        run: |
+          for app in coffeeglass partygames; do
+            grep -q "match /apps/$app {" firestore.rules || {
+              echo "::error file=firestore.rules::No 'match /apps/$app' block — deploying this would delete that app's rules."
+              exit 1
+            }
+          done
+
+      # The web app config is public (it ships in the bundle), so it lives in repository variables.
+      - run: npm run build
+        env:
+          VITE_BACKEND: firebase
+          VITE_ADMIN_EMAIL: ${{ vars.VITE_ADMIN_EMAIL }}
+          VITE_FIREBASE_API_KEY: ${{ vars.VITE_FIREBASE_API_KEY }}
+          VITE_FIREBASE_AUTH_DOMAIN: ${{ vars.VITE_FIREBASE_AUTH_DOMAIN }}
+          VITE_FIREBASE_PROJECT_ID: ${{ vars.VITE_FIREBASE_PROJECT_ID }}
+          VITE_FIREBASE_STORAGE_BUCKET: ${{ vars.VITE_FIREBASE_STORAGE_BUCKET }}
+          VITE_FIREBASE_MESSAGING_SENDER_ID: ${{ vars.VITE_FIREBASE_MESSAGING_SENDER_ID }}
+          VITE_FIREBASE_APP_ID: ${{ vars.VITE_FIREBASE_APP_ID }}
+
+      # The service account key, by contrast, is a real secret.
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+
+      - run: firebase deploy --only hosting:partygames,firestore --non-interactive
