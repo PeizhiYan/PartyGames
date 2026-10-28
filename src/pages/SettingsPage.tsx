@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import InstallCard from '../components/InstallCard';
 import Avatar from '../components/ui/Avatar';
 import Icon from '../components/ui/Icon';
 import { useCurrentUser } from '../hooks/useAuth';
@@ -7,8 +8,6 @@ import { backend } from '../services';
 
 export default function SettingsPage() {
   const { user, isAdmin } = useCurrentUser();
-  const installed = window.matchMedia('(display-mode: standalone)').matches
-    || (navigator as Navigator & { standalone?: boolean }).standalone === true;
 
   return (
     <>
@@ -28,16 +27,7 @@ export default function SettingsPage() {
         </button>
       </section>
 
-      {!installed && (
-        <section className="card">
-          <h3>Install it</h3>
-          <p className="muted" style={{ margin: 0, fontSize: '0.92rem' }}>
-            Add PartyGames to your home screen and it opens like a normal app, without the browser
-            bars. On iPhone or iPad: Share, then <strong>Add to Home Screen</strong>. On Android:
-            the browser menu, then <strong>Install app</strong>.
-          </p>
-        </section>
-      )}
+      <InstallCard />
 
       <section className="card">
         <h3>About</h3>

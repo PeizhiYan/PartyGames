@@ -52,7 +52,10 @@ on the game's own screen.
 - **Users** (admin only) – open or close registration, invite people by email, and remove an
   account, which locks them out and deletes their rooms.
 - **Installable**: standalone display, its own icon, no browser chrome, no pinch-zoom or
-  pull-to-refresh, no edge-swipe navigation in the installed app. Light and dark mode.
+  pull-to-refresh, no edge-swipe navigation in the installed app. The home page and Settings offer
+  an **Install** button where the browser supports one, and the Share → Add to Home Screen steps on
+  iOS Safari, which has no install dialog of its own (`src/hooks/useInstall.ts`). Light and dark
+  mode.
 
 ## Cloud-agnostic by design
 

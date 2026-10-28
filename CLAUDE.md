@@ -106,6 +106,10 @@ Three things that were real bugs in the original or in this port, and have tests
   CoffeeGlass's. See the warning in `README.md` and at the top of the file.
 - **Dice** are rolled on the device (`throwDice()`) and passed in the action; the reducer only
   checks they're two numbers from 1 to 6.
+- **`beforeinstallprompt` fires once and early**, usually before React has mounted, so
+  `src/hooks/useInstall.ts` registers its listeners at module load and `main.tsx` imports it for
+  that side effect. Moving the listener into a component loses the event and the Install button
+  never appears. iOS Safari never fires it at all and needs the written-out share-sheet steps.
 
 ## Testing
 

@@ -464,3 +464,15 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 }
 .chart-legend li { display: inline-flex; align-items: center; gap: 6px; }
 .swatch { display: inline-block; width: 16px; height: 3px; border-radius: 999px; }
+
+/* Install prompt */
+.install-card { background: var(--accent-soft); border-color: transparent; }
+.install-card strong { font-size: 0.98rem; }
+.install-steps {
+  margin: 12px 0 0;
+  padding-left: 22px;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+.install-steps strong { color: var(--text); font-size: inherit; }

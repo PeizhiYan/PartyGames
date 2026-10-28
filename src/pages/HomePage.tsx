@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import InstallCard from '../components/InstallCard';
 import { GAMES } from '../domain/games';
 import { useCurrentUser } from '../hooks/useAuth';
 import { firstName } from '../lib/format';
@@ -15,6 +16,8 @@ export default function HomePage() {
           <p className="muted" style={{ margin: 0 }}>What are we playing?</p>
         </div>
       </header>
+
+      <InstallCard compact />
 
       <div className="game-grid">
         {GAMES.map((game) => (
