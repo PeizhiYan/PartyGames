@@ -168,12 +168,14 @@ Cloudflare). To attach a domain to the site:
 5. Only now point `VITE_FIREBASE_AUTH_DOMAIN` at it, rebuild and redeploy. Doing this before steps
    3 and 4 breaks sign-in for everyone, including on the old domain.
 
-### ⚠️ The rules file covers the whole project
+### ⚠️ This repo owns the Firestore rules for the whole project
 
-`firestore.rules` is deployed for the **entire database**, so a `firebase deploy --only firestore`
-from this repo sets CoffeeGlass's rules too, and vice versa. The file therefore carries a
-`match /apps/<appId>` block for every app in the project and is kept byte-identical in both repos.
-See "Two apps, one rules file" below before changing it.
+`firestore.rules` is deployed for the **entire database**, not just this app, so deploying it sets
+CoffeeGlass's rules too. Rather than have both repos race to overwrite each other, **only this one
+deploys rules.** Every other app in the project deploys `--only hosting`.
+
+So this file carries a `match /apps/<appId>` block for *every* app in `vibed-apps`, and adding an
+app means adding its block here. See "Owning the rules" below.
 
 ### What the rules do and don't do
 
@@ -214,23 +216,39 @@ One-time setup:
 When you change `.env`, change the matching variable too — the deployed app is built from the
 variables, not from your `.env`.
 
-### Two apps, one rules file, two pipelines
+### Owning the rules
 
-CoffeeGlass deploys `--only hosting,firestore` from its own CI, and this repo does the same. They
-share one Firestore rules file for the whole project, so whichever pipeline ran last decides the
-rules for both apps — which is only safe because **`firestore.rules` is byte-identical in both
-repos**. As long as the copies match, the deploy order doesn't matter.
+The apps have no backend — browsers talk to Firestore directly — so `firestore.rules` is the only
+thing deciding who may read and write what. It covers the **whole database**, and deploying it
+replaces every app's rules in one go.
 
-When you change the rules, change them in one repo, copy the file to the other, and check that
+That makes "which repo deploys it" the thing to get right. **PartyGames does; nobody else.**
 
-```bash
-diff ../CoffeeGlass/firestore.rules firestore.rules
-```
+| Repo | Deploys |
+|---|---|
+| **PartyGames** (this one) | `--only hosting:partygames,firestore` |
+| CoffeeGlass | `--only hosting` |
 
-comes back empty before deploying. Both workflows also refuse to deploy a file that has lost an
-app's `match /apps/<id>` block, which catches the worst case: an app silently losing access to all
-of its own data. Adding a third app means adding its block, copying the file across, and adding its
-id to the check in both workflows.
+It used to be that both deployed rules, and each repo's copy only knew about its own app. That is a
+quiet way to lose everything: a push to CoffeeGlass would replace the live rules with a file that
+had never heard of `/apps/partygames`, every read and write here would start failing with
+permission-denied, and nothing in this repo would have changed to explain it. One owner removes
+the race entirely.
+
+CoffeeGlass still keeps a copy of the file so it can run its own rules tests, but never deploys
+it. If it drifts, its tests run against a stale ruleset — annoying, not dangerous. `diff` the two
+after a change if you want them in step.
+
+**Adding a third app to the project:**
+
+1. Add its `match /apps/<appId>` block to `firestore.rules` **here**, and its id to the check in
+   `.github/workflows/deploy_to_firebase.yml`.
+2. Deploy from here. Its rules are live before the app ships.
+3. Give the new app `--only hosting` in its own deploy script and workflow. It never touches this
+   file.
+
+The workflow refuses to deploy a rules file that has lost an app's block, so the one failure that
+would silently lock an app out of its own data stops the build instead.
 
 ## Being the admin
 

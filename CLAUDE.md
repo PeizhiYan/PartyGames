@@ -102,8 +102,10 @@ Three things that were real bugs in the original or in this port, and have tests
 - **`updatedAt` on a heartbeat**: see Rooms above. Changing that needs the rules changed too.
 - **The board arrives as a fresh array on every snapshot**, including an opponent's heartbeat, so
   don't hang UI state off board identity (`GomokuBoard` watches `placing` instead).
-- **`firestore.rules` is the whole project's rules file.** Deploying from here replaces
-  CoffeeGlass's. See the warning in `README.md` and at the top of the file.
+- **`firestore.rules` is the whole project's rules file, and this repo owns it.** It covers every
+  app in `vibed-apps`, and only this repo deploys it — CoffeeGlass deploys `--only hosting` and
+  keeps its copy just to run its own rules tests. A new app's block goes here, not in its own repo.
+  See "Owning the rules" in `README.md`.
 - **Dice** are rolled on the device (`throwDice()`) and passed in the action; the reducer only
   checks they're two numbers from 1 to 6.
 - **`beforeinstallprompt` fires once and early**, usually before React has mounted, so
