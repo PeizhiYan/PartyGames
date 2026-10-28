@@ -62,6 +62,7 @@ One document per room, holding the players, the join queue, the game state, and 
 | The dev backend (two tabs can play each other) | `src/adapters/memory/index.ts` |
 | Theme tokens, every shared class | `src/styles/global.css` |
 | Each game's cover art | `src/components/art/GameArt.tsx` |
+| The waves along the bottom | `src/components/layout/Waves.tsx` |
 | Accent + light/dark choice | `src/lib/theme.ts` |
 
 ## Adding a game
@@ -122,6 +123,16 @@ Three things that were real bugs in the original or in this port, and have tests
 - **A sticky bar must be opaque.** `.room-bar` used to fade out over its own bottom edge, so
   content scrolling under it showed through and the top of the screen looked blurred on a phone.
   The soft edge belongs in `::after`, below the bar.
+- **Cover art has to survive two crops.** It is drawn on 640x200 and `slice`-cropped into a 2:1
+  card (sides trimmed) and a ~5:1 lobby banner (top and bottom trimmed), so anything that matters
+  lives inside x 120-520, y 34-166. The canvas started at 320x160 and the banner cropped three
+  times into the middle of it.
+- **`--bg` is a `color-mix()`**, so reading it back with `getPropertyValue('--bg')` returns the
+  literal `color-mix(...)` text, not a colour. `applyTheme` takes the computed
+  `backgroundColor` off `document.body` instead, for the `theme-color` meta.
+- **The waves loop by translating exactly one period.** Each layer is two viewports wide and holds
+  two periods of the same wave, so `translateX(-50%)` is seamless. Change the period and the
+  animation has to change with it.
 - **Dice** are rolled on the device (`throwDice()`) and passed in the action; the reducer only
   checks they're two numbers from 1 to 6.
 - **`beforeinstallprompt` fires once and early**, usually before React has mounted, so

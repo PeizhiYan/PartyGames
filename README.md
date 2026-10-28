@@ -62,7 +62,9 @@ on the game's own screen.
   iOS Safari, which has no install dialog of its own (`src/hooks/useInstall.ts`).
 - **Themes** – six highlight colours (Sunset, Rose, Violet, Ocean, Forest, Graphite) and
   light / dark / follow-the-system, picked in Settings and remembered per device. The default is a
-  white background with an orange highlight.
+  white background with an orange highlight. The page is tinted with the chosen colour and a band
+  of slow waves drifts along the bottom of every screen, so picking a colour changes the whole app
+  rather than just its buttons.
 
 ## Cloud-agnostic by design
 

@@ -74,24 +74,24 @@ export default function GameLobbyPage() {
 
   return (
     <>
-      <header className="lobby-hero">
-        <GameArt game={game.id} />
-        <Link to="/" className="icon-button lobby-back" aria-label="Back to the games"><Icon name="left" /></Link>
-        <div className="lobby-hero-text">
-          <h1>{game.name}</h1>
-          <p>{game.tagline}</p>
-        </div>
-      </header>
-      <div className="row between" style={{ marginBottom: 16 }}>
-        <span className="muted" style={{ fontSize: '0.9rem' }}>
-          {game.minPlayers === game.maxPlayers
-            ? `${game.maxPlayers} players`
-            : `${game.solo ? 1 : game.minPlayers}–${game.maxPlayers} players`}
-        </span>
+      <header className="lobby-head">
+        <Link to="/" className="icon-button" aria-label="Back to the games"><Icon name="left" /></Link>
+        <h1 className="grow">{game.name}</h1>
         <button type="button" className="primary" onClick={() => setCreating(true)}>
           <Icon name="plus" /> New room
         </button>
+      </header>
+
+      <div className="lobby-art">
+        <GameArt game={game.id} />
       </div>
+      <p className="lobby-tagline">
+        {game.tagline}
+        {' · '}
+        {game.minPlayers === game.maxPlayers
+          ? `${game.maxPlayers} players`
+          : `${game.solo ? 1 : game.minPlayers}–${game.maxPlayers} players`}
+      </p>
 
       {game.solo && (
         <Link to={`/g/${game.id}/solo`} className="card row between" style={{ textDecoration: 'none', color: 'inherit' }}>

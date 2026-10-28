@@ -64,8 +64,10 @@ export function applyTheme(theme: Theme): void {
   else root.dataset.mode = theme.mode;
 
   // Read it back rather than duplicating the colours here, so the CSS stays the one source.
-  const bg = getComputedStyle(root).getPropertyValue('--bg').trim();
-  if (!bg) return;
+  // It has to come from a real computed background: --bg is a color-mix(), and a custom property
+  // reads back as the literal text it was written as, which is not a colour a browser accepts.
+  const bg = document.body && getComputedStyle(document.body).backgroundColor;
+  if (!bg || bg === 'rgba(0, 0, 0, 0)') return;
   for (const meta of document.querySelectorAll('meta[name="theme-color"]')) meta.remove();
   const meta = document.createElement('meta');
   meta.name = 'theme-color';
