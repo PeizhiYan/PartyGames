@@ -8,6 +8,8 @@ import { AuthProvider } from './hooks/useAuth';
 // Imported for its side effect: it has to catch `beforeinstallprompt`, which fires once and early.
 import './hooks/useInstall';
 import { backendInitError } from './services';
+// Imported for its side effect: it puts the saved theme on <html> before the first paint.
+import './lib/theme';
 import './styles/global.css';
 
 registerSW({ immediate: true });

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import InstallCard from '../components/InstallCard';
+import ThemePicker from '../components/ThemePicker';
 import Avatar from '../components/ui/Avatar';
 import Icon from '../components/ui/Icon';
 import { useCurrentUser } from '../hooks/useAuth';
@@ -26,6 +27,8 @@ export default function SettingsPage() {
           <Icon name="logout" size={18} /> Sign out
         </button>
       </section>
+
+      <ThemePicker />
 
       <InstallCard />
 
