@@ -39,7 +39,7 @@ export default function LoginPage() {
       <div className="login-card">
         <img src="/icon.svg" alt="" width={116} height={116} />
         <h1>PartyGames</h1>
-        <p className="muted">Gomoku and a Monopoly bank, for you and your friends.</p>
+        <p className="muted">4 You and Your Happy Friends :)</p>
         <button type="button" className="google-button" onClick={signIn} disabled={busy}>
           {GOOGLE_G} {busy ? 'Signing in…' : 'Sign in with Google'}
         </button>
