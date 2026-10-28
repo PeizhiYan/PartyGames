@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { findGame } from '../domain/games';
 import { activePlayers, standing } from '../domain/rooms';
 import type { RoomSummary } from '../domain/types';
+import { useOnline } from '../hooks/useOnline';
 import { backend } from '../services';
 import { errorMessage } from '../services/errors';
 import { timeAgo } from '../lib/format';
@@ -27,6 +28,7 @@ export default function RoomList({ rooms, uid, showGame }: {
   const navigate = useNavigate();
   const toast = useToast();
   const [busy, setBusy] = useState('');
+  const online = useOnline();
 
   async function ask(room: RoomSummary) {
     setBusy(room.id);
@@ -52,7 +54,7 @@ export default function RoomList({ rooms, uid, showGame }: {
             <button
               type="button"
               className="room-row grow"
-              disabled={busy === room.id || where === 'full' || where === 'requested'}
+              disabled={busy === room.id || where === 'full' || where === 'requested' || (!inside && !online)}
               onClick={() => (inside ? navigate(`/g/${room.game}/${room.id}`) : ask(room))}
             >
               <span className="game-card-emoji" style={{ width: 40, height: 40, fontSize: '1.2rem', margin: 0 }} aria-hidden>

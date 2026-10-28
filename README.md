@@ -56,8 +56,11 @@ on the game's own screen.
 - **Sign-in with Google.** Registration can be open to anyone or closed to an invite list.
 - **Users** (admin only) – open or close registration, invite people by email, and remove an
   account, which locks them out and deletes their rooms.
-- **Installable**: standalone display, its own icon, no browser chrome, no pinch-zoom or
-  pull-to-refresh, no edge-swipe navigation in the installed app. The home page and Settings offer
+- **Installable and playable offline**: standalone display, its own icon, no browser chrome, no
+  pinch-zoom or pull-to-refresh, no edge-swipe navigation in the installed app. The whole app
+  shell is precached, so **Gomoku against the computer works with no connection at all** — the
+  board and the AI are local TypeScript and never touch the backend. Rooms need the server (every
+  move is a transaction), so the app says so and stops offering what cannot work. The home page and Settings offer
   an **Install** button where the browser supports one, and the Share → Add to Home Screen steps on
   iOS Safari, which has no install dialog of its own (`src/hooks/useInstall.ts`).
 - **Themes** – six highlight colours (Sunset, Rose, Violet, Ocean, Forest, Graphite) and
