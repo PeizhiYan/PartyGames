@@ -79,7 +79,7 @@ export interface GameDefinition<S, A> {
   id: GameId;
   name: string;
   tagline: string;
-  /** Emoji shown on the game console's screen. */
+  /** Emoji shown on the game's card and in the room list. */
   emoji: string;
   minPlayers: number;
   maxPlayers: number;

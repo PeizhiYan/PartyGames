@@ -2,17 +2,17 @@
   <defs>
     <clipPath id="tile"><rect width="512" height="512" rx="112"/></clipPath>
 
-    <!-- Background: party violet lifting out of midnight, lit from the top left -->
+    <!-- Background: bright orange burning down into a deep ember, lit from the top left -->
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#9b6cff"/>
-      <stop offset="0.5" stop-color="#5b36c8"/>
-      <stop offset="1" stop-color="#140b28"/>
+      <stop offset="0" stop-color="#ffbe5e"/>
+      <stop offset="0.45" stop-color="#f7761f"/>
+      <stop offset="1" stop-color="#b23c06"/>
     </linearGradient>
     <radialGradient id="glow" cx="0.2" cy="0.1" r="0.8">
-      <stop offset="0" stop-color="#ffd9f3" stop-opacity="0.55"/>
-      <stop offset="1" stop-color="#ffd9f3" stop-opacity="0"/>
+      <stop offset="0" stop-color="#fff0d6" stop-opacity="0.6"/>
+      <stop offset="1" stop-color="#fff0d6" stop-opacity="0"/>
     </radialGradient>
-    <!-- Sweeping light bands, like confetti streamers caught in a spotlight -->
+    <!-- Sweeping light bands, like streamers caught in a spotlight -->
     <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
       <stop offset="0.45" stop-color="#ffffff" stop-opacity="0.85"/>
@@ -22,75 +22,62 @@
     <filter id="crest" x="-25%" y="-25%" width="150%" height="150%"><feGaussianBlur stdDeviation="8"/></filter>
     <filter id="drop" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="12"/></filter>
 
-    <!-- The console: a handheld, held in both hands -->
-    <path id="body" d="M162 108 H350 A46 46 0 0 1 396 154 V358 A46 46 0 0 1 350 404 H162 A46 46 0 0 1 116 358 V154 A46 46 0 0 1 162 108 Z"/>
-    <linearGradient id="shell" x1="0" y1="0" x2="0.5" y2="1">
-      <stop offset="0" stop-color="#ffffff"/>
-      <stop offset="0.55" stop-color="#f2ecff"/>
-      <stop offset="1" stop-color="#cfc2ee"/>
+    <!-- The controller: two grips either side of a wide body, drawn as one symmetrical outline -->
+    <path id="body" d="M256 170
+      C306 170 350 177 376 191 C410 209 420 244 412 284
+      C404 326 390 362 366 376 C344 389 322 380 314 356
+      C306 332 298 314 286 306 C277 300 268 298 256 298
+      C244 298 235 300 226 306 C214 314 206 332 198 356
+      C190 380 168 389 146 376 C122 362 108 326 100 284
+      C92 244 102 209 136 191 C162 177 206 170 256 170 Z"/>
+    <linearGradient id="shell" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0" stop-color="#fffdf8"/>
+      <stop offset="0.55" stop-color="#f7ead6"/>
+      <stop offset="1" stop-color="#d9c3a4"/>
     </linearGradient>
-    <linearGradient id="screenGlass" x1="0" y1="0" x2="0.6" y2="1">
-      <stop offset="0" stop-color="#2a1b52"/>
-      <stop offset="1" stop-color="#0d0720"/>
-    </linearGradient>
-    <radialGradient id="screenGlow" cx="0.5" cy="0.5" r="0.6">
-      <stop offset="0" stop-color="#7cf0ff" stop-opacity="0.45"/>
-      <stop offset="1" stop-color="#7cf0ff" stop-opacity="0"/>
-    </radialGradient>
   </defs>
 
   <g clip-path="url(#tile)">
     <rect width="512" height="512" fill="url(#bg)"/>
     <rect width="512" height="512" fill="url(#glow)"/>
-    <!-- light folds flowing diagonally behind the console -->
+    <!-- light folds flowing diagonally behind the controller -->
     <path d="M-80 390 C 70 280, 170 360, 270 260 S 440 100, 600 40 L600 160 C 450 200, 360 310, 270 360 S 70 440, -80 530 Z"
-          fill="#0d0620" opacity="0.38" filter="url(#soft)"/>
+          fill="#8a3406" opacity="0.4" filter="url(#soft)"/>
     <path d="M-80 300 C 50 210, 170 280, 270 180 S 440 20, 600 -20 L600 20 C 450 60, 360 180, 270 230 S 60 310, -80 380 Z"
           fill="url(#sheen)" opacity="0.26" filter="url(#crest)"/>
     <path d="M-80 540 C 90 450, 210 500, 310 410 S 480 260, 600 230 L600 270 C 470 310, 380 450, 290 480 S 80 540, -80 600 Z"
           fill="url(#sheen)" opacity="0.14" filter="url(#crest)"/>
   </g>
 
-  <!-- console, kept inside the maskable safe zone -->
-  <g>
-    <ellipse cx="256" cy="414" rx="112" ry="14" fill="#0b0518" opacity="0.42" filter="url(#drop)"/>
+  <!-- controller, scaled up around the centre but kept inside the maskable safe zone -->
+  <g transform="translate(256 256) scale(1.12) translate(-256 -256)">
+    <ellipse cx="256" cy="392" rx="120" ry="15" fill="#5c2106" opacity="0.4" filter="url(#drop)"/>
     <use href="#body" fill="url(#shell)"/>
 
-    <!-- screen -->
-    <rect x="150" y="142" width="212" height="140" rx="18" fill="#b9a9e0"/>
-    <rect x="156" y="148" width="200" height="128" rx="14" fill="url(#screenGlass)"/>
-    <rect x="156" y="148" width="200" height="128" rx="14" fill="url(#screenGlow)"/>
-    <!-- three pips on the screen: a game in progress -->
-    <g fill="#ffd43b">
-      <circle cx="212" cy="212" r="15"/>
-      <circle cx="256" cy="212" r="15" fill="#ff5d8f"/>
-      <circle cx="300" cy="212" r="15" fill="#4ad9c0"/>
-    </g>
-    <!-- glass catch light -->
-    <path d="M156 162 A14 14 0 0 1 170 148 H250 L176 276 H170 A14 14 0 0 1 156 262 Z" fill="#ffffff" opacity="0.14"/>
-
     <!-- D-pad -->
-    <g fill="#4b3a7a">
-      <rect x="166" y="320" width="66" height="24" rx="11"/>
-      <rect x="187" y="299" width="24" height="66" rx="11"/>
+    <g fill="#43301f">
+      <rect x="166" y="228" width="62" height="24" rx="11"/>
+      <rect x="185" y="209" width="24" height="62" rx="11"/>
     </g>
-    <circle cx="199" cy="332" r="6" fill="#6a56a3"/>
+    <circle cx="197" cy="240" r="5.5" fill="#60472f"/>
 
-    <!-- action buttons -->
-    <circle cx="346" cy="318" r="19" fill="#ff5d8f"/>
-    <circle cx="346" cy="318" r="19" fill="none" stroke="#ffffff" stroke-width="3" opacity="0.6"/>
-    <circle cx="306" cy="352" r="19" fill="#4ad9c0"/>
-    <circle cx="306" cy="352" r="19" fill="none" stroke="#ffffff" stroke-width="3" opacity="0.6"/>
-
-    <!-- start / select -->
-    <g fill="#9f90c6">
-      <rect x="232" y="382" width="22" height="8" rx="4"/>
-      <rect x="262" y="382" width="22" height="8" rx="4"/>
+    <!-- face buttons, in a diamond -->
+    <g stroke="#ffffff" stroke-width="3" stroke-opacity="0.55">
+      <circle cx="322" cy="211" r="14.5" fill="#ffc93c"/>
+      <circle cx="351" cy="240" r="14.5" fill="#e8453c"/>
+      <circle cx="322" cy="269" r="14.5" fill="#2fbf71"/>
+      <circle cx="293" cy="240" r="14.5" fill="#2f7df4"/>
     </g>
 
-    <!-- shell outline and highlights -->
-    <use href="#body" fill="none" stroke="#ffffff" stroke-width="8" stroke-linejoin="round" opacity="0.9"/>
-    <path d="M140 170 C140 240 142 320 160 376" fill="none" stroke="#ffffff" stroke-width="7"
+    <!-- start and select -->
+    <g fill="#a08a72">
+      <rect x="234" y="258" width="20" height="8" rx="4"/>
+      <rect x="260" y="258" width="20" height="8" rx="4"/>
+    </g>
+
+    <!-- shell outline and the highlight along the top-left edge -->
+    <use href="#body" fill="none" stroke="#ffffff" stroke-width="8" stroke-linejoin="round" opacity="0.92"/>
+    <path d="M142 205 C 124 219, 114 246, 117 276" fill="none" stroke="#ffffff" stroke-width="7"
           stroke-linecap="round" opacity="0.55"/>
   </g>
 </svg>
