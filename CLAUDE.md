@@ -140,6 +140,23 @@ Three things that were real bugs in the original or in this port, and have tests
   that side effect. Moving the listener into a component loses the event and the Install button
   never appears. iOS Safari never fires it at all and needs the written-out share-sheet steps.
 
+## Offline
+
+The service worker precaches the whole shell, so the app opens with no connection. What works then:
+
+| | Offline |
+|---|---|
+| Opening the app, signing in *again* | Yes — Firebase Auth persists the user, and `useAuth` falls back to the last access answer it cached in localStorage |
+| Gomoku vs the computer | Yes, entirely. `GomokuSoloPage` imports nothing from `src/services` |
+| Room lists | Stale. Firestore serves its cache and does *not* raise an error, so what is on screen may be gone |
+| Anything in a room | No. Every move is a transaction against the server |
+| First ever sign-in | No. Google sign-in needs the network |
+
+`useOnline()` + `<OfflineNotice />` exist to explain that and to disable the actions that cannot
+work. `navigator.onLine` only says the device has *a* network, never that Firestore is reachable,
+so it is used to explain and disable — never to decide whether something succeeded. The operations
+that need the server still report their own errors.
+
 ## Testing
 
 ```bash

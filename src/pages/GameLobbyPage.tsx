@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import GameArt from '../components/art/GameArt';
+import OfflineNotice from '../components/OfflineNotice';
 import RoomList from '../components/RoomList';
 import Icon from '../components/ui/Icon';
 import Sheet from '../components/ui/Sheet';
@@ -9,6 +10,7 @@ import { findGame } from '../domain/games';
 import { CODE_LENGTH, defaultRoomName, isPlayer, normalizeCode } from '../domain/rooms';
 import type { GameId } from '../domain/types';
 import { useCurrentUser } from '../hooks/useAuth';
+import { useOnline } from '../hooks/useOnline';
 import { useRooms } from '../hooks/useRooms';
 import { backend } from '../services';
 import { errorMessage } from '../services/errors';
@@ -21,6 +23,7 @@ export default function GameLobbyPage() {
   const navigate = useNavigate();
   const toast = useToast();
   const { rooms, error } = useRooms((game?.id ?? 'gomoku') as GameId, user.uid);
+  const online = useOnline();
 
   const [creating, setCreating] = useState(false);
   const [name, setName] = useState('');
@@ -77,10 +80,12 @@ export default function GameLobbyPage() {
       <header className="lobby-head">
         <Link to="/" className="icon-button" aria-label="Back to the games"><Icon name="left" /></Link>
         <h1 className="grow">{game.name}</h1>
-        <button type="button" className="primary" onClick={() => setCreating(true)}>
+        <button type="button" className="primary" disabled={!online} onClick={() => setCreating(true)}>
           <Icon name="plus" /> New room
         </button>
       </header>
+
+      <OfflineNotice suggestSolo={!game.solo} />
 
       <div className="lobby-art">
         <GameArt game={game.id} />
@@ -124,7 +129,7 @@ export default function GameLobbyPage() {
           <button
             type="button"
             className="primary"
-            disabled={busy || normalizeCode(code).length < CODE_LENGTH}
+            disabled={busy || !online || normalizeCode(code).length < CODE_LENGTH}
             onClick={joinByCode}
           >
             Join

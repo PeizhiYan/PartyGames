@@ -1,3 +1,4 @@
+import OfflineNotice from '../components/OfflineNotice';
 import RoomList from '../components/RoomList';
 import { GAMES } from '../domain/games';
 import type { GameId } from '../domain/types';
@@ -19,6 +20,8 @@ export default function RoomsPage() {
           <p className="muted" style={{ margin: 0, fontSize: '0.9rem' }}>What's going on right now.</p>
         </div>
       </header>
+      <OfflineNotice />
+
       <section className="card">
         {error && <p className="error">{error}</p>}
         {rooms === null
