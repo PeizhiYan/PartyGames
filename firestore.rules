@@ -5,9 +5,9 @@ rules_version = '2';
 // gets its own `match /apps/<appId>` block; anything not matched is denied. Sign-in (Firebase Auth)
 // is shared too: a person has the same uid in every app.
 //
-// IMPORTANT: this file must also carry the blocks for the other apps in the project (CoffeeGlass
-// lives under /apps/coffeeglass). Copy them in from that repo before deploying, or deploying from
-// here will take their rules away.
+// IMPORTANT: the CoffeeGlass block below is a verbatim copy of ../CoffeeGlass/firestore.rules.
+// Deploying from either repo replaces the rules for BOTH apps, so whenever one changes, copy it
+// across before deploying — otherwise the other app silently drops back to an older ruleset.
 service cloud.firestore {
   match /databases/{database}/documents {
 
@@ -16,6 +16,112 @@ service cloud.firestore {
     }
     function email() {
       return request.auth.token.email.lower();
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // CoffeeGlass (coffee-glass-fd807.web.app)
+    //  - Anyone can sign in with Google. Who can add data depends on config/access.openSignup:
+    //    open -> any verified Google account; closed -> only emails in the allowlist (and the admin).
+    //  - Each user can only read/write their own users/{uid} tree. Reading and deleting it is always
+    //    allowed, so people can still export or erase their data after sign-ups close.
+    //  - Only the admin can manage the allowlist and the sign-up switch.
+    //  - members/{uid} records each user's email, first/last visit and usage counts (never log
+    //    content), so the admin can list users. Each user writes only their own; only the admin lists them.
+    //  - Writes are shape-checked so a buggy or malicious client can't store junk.
+    // ---------------------------------------------------------------------------------------------
+    match /apps/coffeeglass {
+      function isAdmin() {
+        return signedIn() && email() == 'yanpeizhi2008@gmail.com';
+      }
+      function openSignup() {
+        let cfg = /databases/$(database)/documents/apps/coffeeglass/config/access;
+        return exists(cfg) && get(cfg).data.get('openSignup', false) == true;
+      }
+      function isAllowed() {
+        return isAdmin()
+          || (signedIn() && (openSignup()
+            || exists(/databases/$(database)/documents/apps/coffeeglass/allowlist/$(email()))));
+      }
+      function isSelf(uid) {
+        return signedIn() && request.auth.uid == uid;
+      }
+      function isOwner(uid) {
+        return isAllowed() && request.auth.uid == uid;
+      }
+
+      function optionalNote(d) {
+        return !('note' in d) || (d.note is string && d.note.size() <= 500);
+      }
+      function validIntake(d) {
+        return d.keys().hasOnly(['time', 'drink', 'size', 'cups', 'caffeineMg', 'note'])
+          && d.time is timestamp
+          && d.drink in ['coffee', 'tea', 'energy', 'cola']
+          && d.size in ['small', 'medium', 'large']
+          && d.cups is number && d.cups > 0 && d.cups <= 20
+          && d.caffeineMg is number && d.caffeineMg >= 0 && d.caffeineMg <= 3000
+          && optionalNote(d);
+      }
+      function score(x) {
+        return x is int && x >= 1 && x <= 5;
+      }
+      function validMood(d) {
+        return d.keys().hasOnly(['time', 'energy', 'mood', 'symptoms', 'note'])
+          && d.time is timestamp
+          && score(d.energy) && score(d.mood)
+          && d.symptoms is list && d.symptoms.size() <= 10
+          && optionalNote(d);
+      }
+
+      match /config/access {
+        // Public: the login page shows whether sign-up is open. Only the admin flips it.
+        allow get: if true;
+        allow create, update: if isAdmin()
+          && request.resource.data.keys().hasOnly(['openSignup', 'updatedAt', 'updatedBy'])
+          && request.resource.data.openSignup is bool;
+        allow delete: if isAdmin();
+      }
+
+      match /members/{uid} {
+        function count(d, k) {
+          return !(k in d) || (d[k] is int && d[k] >= 0);
+        }
+        function validMember(d) {
+          return d.keys().hasOnly(['email', 'firstSeen', 'lastSeen', 'visits', 'activeDays', 'drinks', 'feels',
+                                   'lastLogAt', 'installed', 'language'])
+            && d.email == email()
+            && d.firstSeen is timestamp
+            && d.lastSeen == request.time
+            && count(d, 'visits') && count(d, 'activeDays') && count(d, 'drinks') && count(d, 'feels')
+            && (!('lastLogAt' in d) || d.lastLogAt is timestamp)
+            && (!('installed' in d) || d.installed is bool)
+            && (!('language' in d) || d.language in ['en', 'zh', 'ja']);
+        }
+        allow get: if isSelf(uid) || isAdmin();
+        allow list: if isAdmin();
+        allow create, update: if isOwner(uid) && validMember(request.resource.data);
+        allow delete: if isSelf(uid) || isAdmin();
+      }
+
+      match /allowlist/{entry} {
+        // A user may check their own entry; the admin manages the list.
+        allow get: if signedIn() && (entry == email() || isAdmin());
+        allow list, create, update, delete: if isAdmin();
+      }
+
+      match /users/{uid} {
+        // Holds { settings }.
+        allow read, delete: if isSelf(uid);
+        allow create, update: if isOwner(uid);
+
+        match /intakes/{id} {
+          allow read, delete: if isSelf(uid);
+          allow create, update: if isOwner(uid) && validIntake(request.resource.data);
+        }
+        match /moods/{id} {
+          allow read, delete: if isSelf(uid);
+          allow create, update: if isOwner(uid) && validMood(request.resource.data);
+        }
+      }
     }
 
     // ---------------------------------------------------------------------------------------------

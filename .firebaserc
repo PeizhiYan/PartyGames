@@ -1,5 +1,15 @@
 {
   "projects": {
     "default": "vibed-apps"
-  }
+  },
+  "targets": {
+    "vibed-apps": {
+      "hosting": {
+        "partygames": [
+          "party-games-38541"
+        ]
+      }
+    }
+  },
+  "etags": {}
 }
