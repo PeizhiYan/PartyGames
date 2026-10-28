@@ -65,6 +65,14 @@ One document per room, holding the players, the join queue, the game state, and 
 | The waves along the bottom | `src/components/layout/Waves.tsx` |
 | Accent + light/dark choice | `src/lib/theme.ts` |
 
+## Everything in a room is public
+
+A room is one document and every player in it reads all of it, so there is **nowhere to keep a
+secret**. Fine for Gomoku and for MonopolyBuddy; it rules out card games as the model stands — a
+hidden hand in the room document is readable by anyone in the room, whatever the UI does. UNO and
+Mahjong (both on the roadmap) need either per-player documents guarded by rules, or dealing from
+a server. Decide that before the first card game, not during it.
+
 ## Adding a game
 
 1. `src/domain/<game>/game.ts` exporting a `GameDefinition`.

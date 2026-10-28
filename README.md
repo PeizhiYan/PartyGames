@@ -69,6 +69,49 @@ on the game's own screen.
   of slow waves drifts along the bottom of every screen, so picking a colour changes the whole app
   rather than just its buttons.
 
+## Roadmap
+
+### More games
+
+| Game | Players | Notes |
+|---|---|---|
+| **Chinese chess** (象棋) | 2 | Closest to what exists. Same shape as Gomoku: a board, alternating turns, a reducer that validates a move. Piece movement rules are the bulk of the work. |
+| **Chess** | 2 | As above, plus castling, en passant and promotion — the awkward corners are all in the rules, not the plumbing. |
+| **Yahtzee** | 2–6 | Dice and a scorecard. `throwDice()` and the `Dice` component already exist; the interesting part is the scoring table and keeping it honest about which categories are still open. |
+| **UNO** | 2–10 | Needs hidden hands — see below. |
+| **Mahjong** (麻将) | 4 | Hidden hands too, and by far the most rules. Worth deciding up front which variant, since 国标 / 广东 / 日麻 score completely differently. |
+
+### The thing that blocks UNO and Mahjong
+
+Everything today is **open information**. A room is one document holding the whole game state, and
+every player in the room can read all of it — which is fine for Gomoku (the board is public
+anyway) and for MonopolyBuddy (balances are public, or hidden only as a courtesy).
+
+A card game is different: if a hand lives in the room document, anyone can read the document and
+see it. Hiding it in the UI changes nothing, because the data is already on their device. Making
+that genuinely secret needs one of:
+
+- **server-side filtering** — a Cloud Function or a real server that sends each player only their
+  own hand, which means game logic moving off the client; or
+- **per-player documents** (`rooms/{id}/hands/{uid}`) with security rules that let only that uid
+  read them, and a deck the server deals from.
+
+Either is a real change to the room layer, not just a new reducer. Worth doing once, before the
+first card game rather than during it.
+
+### Backend portability
+
+`src/adapters/selfhost/` doesn't exist yet. The seam does — the app talks to 24 methods in
+`src/services/types.ts` and nothing outside `src/adapters/firebase/` imports `firebase` — so
+moving to a self-hosted Node server (or Supabase, or PocketBase) is one adapter plus one `case` in
+`src/services/index.ts`. `src/adapters/memory/index.ts` is a complete worked example in ~330
+lines, and `src/adapters/memory/rooms.test.ts` can be pointed at any new adapter to check it.
+
+Because the game rules are pure functions in `src/domain/`, a Node server could import the very
+same reducers rather than reimplementing them. The likely middle path is self-hosting the data and
+keeping Firebase Auth for identity, verifying ID tokens server-side — that avoids reimplementing
+Google OAuth, which is the genuinely unpleasant part.
+
 ## Cloud-agnostic by design
 
 The app talks to one small set of interfaces (`src/services/types.ts`) — `AuthService`, `RoomRepo`,
