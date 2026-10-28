@@ -1,26 +1,52 @@
-/* Theme tokens. Light by default; dark follows the system setting. */
+/*
+ * Theme tokens.
+ *
+ * Two independent choices, both stored per device and applied as attributes on <html> by
+ * src/lib/theme.ts: `data-accent` picks the highlight colour, `data-mode` forces light or dark
+ * (absent = follow the system). The default is a white background with an orange highlight.
+ *
+ * Every accent declares the same four values — its light pair and its dark pair — and the mode
+ * blocks below decide which pair is live. Adding an accent is therefore one four-value rule here
+ * plus one entry in ACCENTS in src/lib/theme.ts.
+ */
 :root {
-  --bg: #f6f3ff;
-  --surface: #fffdff;
-  --text: #1a1030;
-  --text-muted: #574a74;
-  --border: #e4ddf6;
-  --accent: #6d45e8;
-  --accent-soft: #ece4ff;
-  --on-accent: #fffdff;
+  --a-l: #c2410c;  /* sunset, the default */
+  --a-soft-l: #ffedd5;
+  --a-d: #fb923c;
+  --a-soft-d: #43240f;
+}
+:root[data-accent='violet']   { --a-l: #6d45e8; --a-soft-l: #ece4ff; --a-d: #b39bff; --a-soft-d: #2d2449; }
+:root[data-accent='ocean']    { --a-l: #0369a1; --a-soft-l: #e0f2fe; --a-d: #7dd3fc; --a-soft-d: #0b3350; }
+:root[data-accent='forest']   { --a-l: #15803d; --a-soft-l: #dcfce7; --a-d: #6ee7a8; --a-soft-d: #123320; }
+:root[data-accent='rose']     { --a-l: #be123c; --a-soft-l: #ffe4e6; --a-d: #fda4af; --a-soft-d: #46121f; }
+:root[data-accent='graphite'] { --a-l: #3f4a5a; --a-soft-l: #eaedf2; --a-d: #c2cddc; --a-soft-d: #2a313c; }
+
+/* Light. Three tiers of surface: --bg behind everything, --surface for cards, --inset for the
+   sunken bits that sit *inside* a card (chips, badges, segmented controls). They have to stay
+   distinguishable, which is why a white page still needs --inset to be off-white. */
+:root {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --inset: #f5f2ee;
+  --text: #1b1512;
+  --text-muted: #6d6159;
+  --border: #e8e2db;
+  --accent: var(--a-l);
+  --accent-soft: var(--a-soft-l);
+  --on-accent: #ffffff;
   --danger: #c2185b;
   --success: #0f8f6a;
   --warning: #b45309;
   --gold: #c08a00;
   --radius: 14px;
-  --shadow: 0 1px 2px rgb(40 20 80 / 0.05), 0 6px 20px rgb(40 20 80 / 0.06);
+  --shadow: 0 1px 2px rgb(40 25 10 / 0.05), 0 6px 20px rgb(40 25 10 / 0.07);
   /* Springy easing with a little overshoot, for the sliding glass lenses (tab bar, segmented controls). */
   --spring: cubic-bezier(0.34, 1.4, 0.5, 1);
-  --lens: rgb(255 255 255 / 0.78);
+  --lens: rgb(255 255 255 / 0.8);
   --lens-edge: rgb(255 255 255 / 0.95);
   /* Translucent "glass" panels (sidebar, tab bar). */
-  --glass: color-mix(in srgb, var(--surface) 58%, transparent);
-  --glass-edge: rgb(255 255 255 / 0.55);
+  --glass: color-mix(in srgb, var(--surface) 62%, transparent);
+  --glass-edge: rgb(255 255 255 / 0.6);
   --glass-sheen: rgb(255 255 255 / 0.5);
   /* Gomoku board */
   --board-wood-1: #e8c88a;
@@ -28,16 +54,24 @@
   --board-line: rgb(60 35 10 / 0.42);
   color-scheme: light;
 }
+
+/*
+ * Dark. Declared twice on purpose: once for "follow the system" (which `data-mode="light"` opts
+ * out of) and once for "forced dark". They have to stay in step — change one, change the other.
+ * `light-dark()` would collapse these into one block, but it needs iOS 17.5+ and this app is for
+ * whatever phone a friend happens to own.
+ */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #120e1e;
-    --surface: #1d1830;
-    --text: #ece6ff;
-    --text-muted: #a99cc9;
-    --border: #332b4e;
-    --accent: #b39bff;
-    --accent-soft: #2d2449;
-    --on-accent: #16112a;
+  :root:not([data-mode='light']) {
+    --bg: #141210;
+    --surface: #1f1b18;
+    --inset: #2a2420;
+    --text: #f2ece6;
+    --text-muted: #ab9f95;
+    --border: #352e29;
+    --accent: var(--a-d);
+    --accent-soft: var(--a-soft-d);
+    --on-accent: #1a1008;
     --danger: #ff8fb4;
     --success: #4fd1a5;
     --warning: #f0a537;
@@ -45,7 +79,7 @@
     --shadow: none;
     --lens: rgb(255 255 255 / 0.13);
     --lens-edge: rgb(255 255 255 / 0.22);
-    --glass: color-mix(in srgb, var(--surface) 55%, transparent);
+    --glass: color-mix(in srgb, var(--surface) 58%, transparent);
     --glass-edge: rgb(255 255 255 / 0.12);
     --glass-sheen: rgb(255 255 255 / 0.1);
     --board-wood-1: #b98c4e;
@@ -53,6 +87,31 @@
     --board-line: rgb(20 10 0 / 0.5);
     color-scheme: dark;
   }
+}
+:root[data-mode='dark'] {
+  --bg: #141210;
+  --surface: #1f1b18;
+  --inset: #2a2420;
+  --text: #f2ece6;
+  --text-muted: #ab9f95;
+  --border: #352e29;
+  --accent: var(--a-d);
+  --accent-soft: var(--a-soft-d);
+  --on-accent: #1a1008;
+  --danger: #ff8fb4;
+  --success: #4fd1a5;
+  --warning: #f0a537;
+  --gold: #f2c744;
+  --shadow: none;
+  --lens: rgb(255 255 255 / 0.13);
+  --lens-edge: rgb(255 255 255 / 0.22);
+  --glass: color-mix(in srgb, var(--surface) 58%, transparent);
+  --glass-edge: rgb(255 255 255 / 0.12);
+  --glass-sheen: rgb(255 255 255 / 0.1);
+  --board-wood-1: #b98c4e;
+  --board-wood-2: #8d6433;
+  --board-line: rgb(20 10 0 / 0.5);
+  color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -189,7 +248,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
   display: inline-grid;
   grid-auto-flow: column;
   grid-auto-columns: 1fr;
-  background: var(--bg);
+  background: var(--inset);
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: var(--pad);
@@ -284,7 +343,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .list { list-style: none; margin: 0; padding: 0; }
 .list > li { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border); }
 .list > li:last-child { border-bottom: none; }
-.badge { font-size: 0.72rem; padding: 2px 9px; border-radius: 999px; background: var(--bg); color: var(--text-muted); white-space: nowrap; font-weight: 600; }
+.badge { font-size: 0.72rem; padding: 2px 9px; border-radius: 999px; background: var(--inset); color: var(--text-muted); white-space: nowrap; font-weight: 600; }
 .badge-accent { background: var(--accent-soft); color: var(--accent); }
 .badge-live { background: color-mix(in srgb, var(--success) 18%, transparent); color: var(--success); }
 .badge-gold { background: color-mix(in srgb, var(--gold) 20%, transparent); color: var(--gold); }
@@ -355,7 +414,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .action-grid button { flex-direction: column; gap: 2px; min-height: 76px; border-radius: var(--radius); font-size: 0.85rem; font-weight: 600; }
 .action-grid button span:first-child { font-size: 1.4rem; }
 .player-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
-.player-chip { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 12px; background: var(--bg); min-width: 0; }
+.player-chip { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 12px; background: var(--inset); min-width: 0; }
 .player-chip .token { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; border: 1px solid; font-size: 1.1rem; flex: none; }
 .player-chip small { display: block; color: var(--text-muted); font-size: 0.75rem; }
 .player-chip b { font-variant-numeric: tabular-nums; }
@@ -392,11 +451,11 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .entries { list-style: none; margin: 0; padding: 0; }
 .entries > li { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
 .entries > li:last-child { border-bottom: none; }
-.entry-kind { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--bg); flex: none; }
+.entry-kind { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: var(--inset); flex: none; }
 .entry-amount { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .entry-amount.out { color: var(--danger); }
 .entry-amount.in { color: var(--success); }
-.rank-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--radius); background: var(--bg); margin-bottom: 8px; }
+.rank-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--radius); background: var(--inset); margin-bottom: 8px; }
 .rank-row.winner { background: color-mix(in srgb, var(--gold) 16%, transparent); }
 .rank-medal { font-size: 1.4rem; width: 32px; text-align: center; flex: none; }
 
@@ -423,6 +482,12 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
   margin: 0 auto;
   padding: calc(8px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
 }
+/*
+ * The sticky header has to be fully opaque. It used to fade out over its bottom 30%
+ * (`linear-gradient(var(--bg) 70%, transparent)`), which meant content scrolling underneath
+ * showed faintly through the bar — on a phone that reads as the top of the screen being blurred.
+ * The soft edge now lives in ::after, below the bar, where there is nothing to show through.
+ */
 .room-bar {
   display: flex;
   align-items: center;
@@ -431,7 +496,17 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
   position: sticky;
   top: 0;
   z-index: 5;
-  background: linear-gradient(var(--bg) 70%, transparent);
+  background: var(--bg);
+}
+.room-bar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 14px;
+  background: linear-gradient(var(--bg), transparent);
+  pointer-events: none;
 }
 .room-bar .room-code { font-size: 1rem; }
 
@@ -502,3 +577,20 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 @keyframes undo-drain { from { transform: scaleX(1); } to { transform: scaleX(0); } }
 .undo-bar > *:not(.undo-progress) { position: relative; }
 @media (prefers-reduced-motion: reduce) { .undo-progress { animation: none; opacity: 0.5; } }
+
+/* Theme picker */
+.accent-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+.accent-swatch {
+  min-height: 0;
+  aspect-ratio: 1;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  box-shadow: inset 0 -2px 6px rgb(0 0 0 / 0.18);
+}
+.accent-swatch:hover:not(:disabled) { border-color: transparent; }
+.accent-swatch.selected {
+  border-color: var(--surface);
+  box-shadow: inset 0 -2px 6px rgb(0 0 0 / 0.18), 0 0 0 2px var(--text);
+}
+@media (max-width: 380px) { .accent-grid { grid-template-columns: repeat(3, 1fr); } }

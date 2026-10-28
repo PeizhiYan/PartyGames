@@ -61,6 +61,7 @@ One document per room, holding the players, the join queue, the game state, and 
 | Firestore transactions, queries, presence | `src/adapters/firebase/rooms.ts` |
 | The dev backend (two tabs can play each other) | `src/adapters/memory/index.ts` |
 | Theme tokens, every shared class | `src/styles/global.css` |
+| Accent + light/dark choice | `src/lib/theme.ts` |
 
 ## Adding a game
 
@@ -106,6 +107,18 @@ Three things that were real bugs in the original or in this port, and have tests
   app in `vibed-apps`, and only this repo deploys it — CoffeeGlass deploys `--only hosting` and
   keeps its copy just to run its own rules tests. A new app's block goes here, not in its own repo.
   See "Owning the rules" in `README.md`.
+- **Theming is two attributes on `<html>`**: `data-accent` and `data-mode` (absent = follow the
+  system), set by `src/lib/theme.ts`, which `main.tsx` imports for the side effect so the first
+  paint is already right. Each accent declares a light pair and a dark pair (`--a-l`/`--a-d`); the
+  mode blocks choose between them. The dark token block is written twice — once under
+  `prefers-color-scheme` and once under `[data-mode='dark']` — and the two must stay in step.
+  `light-dark()` would merge them but needs iOS 17.5+.
+- **`--bg`, `--surface` and `--inset` are three different tiers** and the default theme makes the
+  first two the same white. Anything sunken *inside* a card (chips, badges, the segmented control)
+  must use `--inset`, or it disappears.
+- **A sticky bar must be opaque.** `.room-bar` used to fade out over its own bottom edge, so
+  content scrolling under it showed through and the top of the screen looked blurred on a phone.
+  The soft edge belongs in `::after`, below the bar.
 - **Dice** are rolled on the device (`throwDice()`) and passed in the action; the reducer only
   checks they're two numbers from 1 to 6.
 - **`beforeinstallprompt` fires once and early**, usually before React has mounted, so
