@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import GomokuBoard from './GomokuBoard';
 import Avatar from '../ui/Avatar';
 import Icon from '../ui/Icon';
@@ -7,6 +8,12 @@ import type { Room } from '../../domain/types';
 import { useGameAction } from '../../hooks/useRooms';
 import { firstName } from '../../lib/format';
 
+/**
+ * How long a stone sits on the board, visible only to the person who played it, before it is sent
+ * to the other player. Long enough to catch a mis-tap, short enough not to feel like a wait.
+ */
+const UNDO_WINDOW_MS = 3000;
+
 /** Gomoku against another person, in a room. */
 export default function GomokuRoom({ room, uid }: { room: Room; uid: string }) {
   const state = room.state as GomokuState;
@@ -14,6 +21,37 @@ export default function GomokuRoom({ room, uid }: { room: Room; uid: string }) {
   const mySeat = seatOf(state, uid);
   const ready = bothSeated(state);
   const myTurn = state.outcome === 0 && mySeat !== null && mySeat === state.turn;
+
+  /** A move that has been made but not sent. Nobody else can see it yet. */
+  const [pending, setPending] = useState<{ cell: number; player: Player } | null>(null);
+  const [secondsLeft, setSecondsLeft] = useState(0);
+  const sendTimer = useRef<number>();
+  const tick = useRef<number>();
+
+  const cancel = () => {
+    window.clearTimeout(sendTimer.current);
+    window.clearInterval(tick.current);
+    setPending(null);
+  };
+
+  /** Puts the stone down locally and starts the clock on sending it. */
+  function play(cell: number) {
+    if (!mySeat) return;
+    cancel();
+    setPending({ cell, player: mySeat });
+    setSecondsLeft(Math.round(UNDO_WINDOW_MS / 1000));
+    tick.current = window.setInterval(() => setSecondsLeft((n) => Math.max(0, n - 1)), 1000);
+    sendTimer.current = window.setTimeout(() => {
+      window.clearInterval(tick.current);
+      setPending(null);
+      act({ type: 'place', cell });
+    }, UNDO_WINDOW_MS);
+  }
+
+  // Drop an unsent move if the game ends under it — the opponent resigning, say — and make sure
+  // no timer outlives the screen.
+  useEffect(() => { if (state.outcome !== 0) cancel(); }, [state.outcome]);
+  useEffect(() => cancel, []);
 
   const player = (seat: Player) => {
     const seatUid = seat === 1 ? state.black : state.white;
@@ -58,6 +96,8 @@ export default function GomokuRoom({ room, uid }: { room: Room; uid: string }) {
             <>{outcomeText()}</>
           ) : !ready ? (
             <>Waiting for a second player…</>
+          ) : pending ? (
+            <><span className={`stone-dot ${mySeat === 1 ? 'black' : 'white'}`} aria-hidden /> Move not sent yet</>
           ) : myTurn ? (
             <><span className={`stone-dot ${mySeat === 1 ? 'black' : 'white'}`} aria-hidden /> Your turn</>
           ) : (
@@ -69,12 +109,31 @@ export default function GomokuRoom({ room, uid }: { room: Room; uid: string }) {
 
       <GomokuBoard
         board={state.board}
-        placing={myTurn && !busy ? mySeat : null}
+        placing={myTurn && !busy && !pending ? mySeat : null}
         lastMove={state.moves.length ? state.moves[state.moves.length - 1] : null}
         winLine={state.winLine}
         heat={null}
-        onPlace={(cell) => act({ type: 'place', cell })}
+        pending={pending}
+        onPlace={play}
       />
+
+      {pending && (
+        <div
+          className="undo-bar"
+          role="status"
+          // Keyed by cell so playing somewhere else restarts the bar instead of resuming it.
+          key={pending.cell}
+          style={{ '--undo-ms': `${UNDO_WINDOW_MS}ms` } as CSSProperties}
+        >
+          <span className="undo-progress" aria-hidden />
+          <span className="grow">
+            Sending in <strong className="tabular">{secondsLeft}</strong>…
+          </span>
+          <button type="button" className="small" onClick={cancel}>
+            <Icon name="undo" size={16} /> Take it back
+          </button>
+        </div>
+      )}
 
       {error && <p className="error row center" style={{ marginTop: 10 }}>{error}</p>}
 
