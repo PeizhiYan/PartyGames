@@ -36,8 +36,8 @@ on the game's own screen.
 
 ## Features
 
-- **Gomoku** – a 15×15 board on a canvas that scales to the screen. Tap an intersection to aim, tap
-  again to place (so a mis-tap on a phone costs nothing). The last stone is marked, the winning five
+- **Gomoku** – a 15×15 board on a canvas that scales to the screen. Tap an intersection to play
+  there; with a mouse, a ghost stone follows the pointer. The last stone is marked, the winning five
   is struck through, colours swap each rematch, and the room keeps the score. Against the computer
   there's also **Insight**: the board shaded by what each point is worth.
 - **MonopolyBuddy** – the host sets the starting balance and whether balances are public. Everyone

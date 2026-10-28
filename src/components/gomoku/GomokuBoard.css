@@ -1,4 +1,4 @@
-.gomoku { display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; }
+.gomoku { display: flex; justify-content: center; width: 100%; }
 .gomoku-canvas {
   border-radius: 12px;
   box-shadow: 0 6px 20px rgb(40 20 10 / 0.28);
@@ -6,13 +6,4 @@
   touch-action: none;
   cursor: pointer;
   max-width: 100%;
-}
-.gomoku-confirm {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 36px;
-  flex-wrap: wrap;
-  justify-content: center;
-  font-size: 0.9rem;
 }

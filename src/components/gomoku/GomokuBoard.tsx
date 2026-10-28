@@ -26,20 +26,20 @@ function cssVar(el: HTMLElement, name: string, fallback: string): string {
 /**
  * The board, drawn on a canvas so 225 intersections cost one element instead of 225.
  *
- * Tapping an intersection on a phone is easy to get wrong by a cell, so a tap only *aims*: it puts
- * a translucent stone down and a confirm button appears under the board. Tapping the same
- * intersection again (or the button) plays it.
+ * A tap on an intersection plays there straight away. With a mouse, a translucent stone follows
+ * the pointer so it is clear which intersection a click would land on.
  */
 export default function GomokuBoard({ board, placing, lastMove, winLine, heat, onPlace }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState(0);
-  const [aim, setAim] = useState<number | null>(null);
+  /** Where a mouse is pointing. Stays null on a touchscreen, which has no hover. */
+  const [hover, setHover] = useState<number | null>(null);
+  /** Where the current press started, to tell a tap from a drag across the board. */
+  const pressed = useRef<{ x: number; y: number } | null>(null);
 
-  // Forget the aim when it stops being this player's move. The board arrives as a fresh array on
-  // every snapshot — including an opponent's presence heartbeat — so the board itself is not a
-  // safe thing to watch here; an aimed-at point that gets taken is caught when drawing instead.
-  useEffect(() => { setAim(null); }, [placing]);
+  // Nothing to preview when it isn't this player's move.
+  useEffect(() => { if (!placing) setHover(null); }, [placing]);
 
   useLayoutEffect(() => {
     const wrap = wrapRef.current;
@@ -188,14 +188,8 @@ export default function GomokuBoard({ board, placing, lastMove, winLine, heat, o
       ctx.stroke();
     }
 
-    if (aim !== null && placing && board[aim] === 0) {
-      paintStone(aim, placing, 0.45);
-      const { x, y } = at(aim);
-      ctx.strokeStyle = 'rgba(255,255,255,0.9)';
-      ctx.lineWidth = Math.max(1.5, cell * 0.06);
-      ctx.beginPath();
-      ctx.arc(x, y, cell * (STONE + 0.14), 0, Math.PI * 2);
-      ctx.stroke();
+    if (hover !== null && placing && board[hover] === 0) {
+      paintStone(hover, placing, 0.4);
     }
 
     // Coordinates, drawn in the padding ring.
@@ -209,7 +203,7 @@ export default function GomokuBoard({ board, placing, lastMove, winLine, heat, o
       ctx.textAlign = 'center';
       ctx.fillText(String(SIZE - k), pad * 0.42, p);
     }
-  }, [board, placing, lastMove, winLine, heat, aim, size]);
+  }, [board, placing, lastMove, winLine, heat, hover, size]);
 
   useEffect(() => { draw(); }, [draw]);
 
@@ -225,13 +219,18 @@ export default function GomokuBoard({ board, placing, lastMove, winLine, heat, o
     return idx(row, col);
   }
 
-  function tap(clientX: number, clientY: number) {
-    if (!placing) return;
+  /** A press that ends near where it started is a tap; anything further is a drag, and ignored. */
+  const TAP_SLOP_PX = 12;
+
+  function release(clientX: number, clientY: number) {
+    const from = pressed.current;
+    pressed.current = null;
+    if (!placing || !from) return;
+    if (Math.hypot(clientX - from.x, clientY - from.y) > TAP_SLOP_PX) return;
     const cell = cellAt(clientX, clientY);
     if (cell === null || board[cell] !== 0) return;
-    // Second tap on the same intersection plays it; a tap elsewhere just moves the aim.
-    if (aim === cell) { setAim(null); onPlace(cell); }
-    else setAim(cell);
+    setHover(null);
+    onPlace(cell);
   }
 
   return (
@@ -242,22 +241,16 @@ export default function GomokuBoard({ board, placing, lastMove, winLine, heat, o
         style={{ width: size, height: size }}
         role="img"
         aria-label={`Gomoku board, ${board.filter((s) => s !== 0).length} stones played`}
-        onPointerUp={(e) => tap(e.clientX, e.clientY)}
+        onPointerDown={(e) => { pressed.current = { x: e.clientX, y: e.clientY }; }}
+        onPointerUp={(e) => release(e.clientX, e.clientY)}
+        onPointerCancel={() => { pressed.current = null; }}
+        onPointerMove={(e) => {
+          // Only a real pointing device gets a preview; a finger is already on the spot.
+          if (e.pointerType === 'touch') return;
+          setHover(placing ? cellAt(e.clientX, e.clientY) : null);
+        }}
+        onPointerLeave={() => setHover(null)}
       />
-      <div className="gomoku-confirm" aria-live="polite">
-        {aim !== null && placing ? (
-          <>
-            <span className="muted">
-              {COLUMN_LABELS[colOf(aim)]}{SIZE - rowOf(aim)}
-            </span>
-            <button type="button" className="primary small"
-              onClick={() => { setAim(null); onPlace(aim); }}>Place stone</button>
-            <button type="button" className="small" onClick={() => setAim(null)}>Cancel</button>
-          </>
-        ) : (
-          placing && <span className="muted">Tap an intersection, then tap again to place.</span>
-        )}
-      </div>
     </div>
   );
 }
