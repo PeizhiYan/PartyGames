@@ -1,0 +1,36 @@
+.app-waves {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* Tall enough to read as a swell rather than a stripe, short enough to stay out of the way. */
+  height: clamp(140px, 26vh, 260px);
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+  /* The waves fade out upwards, so there is never a hard edge across the page. */
+  -webkit-mask-image: linear-gradient(transparent, #000 45%);
+  mask-image: linear-gradient(transparent, #000 45%);
+}
+.wave {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  /* Two viewports wide, holding two periods: translating by half the element is exactly one
+     period, so the loop has no seam. */
+  width: 200%;
+  height: 100%;
+  fill: var(--accent);
+  opacity: calc(var(--wave-opacity) * var(--wave-strength, 1));
+  animation: wave-drift var(--wave-duration) linear infinite;
+  animation-direction: var(--wave-direction);
+  will-change: transform;
+}
+@keyframes wave-drift {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+/* Motion is the whole point, but it must never be the thing that makes someone ill. */
+@media (prefers-reduced-motion: reduce) {
+  .wave { animation: none; }
+}

@@ -25,7 +25,9 @@
    sunken bits that sit *inside* a card (chips, badges, segmented controls). They have to stay
    distinguishable, which is why a white page still needs --inset to be off-white. */
 :root {
-  --bg: #ffffff;
+  /* Tinted with the highlight colour, so picking an accent recolours the whole app rather than
+     just its buttons. Cards stay pure white and now have something to sit on top of. */
+  --bg: color-mix(in srgb, var(--a-l) 5%, #ffffff);
   --surface: #ffffff;
   --inset: #f5f2ee;
   --text: #1b1512;
@@ -63,12 +65,12 @@
  */
 @media (prefers-color-scheme: dark) {
   :root:not([data-mode='light']) {
-    --bg: #141210;
-    --surface: #1f1b18;
-    --inset: #2a2420;
-    --text: #f2ece6;
-    --text-muted: #ab9f95;
-    --border: #352e29;
+    --bg: color-mix(in srgb, var(--a-d) 7%, #201d1b);
+    --surface: color-mix(in srgb, var(--a-d) 4%, #2e2a28);
+    --inset: #3c3633;
+    --text: #f5f1ec;
+    --text-muted: #b9ada3;
+    --border: #4c4541;
     --accent: var(--a-d);
     --accent-soft: var(--a-soft-d);
     --on-accent: #1a1008;
@@ -85,16 +87,18 @@
     --board-wood-1: #b98c4e;
     --board-wood-2: #8d6433;
     --board-line: rgb(20 10 0 / 0.5);
+    /* The same wave opacity reads much heavier over a dark page. */
+    --wave-strength: 0.7;
     color-scheme: dark;
   }
 }
 :root[data-mode='dark'] {
-  --bg: #141210;
-  --surface: #1f1b18;
-  --inset: #2a2420;
-  --text: #f2ece6;
-  --text-muted: #ab9f95;
-  --border: #352e29;
+  --bg: color-mix(in srgb, var(--a-d) 7%, #201d1b);
+  --surface: color-mix(in srgb, var(--a-d) 4%, #2e2a28);
+  --inset: #3c3633;
+  --text: #f5f1ec;
+  --text-muted: #b9ada3;
+  --border: #4c4541;
   --accent: var(--a-d);
   --accent-soft: var(--a-soft-d);
   --on-accent: #1a1008;
@@ -111,6 +115,8 @@
   --board-wood-1: #b98c4e;
   --board-wood-2: #8d6433;
   --board-line: rgb(20 10 0 / 0.5);
+  /* The same wave opacity reads much heavier over a dark page. */
+  --wave-strength: 0.7;
   color-scheme: dark;
 }
 
@@ -203,8 +209,27 @@ button.danger-fill { background: var(--danger); border-color: var(--danger); col
 button.success-fill { background: var(--success); border-color: var(--success); color: #fff; font-weight: 600; }
 button.small { padding: 4px 12px; min-height: 34px; font-size: 0.9rem; white-space: nowrap; }
 button.block { width: 100%; }
-.icon-button { padding: 0; width: 42px; height: 42px; border-color: transparent; background: transparent; color: var(--text-muted); }
+/* Also used on <Link>, which is an <a> and matches neither `button` nor `.button`, so every
+   shared property it needs is repeated here rather than inherited. */
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  padding: 0;
+  width: 42px;
+  height: 42px;
+  min-height: 42px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-decoration: none;
+  transition: scale 160ms var(--spring), background 160ms, color 160ms;
+}
 .icon-button:hover:not(:disabled) { background: var(--accent-soft); color: var(--text); border-color: transparent; }
+.icon-button:active:not(:disabled) { scale: 0.92; }
 .link-button { border: none; background: none; padding: 0; min-height: 0; color: var(--accent); font-weight: 600; border-radius: 4px; }
 
 /* Inputs */
@@ -411,37 +436,21 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .game-card-go { margin-left: auto; color: var(--accent); display: inline-flex; transition: transform 220ms var(--spring); }
 .game-card:hover .game-card-go { transform: translateX(3px); }
 
-/* The same art again at the top of a game's lobby, so the two screens feel like one place. */
-.lobby-hero {
-  position: relative;
+/* A game's lobby: the same art as a band, with everything readable on the page below it. */
+.lobby-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.lobby-head h1 { font-size: 1.45rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lobby-art {
+  width: 100%;
+  /* A fixed height, not an aspect-ratio: `aspect-ratio` plus `max-height` keeps the ratio by
+     shrinking the width, which left the banner floating in the middle of the page. */
+  height: clamp(130px, 26vw, 200px);
   border-radius: 20px;
   overflow: hidden;
-  margin-bottom: 16px;
-  aspect-ratio: 5 / 2;
-  max-height: 210px;
   box-shadow: var(--shadow);
+  border: 1px solid var(--border);
 }
-.lobby-hero .game-art { position: absolute; inset: 0; }
-.lobby-hero::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(transparent 35%, rgb(12 6 2 / 0.78));
-}
-.lobby-hero-text { position: absolute; left: 18px; right: 18px; bottom: 14px; color: #fff; }
-.lobby-hero-text h1 { color: #fff; text-shadow: 0 2px 10px rgb(0 0 0 / 0.5); }
-.lobby-hero-text p { margin: 2px 0 0; font-size: 0.9rem; color: rgb(255 255 255 / 0.85); }
-.lobby-back {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 1;
-  background: rgb(0 0 0 / 0.38);
-  color: #fff;
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
-}
-.lobby-back:hover:not(:disabled) { background: rgb(0 0 0 / 0.55); color: #fff; }
+.lobby-art .game-art { width: 100%; height: 100%; }
+.lobby-tagline { margin: 12px 2px 18px; color: var(--text-muted); font-size: 0.92rem; }
 
 @media (prefers-reduced-motion: reduce) {
   .game-card, .game-art, .game-card-go { transition: none; }
@@ -644,10 +653,12 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 @media (prefers-reduced-motion: reduce) { .undo-progress { animation: none; opacity: 0.5; } }
 
 /* Theme picker */
-.accent-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+.accent-grid { display: flex; flex-wrap: wrap; gap: 12px; }
 .accent-swatch {
-  min-height: 0;
-  aspect-ratio: 1;
+  width: 40px;
+  height: 40px;
+  min-height: 40px;
+  flex: none;
   padding: 0;
   border-radius: 50%;
   border: 2px solid transparent;
@@ -658,4 +669,3 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
   border-color: var(--surface);
   box-shadow: inset 0 -2px 6px rgb(0 0 0 / 0.18), 0 0 0 2px var(--text);
 }
-@media (max-width: 380px) { .accent-grid { grid-template-columns: repeat(3, 1fr); } }
