@@ -16,6 +16,8 @@ interface Props {
   winLine: number[];
   /** Per-cell scores from the AI's heat map, or null to hide it. */
   heat: number[] | null;
+  /** A stone that has been played but not sent yet, drawn ghosted until it commits. */
+  pending?: { cell: number; player: Player } | null;
   onPlace: (cell: number) => void;
 }
 
@@ -29,7 +31,7 @@ function cssVar(el: HTMLElement, name: string, fallback: string): string {
  * A tap on an intersection plays there straight away. With a mouse, a translucent stone follows
  * the pointer so it is clear which intersection a click would land on.
  */
-export default function GomokuBoard({ board, placing, lastMove, winLine, heat, onPlace }: Props) {
+export default function GomokuBoard({ board, placing, lastMove, winLine, heat, pending, onPlace }: Props) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState(0);
@@ -188,7 +190,17 @@ export default function GomokuBoard({ board, placing, lastMove, winLine, heat, o
       ctx.stroke();
     }
 
-    if (hover !== null && placing && board[hover] === 0) {
+    if (pending && board[pending.cell] === 0) {
+      paintStone(pending.cell, pending.player, 0.7);
+      const { x, y } = at(pending.cell);
+      ctx.strokeStyle = 'rgba(255,90,140,0.95)';
+      ctx.lineWidth = Math.max(1.8, cell * 0.07);
+      ctx.setLineDash([cell * 0.16, cell * 0.12]);
+      ctx.beginPath();
+      ctx.arc(x, y, cell * (STONE + 0.16), 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    } else if (hover !== null && placing && board[hover] === 0) {
       paintStone(hover, placing, 0.4);
     }
 
@@ -203,7 +215,7 @@ export default function GomokuBoard({ board, placing, lastMove, winLine, heat, o
       ctx.textAlign = 'center';
       ctx.fillText(String(SIZE - k), pad * 0.42, p);
     }
-  }, [board, placing, lastMove, winLine, heat, hover, size]);
+  }, [board, placing, lastMove, winLine, heat, hover, pending, size]);
 
   useEffect(() => { draw(); }, [draw]);
 
