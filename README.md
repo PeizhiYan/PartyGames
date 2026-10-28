@@ -122,13 +122,32 @@ sign-in is shared — a person has the same uid in every app in the project.
    ```
 3. **Authentication → Sign-in method → Google**: enable it. Under **Settings → Authorized domains**,
    add this site's domain (`<site-id>.web.app`).
-4. Set `VITE_FIREBASE_AUTH_DOMAIN` to **this app's** Hosting domain (`<site-id>.web.app`), *not*
-   `<project-id>.firebaseapp.com`. Google sign-in then happens on the same origin as the app, which
-   is what makes it work inside the installed PWA on iOS.
+4. Set `VITE_FIREBASE_AUTH_DOMAIN` to **the domain the app is served from** — `<site-id>.web.app`,
+   or the custom domain once there is one — and *not* `<project-id>.firebaseapp.com`. Google
+   sign-in then happens on the same origin as the app, which is what makes it work inside the
+   installed PWA on iOS. Firebase Hosting serves the sign-in handler under `/__/auth/` on every
+   domain attached to the site, and the service worker is told to leave `/__/` alone
+   (`navigateFallbackDenylist` in `vite.config.ts`).
 5. **Deploy:**
    ```bash
    npm run deploy      # build + firebase deploy --only hosting:partygames,firestore
    ```
+
+### Adding a custom domain
+
+The live app is at **https://play.auroratns.com** (Hosting site `party-games-38541`, DNS on
+Cloudflare). To attach a domain to the site:
+
+1. **Hosting → the site → Add custom domain**, and add the TXT and A records Firebase gives you at
+   the DNS provider.
+2. On Cloudflare, set those records to **DNS only** (grey cloud, not orange). Proxying them blocks
+   Firebase's certificate challenge, and the domain sits on "Needs setup" forever.
+3. Wait for the certificate — minutes to a day. `curl -I https://<domain>` tells you when it's live.
+4. **Authentication → Settings → Authorized domains**: add the domain. Firebase only authorizes the
+   project's *default* site automatically, so every other domain has to be added by hand or sign-in
+   fails with `auth/unauthorized-domain`.
+5. Only now point `VITE_FIREBASE_AUTH_DOMAIN` at it, rebuild and redeploy. Doing this before steps
+   3 and 4 breaks sign-in for everyone, including on the old domain.
 
 ### ⚠️ The rules file covers the whole project
 
