@@ -59,8 +59,10 @@ on the game's own screen.
 - **Installable**: standalone display, its own icon, no browser chrome, no pinch-zoom or
   pull-to-refresh, no edge-swipe navigation in the installed app. The home page and Settings offer
   an **Install** button where the browser supports one, and the Share → Add to Home Screen steps on
-  iOS Safari, which has no install dialog of its own (`src/hooks/useInstall.ts`). Light and dark
-  mode.
+  iOS Safari, which has no install dialog of its own (`src/hooks/useInstall.ts`).
+- **Themes** – six highlight colours (Sunset, Rose, Violet, Ocean, Forest, Graphite) and
+  light / dark / follow-the-system, picked in Settings and remembered per device. The default is a
+  white background with an orange highlight.
 
 ## Cloud-agnostic by design
 
