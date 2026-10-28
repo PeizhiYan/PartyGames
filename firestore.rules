@@ -1,0 +1,159 @@
+rules_version = '2';
+
+// Shared by every app in this Firebase project: one rules file covers the whole database, and every
+// `firebase deploy --only firestore` replaces it. Each app keeps its data under /apps/{appId}/ and
+// gets its own `match /apps/<appId>` block; anything not matched is denied. Sign-in (Firebase Auth)
+// is shared too: a person has the same uid in every app.
+//
+// IMPORTANT: this file must also carry the blocks for the other apps in the project (CoffeeGlass
+// lives under /apps/coffeeglass). Copy them in from that repo before deploying, or deploying from
+// here will take their rules away.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null && request.auth.token.email_verified == true;
+    }
+    function email() {
+      return request.auth.token.email.lower();
+    }
+
+    // ---------------------------------------------------------------------------------------------
+    // PartyGames
+    //  - Anyone can sign in with Google. Who can play depends on config/access.openSignup:
+    //    open -> any verified Google account; closed -> only emails in the allowlist (and the admin).
+    //    A members/{uid} record marked `disabled` is locked out either way: that is how the admin
+    //    removes an account.
+    //  - rooms/{roomId} holds one game: who is in it, who has asked to join, and the game state.
+    //    Only players in the room may change the game state. Anyone allowed may add *themselves*
+    //    to `requests` (that is "ask to join"); only the owner may hand out a place.
+    //  - A room is deletable by anyone allowed, because an abandoned room is cleaned up by whichever
+    //    client notices first (see src/domain/rooms.ts) — the app has no server-side scheduler.
+    //    Within a trusted group that is the right trade; rules alone cannot tell "everyone left"
+    //    from "I want this gone".
+    //  - The game rules themselves (whose turn it is, whether there is enough money) live in
+    //    src/domain and run inside a transaction, not here: these rules check who may write and the
+    //    shape of what they write, not whether a move is legal.
+    // ---------------------------------------------------------------------------------------------
+    match /apps/partygames {
+      function isAdmin() {
+        return signedIn() && email() == 'yanpeizhi2008@gmail.com';
+      }
+      function openSignup() {
+        let cfg = /databases/$(database)/documents/apps/partygames/config/access;
+        return exists(cfg) && get(cfg).data.get('openSignup', false) == true;
+      }
+      function disabled() {
+        let me = /databases/$(database)/documents/apps/partygames/members/$(request.auth.uid);
+        return exists(me) && get(me).data.get('disabled', false) == true;
+      }
+      function isAllowed() {
+        return isAdmin()
+          || (signedIn() && !disabled() && (openSignup()
+            || exists(/databases/$(database)/documents/apps/partygames/allowlist/$(email()))));
+      }
+      function isSelf(uid) {
+        return signedIn() && request.auth.uid == uid;
+      }
+
+      match /config/access {
+        // Public: the login page says whether sign-up is open. Only the admin flips it.
+        allow get: if true;
+        allow create, update: if isAdmin()
+          && request.resource.data.keys().hasOnly(['openSignup', 'updatedAt', 'updatedBy'])
+          && request.resource.data.openSignup is bool;
+        allow delete: if isAdmin();
+      }
+
+      match /allowlist/{entry} {
+        // A user may check their own entry; the admin manages the list.
+        allow get: if signedIn() && (entry == email() || isAdmin());
+        allow list, create, update, delete: if isAdmin();
+      }
+
+      match /members/{uid} {
+        function validMember(d) {
+          return d.keys().hasOnly(['email', 'displayName', 'photoURL', 'firstSeen', 'lastSeen',
+                                   'visits', 'installed', 'disabled', 'disabledAt', 'disabledBy'])
+            && d.email == email()
+            && d.firstSeen is timestamp
+            && d.lastSeen == request.time
+            && (!('displayName' in d) || (d.displayName is string && d.displayName.size() <= 100))
+            && (!('photoURL' in d) || (d.photoURL is string && d.photoURL.size() <= 500))
+            && (!('visits' in d) || (d.visits is int && d.visits >= 0))
+            && (!('installed' in d) || d.installed is bool)
+            // Only the admin may set `disabled`, and a user may not clear their own.
+            && (!('disabled' in d) || d.disabled == resource.data.get('disabled', false));
+        }
+        // Each user keeps their own record; the admin can read every record and disable any of them.
+        allow get: if isSelf(uid) || isAdmin();
+        allow list: if isAdmin();
+        allow create: if isSelf(uid) && isAllowed() && validMember(request.resource.data);
+        allow update: if isAdmin() || (isSelf(uid) && isAllowed() && validMember(request.resource.data));
+        allow delete: if isSelf(uid) || isAdmin();
+      }
+
+      match /rooms/{roomId} {
+        function inRoom() {
+          return signedIn() && request.auth.uid in resource.data.playerUids;
+        }
+        function nextPlayers() {
+          return request.resource.data.playerUids;
+        }
+        function onlyTouching(fields) {
+          return request.resource.data.diff(resource.data).affectedKeys().hasOnly(fields);
+        }
+        function validRoom(d) {
+          return d.keys().hasOnly(['game', 'name', 'code', 'ownerUid', 'players', 'playerUids',
+                                   'requests', 'state', 'createdAt', 'updatedAt', 'presence'])
+            && d.game in ['gomoku', 'monopoly']
+            && d.name is string && d.name.size() > 0 && d.name.size() <= 40
+            && d.code is string && d.code.size() <= 8
+            && d.ownerUid is string
+            && d.players is list && d.players.size() <= 8
+            && d.playerUids is list && d.playerUids.size() <= 8
+            && d.requests is list && d.requests.size() <= 16;
+        }
+
+        // Any player can see the rooms for a game, so they can pick one to join.
+        allow get, list: if isAllowed();
+
+        allow create: if isAllowed()
+          && validRoom(request.resource.data)
+          && request.resource.data.ownerUid == request.auth.uid
+          && request.resource.data.playerUids == [request.auth.uid]
+          && request.resource.data.requests.size() == 0
+          && request.resource.data.createdAt == request.time
+          && request.resource.data.updatedAt == request.time;
+
+        allow update: if isAllowed()
+          && validRoom(request.resource.data)
+          // Every change stamps `updatedAt`, except a presence heartbeat, which deliberately
+          // leaves it alone so a room full of idle players doesn't keep jumping to the top of
+          // the list.
+          && (request.resource.data.updatedAt == request.time
+              || request.resource.data.updatedAt == resource.data.updatedAt)
+          && request.resource.data.game == resource.data.game
+          && request.resource.data.code == resource.data.code
+          && request.resource.data.createdAt == resource.data.createdAt
+          && (
+            // A player in the room plays a move, lets someone in, leaves, or checks in.
+            inRoom()
+            // Someone outside the room may only touch the join queue (that is "ask to join") and
+            // cannot put themselves — or anyone else — in the room. Which entry of `requests` they
+            // changed is beyond what rules can check, so a member of the allowlist could in
+            // principle withdraw someone else's request; inside a trusted group that is the
+            // accepted limit of client-side cleanup. See the note at the top of this block.
+            || (onlyTouching(['requests', 'updatedAt'])
+                && nextPlayers() == resource.data.playerUids
+                && request.resource.data.requests.size() <= resource.data.requests.size() + 1)
+          );
+
+        // An abandoned room is deleted by whichever client notices; see the note above.
+        allow delete: if isAllowed();
+      }
+    }
+
+    // Next app: add `match /apps/<appId> { ... }` here.
+  }
+}
