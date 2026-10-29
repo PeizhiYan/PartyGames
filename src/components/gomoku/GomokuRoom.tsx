@@ -12,7 +12,7 @@ import { firstName } from '../../lib/format';
  * How long a stone sits on the board, visible only to the person who played it, before it is sent
  * to the other player. Long enough to catch a mis-tap, short enough not to feel like a wait.
  */
-const UNDO_WINDOW_MS = 3000;
+const UNDO_WINDOW_MS = 1500;
 
 /** Gomoku against another person, in a room. */
 export default function GomokuRoom({ room, uid }: { room: Room; uid: string }) {
@@ -22,15 +22,15 @@ export default function GomokuRoom({ room, uid }: { room: Room; uid: string }) {
   const ready = bothSeated(state);
   const myTurn = state.outcome === 0 && mySeat !== null && mySeat === state.turn;
 
-  /** A move that has been made but not sent. Nobody else can see it yet. */
-  const [pending, setPending] = useState<{ cell: number; player: Player } | null>(null);
-  const [secondsLeft, setSecondsLeft] = useState(0);
+  /**
+   * A move this player has made that the shared state does not show yet — either still inside the
+   * undo window (`sent: false`, nobody else can see it) or on its way to the server.
+   */
+  const [pending, setPending] = useState<{ cell: number; player: Player; sent: boolean } | null>(null);
   const sendTimer = useRef<number>();
-  const tick = useRef<number>();
 
   const cancel = () => {
     window.clearTimeout(sendTimer.current);
-    window.clearInterval(tick.current);
     setPending(null);
   };
 
@@ -38,15 +38,21 @@ export default function GomokuRoom({ room, uid }: { room: Room; uid: string }) {
   function play(cell: number) {
     if (!mySeat) return;
     cancel();
-    setPending({ cell, player: mySeat });
-    setSecondsLeft(Math.round(UNDO_WINDOW_MS / 1000));
-    tick.current = window.setInterval(() => setSecondsLeft((n) => Math.max(0, n - 1)), 1000);
-    sendTimer.current = window.setTimeout(() => {
-      window.clearInterval(tick.current);
-      setPending(null);
-      act({ type: 'place', cell });
+    setPending({ cell, player: mySeat, sent: false });
+    sendTimer.current = window.setTimeout(async () => {
+      // Keep drawing the stone while the write is in flight. Clearing it here and waiting for the
+      // round trip to bring it back made the stone blink out for as long as the network took.
+      setPending((p) => (p ? { ...p, sent: true } : p));
+      const ok = await act({ type: 'place', cell });
+      if (!ok) setPending(null); // refused: take it back off the board
     }, UNDO_WINDOW_MS);
   }
+
+  // Once the shared state has the stone, the local copy has done its job. Handing over this way
+  // round means there is never a frame without it.
+  useEffect(() => {
+    if (pending?.sent && state.board[pending.cell] !== 0) setPending(null);
+  }, [state.board, pending]);
 
   // Drop an unsent move if the game ends under it — the opponent resigning, say — and make sure
   // no timer outlives the screen.
@@ -96,7 +102,7 @@ export default function GomokuRoom({ room, uid }: { room: Room; uid: string }) {
             <>{outcomeText()}</>
           ) : !ready ? (
             <>Waiting for a second player…</>
-          ) : pending ? (
+          ) : pending && !pending.sent ? (
             <><span className={`stone-dot ${mySeat === 1 ? 'black' : 'white'}`} aria-hidden /> Move not sent yet</>
           ) : myTurn ? (
             <><span className={`stone-dot ${mySeat === 1 ? 'black' : 'white'}`} aria-hidden /> Your turn</>
@@ -117,7 +123,7 @@ export default function GomokuRoom({ room, uid }: { room: Room; uid: string }) {
         onPlace={play}
       />
 
-      {pending && (
+      {pending && !pending.sent && (
         <div
           className="undo-bar"
           role="status"
@@ -126,9 +132,8 @@ export default function GomokuRoom({ room, uid }: { room: Room; uid: string }) {
           style={{ '--undo-ms': `${UNDO_WINDOW_MS}ms` } as CSSProperties}
         >
           <span className="undo-progress" aria-hidden />
-          <span className="grow">
-            Sending in <strong className="tabular">{secondsLeft}</strong>…
-          </span>
+          {/* The draining bar is the countdown; a number this short just flickers. */}
+          <span className="grow">Sending…</span>
           <button type="button" className="small" onClick={cancel}>
             <Icon name="undo" size={16} /> Take it back
           </button>

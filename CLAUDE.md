@@ -141,6 +141,10 @@ Three things that were real bugs in the original or in this port, and have tests
 - **The waves loop by translating exactly one period.** Each layer is two viewports wide and holds
   two periods of the same wave, so `translateX(-50%)` is seamless. Change the period and the
   animation has to change with it.
+- **An optimistic stone has to outlive the write that replaces it.** `GomokuRoom` keeps drawing
+  the local stone until the shared state actually contains it (`pending.sent`), and draws it
+  *identically* to a real one from the moment it is sent. Clearing it when the write starts made
+  the stone blink out for however long the round trip took.
 - **Dice** are rolled on the device (`throwDice()`) and passed in the action; the reducer only
   checks they're two numbers from 1 to 6.
 - **`beforeinstallprompt` fires once and early**, usually before React has mounted, so
