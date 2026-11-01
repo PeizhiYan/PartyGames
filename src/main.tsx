@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { registerSW } from 'virtual:pwa-register';
 import App from './App';
+import DevBar from './shell/DevBar';
 import Waves from './shell/Waves';
 import { ToastProvider } from './ui/Toast';
 import { AuthProvider } from './hooks/useAuth';
@@ -63,6 +64,7 @@ if (backendInitError) {
           <AuthProvider>
             <Waves />
             <App />
+            <DevBar />
           </AuthProvider>
         </ToastProvider>
       </BrowserRouter>
