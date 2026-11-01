@@ -39,7 +39,7 @@ on the game's own screen.
 
 ## Features
 
-- Each game has its own drawn cover art (`src/components/art/GameArt.tsx`), shown on the home
+- Each game has its own drawn cover art (`src/games/<id>/Art.tsx`), shown on the home
   screen and again as the banner on that game's lobby — inline SVG, so it scales to any card size
   without a second request.
 - **Gomoku** – a 15×15 board on a canvas that scales to the screen. Tap an intersection to play
@@ -107,7 +107,8 @@ moving to a self-hosted Node server (or Supabase, or PocketBase) is one adapter 
 `src/services/index.ts`. `src/adapters/memory/index.ts` is a complete worked example in ~330
 lines, and `src/adapters/memory/rooms.test.ts` can be pointed at any new adapter to check it.
 
-Because the game rules are pure functions in `src/domain/`, a Node server could import the very
+Because the game rules are pure functions in `src/games/*/rules.ts` — reachable through
+`games/registry.ts`, which holds no React — a Node server could import the very
 same reducers rather than reimplementing them. The likely middle path is self-hosting the data and
 keeping Firebase Auth for identity, verifying ID tokens server-side — that avoids reimplementing
 Google OAuth, which is the genuinely unpleasant part.
@@ -116,7 +117,8 @@ Google OAuth, which is the genuinely unpleasant part.
 
 The app talks to one small set of interfaces (`src/services/types.ts`) — `AuthService`, `RoomRepo`,
 `AdminRepo`, `AccountRepo` — and never imports a cloud SDK outside `src/adapters/`. All the game
-logic lives in `src/domain/` as pure functions that take state and an action and return new state.
+logic lives in `src/games/*/rules.ts` as pure functions that take state and an action and return
+new state.
 
 A backend only has to do four things: sign people in, store a room document, notify watchers when it
 changes, and **apply one action at a time without losing a simultaneous one**. The Firebase adapter
@@ -137,37 +139,48 @@ any new adapter can be pointed at.
 
 ```
 src/
-├─ domain/        Pure TypeScript: the games and the room rules. No React, no backend.
-│  ├─ types.ts      AppUser, Room, GameDefinition — the vocabulary everything else uses.
-│  ├─ rooms.ts      Join codes, who-may-do-what, when a room counts as abandoned.
-│  ├─ games.ts      The registry of games.
-│  ├─ gomoku/       board.ts (geometry, win detection), ai.ts (the computer), game.ts (the reducer).
-│  └─ monopoly/     game.ts — the whole banking state machine as one reducer.
-├─ services/      The backend wrapper: interfaces (types.ts) + the switch that picks an adapter.
+├─ types.ts        The shared vocabulary: Room, AppUser, GameDefinition, GameId.
+├─ games/          One folder per game — its rules, screens, art and tests, all together.
+│  ├─ registry.ts    Rules only. Pure TypeScript; this is what the backend adapters import.
+│  ├─ screens.tsx    id → { Room, Solo?, Art }. React; only the UI imports this.
+│  ├─ art.ts         The 640x200 canvas every cover is drawn on.
+│  ├─ gomoku/        rules · board · ai (+ tests) · Room · BoardCanvas · Solo · Art
+│  └─ monopoly/      rules (+ tests) · Room · Dice · BalanceChart · Art
+├─ rooms/          The multiplayer layer games plug into: rules, useRooms, RoomList.
+├─ services/       The backend contract: interfaces + the switch that picks an adapter.
 ├─ adapters/
-│  ├─ firebase/   Firebase Auth + Firestore. The ONLY place allowed to import `firebase`.
-│  └─ memory/     In-browser backend (localStorage + BroadcastChannel), for dev and demos.
-├─ hooks/         React hooks: auth, live rooms, presence heartbeat, sending a game action.
-├─ components/    Layout, UI primitives, and one folder per game's screens.
-├─ pages/         One file per screen.
-├─ lib/           Display formatting, app version.
-└─ styles/        Global CSS + theme variables (light/dark).
+│  ├─ firebase/    Firebase Auth + Firestore. The ONLY place allowed to import `firebase`.
+│  └─ memory/      In-browser backend (localStorage + BroadcastChannel), for dev and demos.
+├─ ui/             Design-system primitives: Icon, Sheet, Toast, Segmented, Avatar.
+├─ shell/          App chrome: AppShell, Waves, ThemePicker, InstallCard, OfflineNotice.
+├─ pages/          Screens that are not a game: Home, lobby, Rooms, Settings, Users, Login.
+├─ hooks/          useAuth, useInstall, useOnline.
+└─ lib/ styles/    Formatting, theme, version · global CSS and theme tokens.
 tests/            Firestore security-rules tests (run in the emulator).
 ```
 
-Dependency direction: `pages → components/hooks → services → adapters`. `domain` can be used by
-anything and depends on nothing.
+Dependency direction: `pages / shell / ui → games → rooms → services → adapters`. `types.ts`
+depends on nothing and anything may use it.
+
+**The two registries are split on purpose.** `games/registry.ts` holds rules and no React, because
+the backend adapters import it to run a reducer inside a transaction — and a self-hosted Node
+server would do the same. `games/screens.tsx` holds the React half. Merging them would quietly
+drag the whole UI into the backend.
 
 ### Adding a game
 
-1. `src/domain/<game>/game.ts` — export a `GameDefinition<State, Action>`: `newState`, `reduce`
-   (pure, throws `GameRuleError` for an illegal move) and optionally `onPlayersChanged`.
-2. Add it to `GAMES` in `src/domain/games.ts`.
-3. `src/components/<game>/<Game>Room.tsx` — the screen, taking `{ room, uid }`.
-4. Add it to the `Game` pick in `src/pages/RoomPage.tsx`, and to the `d.game in [...]` list in
-   `firestore.rules`.
+Everything about a game lives in `src/games/<id>/`, and TypeScript names anything you forget:
 
-The room layer, the join flow, presence and cleanup all come for free.
+1. Add the id to the `GameId` union in `src/types.ts`. Both registries are typed `Record<GameId, …>`,
+   so this alone breaks the build until the game is fully wired — deliberately.
+2. Create `src/games/<id>/` with `rules.ts` (a `GameDefinition`), `Room.tsx` (taking
+   `{ room, uid }`), `Art.tsx`, and `Solo.tsx` if it can be played alone. Tests sit beside them.
+3. Register it in `games/registry.ts` and `games/screens.tsx`.
+4. Add the id to `d.game in [...]` in `firestore.rules`.
+
+The home grid, the lobby, the room page, the solo route and the room list all read the registries,
+so there are no per-game branches anywhere else. The room layer — join codes, approval, presence,
+cleanup — comes for free.
 
 ## Firebase setup
 
@@ -346,7 +359,7 @@ Their `disabled` member record is what keeps them out in the meantime, so this s
   [`PeizhiYan.github.io/js_codes/gomoku`](../PeizhiYan.github.io/js_codes/gomoku) — the pattern
   weights, the offence + defence + centre-bias move scoring, the alpha-beta search at even depths
   and the Insight heat map are all from there. See the comment at the top of
-  `src/domain/gomoku/ai.ts` for how the original's 2D convolution filters map onto this version's
+  `src/games/gomoku/ai.ts` for how the original's 2D convolution filters map onto this version's
   line scanning.
 - **MonopolyBuddy** is ported from [`../MonopolyBuddy`](../MonopolyBuddy), whose phase machine,
   all-others-must-approve bank requests and unanimous end-game vote are kept as they were. Players

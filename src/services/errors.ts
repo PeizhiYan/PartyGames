@@ -1,5 +1,5 @@
 // App-level errors, so the UI never depends on a backend's error codes.
-import { GameRuleError } from '../domain/types';
+import { GameRuleError } from '../types';
 
 export class NotSignedInError extends Error {
   constructor() { super('You are not signed in.'); }

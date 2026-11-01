@@ -1,7 +1,7 @@
 // Gomoku as a room game: the state two players share and the only ways it may change.
 // Pure and synchronous, so the same reducer runs in the browser, in tests, and inside the
 // backend's transaction. See src/domain/gomoku/ai.ts for the computer opponent.
-import { GameRuleError, type GameContext, type GameDefinition } from '../types';
+import { GameRuleError, type GameContext, type GameDefinition } from '../../types';
 import { CELLS, emptyBoard, fiveThrough, isFull, type Board, type Player } from './board';
 
 /** 0 while the game is on, 1 or 2 for a winner, 3 for a draw. */

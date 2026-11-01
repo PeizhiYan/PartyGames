@@ -1,16 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { PRESENCE_INTERVAL_MS, sortRooms } from '../domain/rooms';
-import type { GameId, Room, RoomSummary } from '../domain/types';
+import { PRESENCE_INTERVAL_MS, sortRooms } from './rules';
+import type { GameId, Room, RoomSummary } from '../types';
 import { backend } from '../services';
 import { errorMessage } from '../services/errors';
 
 /** Live list of the open rooms for one game, newest first, with the ones you're in on top. */
-export function useRooms(game: GameId, uid: string) {
+export function useRooms(game: GameId | undefined, uid: string) {
   const [rooms, setRooms] = useState<RoomSummary[] | null>(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
     setRooms(null);
+    // `game` is undefined on a URL naming a game that does not exist. Hooks have to run before
+    // the page can bail out, so watching nothing is a state this has to support.
+    if (!game) return;
     const stop = backend.rooms.watchRooms(game, setRooms, (e) => setError(errorMessage(e)));
     // Clear out rooms everyone has left. Any client may do it, so a visit to the list is enough.
     backend.rooms.reap(game).catch(() => {});

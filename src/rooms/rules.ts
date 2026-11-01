@@ -1,6 +1,6 @@
 // Room rules that do not depend on any backend: join codes, who may do what, and when a room
 // counts as abandoned.
-import type { Room, RoomSummary } from './types';
+import type { Room, RoomSummary } from '../types';
 
 /** Letters and digits that can't be mistaken for each other when read out loud. */
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';

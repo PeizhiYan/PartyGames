@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import Icon from '../components/ui/Icon';
+import Icon from '../ui/Icon';
 
 /** Public page: linked from the login screen and from Settings. */
 export default function PrivacyPage() {

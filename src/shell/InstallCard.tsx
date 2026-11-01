@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useInstall } from '../hooks/useInstall';
-import Icon from './ui/Icon';
-import { useToast } from './ui/Toast';
+import Icon from '../ui/Icon';
+import { useToast } from '../ui/Toast';
 
 /** The iOS share glyph, so the instructions point at the button people are actually looking for. */
 const SHARE_GLYPH = (

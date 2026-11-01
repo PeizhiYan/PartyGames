@@ -1,7 +1,7 @@
 import type { CSSProperties } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { useCurrentUser } from '../../hooks/useAuth';
-import { APP_VERSION } from '../../lib/version';
+import { useCurrentUser } from '../hooks/useAuth';
+import { APP_VERSION } from '../lib/version';
 import Icon, { type IconName } from '../ui/Icon';
 import './AppShell.css';
 

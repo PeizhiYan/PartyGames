@@ -23,10 +23,10 @@ function storageStub(): Storage {
 vi.stubGlobal('localStorage', storageStub());
 vi.stubGlobal('sessionStorage', storageStub());
 import { createMemoryBackend } from './index';
-import type { GomokuState } from '../../domain/gomoku/game';
-import { idx } from '../../domain/gomoku/board';
-import { ABANDONED_AFTER_MS } from '../../domain/rooms';
-import type { Room } from '../../domain/types';
+import type { GomokuState } from '../../games/gomoku/rules';
+import { idx } from '../../games/gomoku/board';
+import { ABANDONED_AFTER_MS } from '../../rooms/rules';
+import type { Room } from '../../types';
 
 describe('two players in a room', () => {
   beforeEach(() => { localStorage.clear(); sessionStorage.clear(); });

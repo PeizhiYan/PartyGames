@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
 import { Navigate, Route, Routes, useLocation, useParams } from 'react-router-dom';
-import AppShell from './components/layout/AppShell';
+import AppShell from './shell/AppShell';
+import { screensFor } from './games/screens';
 import { useAuth } from './hooks/useAuth';
 import { backend } from './services';
 import AdminPage from './pages/AdminPage';
 import GameLobbyPage from './pages/GameLobbyPage';
-import GomokuSoloPage from './pages/GomokuSoloPage';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import NoAccessPage from './pages/NoAccessPage';
@@ -14,10 +14,11 @@ import RoomPage from './pages/RoomPage';
 import RoomsPage from './pages/RoomsPage';
 import SettingsPage from './pages/SettingsPage';
 
-/** The one-player screen for whichever game supports it. */
+/** The one-player screen, for whichever games have one. */
 function SoloGame() {
   const { game } = useParams();
-  if (game === 'gomoku') return <GomokuSoloPage />;
+  const Solo = game ? screensFor(game)?.Solo : undefined;
+  if (Solo) return <Solo />;
   return <Navigate to={game ? `/g/${game}` : '/'} replace />;
 }
 

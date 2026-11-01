@@ -1,9 +1,9 @@
-import OfflineNotice from '../components/OfflineNotice';
-import RoomList from '../components/RoomList';
-import { GAMES } from '../domain/games';
-import type { GameId } from '../domain/types';
+import OfflineNotice from '../shell/OfflineNotice';
+import RoomList from '../rooms/RoomList';
+import { GAMES } from '../games/registry';
+import type { GameId } from '../types';
 import { useCurrentUser } from '../hooks/useAuth';
-import { useAllRooms } from '../hooks/useRooms';
+import { useAllRooms } from '../rooms/useRooms';
 
 const ALL_GAMES = GAMES.map((g) => g.id) as GameId[];
 

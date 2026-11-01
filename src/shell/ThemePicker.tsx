@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import Segmented from './ui/Segmented';
+import Segmented from '../ui/Segmented';
 import { ACCENTS, MODES, applyTheme, loadTheme, saveTheme, type AccentId, type ModeId } from '../lib/theme';
 
 /** Picks the highlight colour and the light/dark setting. Saved on this device. */

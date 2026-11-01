@@ -1,17 +1,16 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import GameArt from '../components/art/GameArt';
-import OfflineNotice from '../components/OfflineNotice';
-import RoomList from '../components/RoomList';
-import Icon from '../components/ui/Icon';
-import Sheet from '../components/ui/Sheet';
-import { useToast } from '../components/ui/Toast';
-import { findGame } from '../domain/games';
-import { CODE_LENGTH, defaultRoomName, isPlayer, normalizeCode } from '../domain/rooms';
-import type { GameId } from '../domain/types';
+import { GameArt } from '../games/screens';
+import OfflineNotice from '../shell/OfflineNotice';
+import RoomList from '../rooms/RoomList';
+import Icon from '../ui/Icon';
+import Sheet from '../ui/Sheet';
+import { useToast } from '../ui/Toast';
+import { findGame } from '../games/registry';
+import { CODE_LENGTH, defaultRoomName, isPlayer, normalizeCode } from '../rooms/rules';
 import { useCurrentUser } from '../hooks/useAuth';
 import { useOnline } from '../hooks/useOnline';
-import { useRooms } from '../hooks/useRooms';
+import { useRooms } from '../rooms/useRooms';
 import { backend } from '../services';
 import { errorMessage } from '../services/errors';
 
@@ -22,7 +21,7 @@ export default function GameLobbyPage() {
   const { user } = useCurrentUser();
   const navigate = useNavigate();
   const toast = useToast();
-  const { rooms, error } = useRooms((game?.id ?? 'gomoku') as GameId, user.uid);
+  const { rooms, error } = useRooms(game?.id, user.uid);
   const online = useOnline();
 
   const [creating, setCreating] = useState(false);

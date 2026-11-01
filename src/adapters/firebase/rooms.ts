@@ -3,12 +3,12 @@ import {
   runTransaction, serverTimestamp, setDoc, Timestamp, updateDoc, where,
   type DocumentData, type DocumentSnapshot,
 } from 'firebase/firestore';
-import { applyGameAction, getGame, syncGamePlayers } from '../../domain/games';
-import { defaultRoomName, isStale, newRoomCode, normalizeCode } from '../../domain/rooms';
+import { applyGameAction, getGame, syncGamePlayers } from '../../games/registry';
+import { defaultRoomName, isStale, newRoomCode, normalizeCode } from '../../rooms/rules';
 import {
   GameRuleError, type GameContext, type GameId, type JoinRequest, type Room, type RoomPlayer,
   type RoomSummary,
-} from '../../domain/types';
+} from '../../types';
 import { NotFoundError, NotSignedInError } from '../../services/errors';
 import type { RoomRepo } from '../../services/types';
 import { ROOT, type FirebaseContext } from './app';

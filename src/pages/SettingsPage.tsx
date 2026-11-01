@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
-import InstallCard from '../components/InstallCard';
-import ThemePicker from '../components/ThemePicker';
-import Avatar from '../components/ui/Avatar';
-import Icon from '../components/ui/Icon';
+import InstallCard from '../shell/InstallCard';
+import ThemePicker from '../shell/ThemePicker';
+import Avatar from '../ui/Avatar';
+import Icon from '../ui/Icon';
 import { useCurrentUser } from '../hooks/useAuth';
 import { APP_VERSION } from '../lib/version';
 import { backend } from '../services';

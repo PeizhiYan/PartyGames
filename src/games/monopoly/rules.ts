@@ -11,7 +11,7 @@
  * testable; it checks they are two numbers from 1 to 6. In a group of friends sharing a board that
  * is enough — nothing of value rides on a roll the app can't verify.
  */
-import { GameRuleError, type GameContext, type GameDefinition, type RoomPlayer } from '../types';
+import { GameRuleError, type GameContext, type GameDefinition, type RoomPlayer } from '../../types';
 
 export type Phase =
   /** The owner sets the starting balance and waits for everyone to arrive. */

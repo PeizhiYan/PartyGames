@@ -1,5 +1,5 @@
 import { FirebaseError } from 'firebase/app';
-import { GameRuleError } from '../../domain/types';
+import { GameRuleError } from '../../types';
 import { BackendError, NotFoundError, PermissionDeniedError } from '../../services/errors';
 
 /** Translate Firebase errors into app-level errors. Game rule errors pass straight through. */

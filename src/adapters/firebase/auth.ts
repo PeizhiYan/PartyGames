@@ -4,7 +4,7 @@ import {
   signOut, type User,
 } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import type { AppUser } from '../../domain/types';
+import type { AppUser } from '../../types';
 import type { AuthService } from '../../services/types';
 import { ROOT, type FirebaseContext } from './app';
 import { mapError, wrap } from './errors';

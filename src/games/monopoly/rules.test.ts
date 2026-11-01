@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { COLORS, TOKENS, monopoly, ranking, seatOf, totalWealth, type MonopolyState } from './game';
-import { GameRuleError, type GameContext, type RoomPlayer } from '../types';
+import { COLORS, TOKENS, monopoly, ranking, seatOf, totalWealth, type MonopolyState } from './rules';
+import { GameRuleError, type GameContext, type RoomPlayer } from '../../types';
 
 const alice: RoomPlayer = { uid: 'alice', name: 'Alice', joinedAt: 1 };
 const bob: RoomPlayer = { uid: 'bob', name: 'Bob', joinedAt: 2 };
