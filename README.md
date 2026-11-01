@@ -43,9 +43,10 @@ on the game's own screen.
   screen and again as the banner on that game's lobby — inline SVG, so it scales to any card size
   without a second request.
 - **Gomoku** – a 15×15 board on a canvas that scales to the screen. Tap an intersection to play
-  there; with a mouse, a ghost stone follows the pointer. Against another player the stone sits on
-  your own board for **three seconds** before it is sent, ringed and with a draining bar, so a
-  mis-tap can be taken back before anyone else sees it. The last stone is marked, the winning five
+  there; with a mouse, a ghost stone follows the pointer. Against another player a mis-tap can be
+  undone by **asking for it back** — the opponent sees the request and agrees or doesn't, and
+  agreeing unplays the stone (and their reply, if they have already made one). The last stone is
+  marked, the winning five
   is struck through, colours swap each rematch, and the room keeps the score. Against the computer
   there's also **Insight**: the board shaded by what each point is worth.
 - **MonopolyBuddy** – the host sets the starting balance and whether balances are public. Everyone

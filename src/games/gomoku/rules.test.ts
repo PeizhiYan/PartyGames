@@ -124,3 +124,101 @@ describe('resigning and rematches', () => {
       .toThrow(/still going/i);
   });
 });
+
+describe('taking a move back', () => {
+  /** Alice and Bob alternate from the top-left, so each has stones on the board. */
+  function played(count: number): GomokuState {
+    let state = seated();
+    for (let i = 0; i < count; i++) {
+      state = place(state, i % 2 === 0 ? 'alice' : 'bob', idx(i, 0));
+    }
+    return state;
+  }
+
+  const ask = (state: GomokuState, uid: string) =>
+    gomoku.reduce(state as never, { type: 'requestTakeback' } as never, ctx(uid) as never) as unknown as GomokuState;
+  const answer = (state: GomokuState, uid: string, approve: boolean) =>
+    gomoku.reduce(state as never, { type: 'respondTakeback', approve } as never, ctx(uid) as never) as unknown as GomokuState;
+
+  it('records who is asking', () => {
+    const state = ask(played(1), 'alice');
+    expect(state.takeback).toMatchObject({ by: 'alice' });
+    // Nothing moves until the opponent answers.
+    expect(state.moves).toHaveLength(1);
+  });
+
+  it('refuses a request from someone with no stones, or while one is waiting', () => {
+    expect(() => ask(seated(), 'alice')).toThrow(/not played/i);
+    const waiting = ask(played(1), 'alice');
+    expect(() => ask(waiting, 'alice')).toThrow(/already a request/i);
+  });
+
+  it('will not let the asker approve their own', () => {
+    const waiting = ask(played(1), 'alice');
+    expect(() => answer(waiting, 'alice', true)).toThrow(/has to agree/i);
+  });
+
+  it('lets the asker withdraw it', () => {
+    const withdrawn = answer(ask(played(1), 'alice'), 'alice', false);
+    expect(withdrawn.takeback).toBeNull();
+    expect(withdrawn.moves).toHaveLength(1);
+  });
+
+  it('leaves the board alone when the opponent refuses', () => {
+    const refused = answer(ask(played(1), 'alice'), 'bob', false);
+    expect(refused.takeback).toBeNull();
+    expect(refused.moves).toHaveLength(1);
+    expect(refused.turn).toBe(2);
+  });
+
+  it('unplays one stone when the opponent has not replied', () => {
+    const done = answer(ask(played(1), 'alice'), 'bob', true);
+    expect(done.moves).toEqual([]);
+    expect(done.board[idx(0, 0)]).toBe(0);
+    expect(done.turn).toBe(1); // back to Alice
+    expect(done.takeback).toBeNull();
+  });
+
+  it('unplays the reply too when the opponent has already moved', () => {
+    // Alice, Bob, Alice — then Alice asks, so her third stone and nothing else is hers to lose.
+    const before = played(3);
+    const done = answer(ask(before, 'alice'), 'bob', true);
+    expect(done.moves).toHaveLength(2);
+    expect(done.turn).toBe(1);
+
+    // Now Bob asks after Alice has replied: both his stone and her reply come off.
+    const four = played(4);
+    const bobs = answer(ask(four, 'bob'), 'alice', true);
+    expect(bobs.moves).toHaveLength(3);
+    expect(bobs.turn).toBe(2);
+  });
+
+  it('rebuilds the board rather than trusting it', () => {
+    const done = answer(ask(played(3), 'alice'), 'bob', true);
+    expect(done.board.filter((s) => s !== 0)).toHaveLength(2);
+    expect(done.board[idx(0, 0)]).toBe(1);
+    expect(done.board[idx(1, 0)]).toBe(2);
+    expect(done.board[idx(2, 0)]).toBe(0);
+  });
+
+  it('is dropped when the asker plays on instead', () => {
+    const waiting = ask(played(2), 'alice'); // Bob has replied, so it is Alice's turn again
+    const moved = place(waiting, 'alice', idx(9, 9));
+    expect(moved.takeback).toBeNull();
+  });
+
+  it('is refused once the game is over', () => {
+    const over = gomoku.reduce(seated() as never, { type: 'resign' } as never, ctx('alice') as never) as unknown as GomokuState;
+    expect(() => ask(over, 'bob')).toThrow(/over/i);
+  });
+
+  it('is not something a watcher can start or settle', () => {
+    const three = [alice, bob, carol];
+    const watching = gomoku.onPlayersChanged!(played(1) as never, ctx('carol', three) as never) as unknown as GomokuState;
+    expect(() => gomoku.reduce(watching as never, { type: 'requestTakeback' } as never, ctx('carol', three) as never))
+      .toThrow(/watching/i);
+    const waiting = ask(watching, 'alice');
+    expect(() => gomoku.reduce(waiting as never, { type: 'respondTakeback', approve: true } as never, ctx('carol', three) as never))
+      .toThrow(/watching/i);
+  });
+});
