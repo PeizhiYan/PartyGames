@@ -741,6 +741,13 @@ function BoardPlay({ state, uid, me, act, busy }: PhaseProps) {
 
   return (
     <>
+      {state.card && (
+        <div className="room-banner" role="status">
+          <span aria-hidden>🎴</span>
+          <span className="grow">{state.card.text}</span>
+        </div>
+      )}
+
       <Board state={state} board={board} uid={uid} onSelect={setLooking} />
 
       {/* Where you are, spelled out — the one space you always need to be able to read. */}

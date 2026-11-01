@@ -1,104 +1,96 @@
-/* The ring. A square grid of (side + 2)²; see gridPosition() for which cell each space lands in. */
+/*
+ * Every space, filling the rectangle. Rows alternate direction (see ./layout), so the hole a real
+ * board needs for its cards and money becomes playing area instead — which is what lets a tile be
+ * big enough to read.
+ */
 .mono-board {
   display: grid;
-  grid-template-columns: repeat(var(--n), 1fr);
-  grid-template-rows: repeat(var(--n), 1fr);
-  aspect-ratio: 1;
+  grid-template-columns: repeat(var(--cols), 1fr);
+  grid-auto-rows: clamp(54px, 14vw, 86px);
+  gap: 3px;
+  padding: 3px;
   width: 100%;
-  gap: 2px;
-  padding: 2px;
   border-radius: 14px;
   background: var(--inset);
   border: 1px solid var(--border);
-  /* Everything on a space is tiny by necessity; it is a map, not a reading surface. */
-  font-size: clamp(0.3rem, 1.1vw, 0.56rem);
-  line-height: 1.15;
   user-select: none;
 }
 .mono-space {
   position: relative;
-  /* A grid cell, not a button: none of the usual button chrome applies. */
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0;
   min-height: 0;
+  overflow: hidden;
+  padding: 0;
   font: inherit;
+  font-size: clamp(0.56rem, 2.2vw, 0.72rem);
+  line-height: 1.2;
+  text-align: center;
+  border: 1.5px solid transparent;
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
   cursor: pointer;
+}
+.mono-space.special { background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
+.mono-space.owned { border-width: 3px; }
+.mono-band { display: block; height: 22%; min-height: 7px; flex: none; }
+.mono-body {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 1px;
-  overflow: hidden;
-  padding: 2px 1px;
-  text-align: center;
-  border-radius: 3px;
-  border: 1px solid transparent;
-  background: var(--surface);
-  color: var(--text-muted);
+  flex: 1;
+  min-height: 0;
+  padding: 2px 3px;
 }
-.mono-space.corner { background: color-mix(in srgb, var(--accent) 10%, var(--surface)); font-weight: 700; }
-.mono-space.owned { border-width: 2px; }
-.mono-stripe { position: absolute; top: 0; left: 0; right: 0; height: 18%; }
+.mono-glyph { font-size: 1.25em; line-height: 1; }
 .mono-name {
   max-width: 100%;
   overflow: hidden;
-  text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  word-break: break-word;
 }
-.mono-price { font-variant-numeric: tabular-nums; opacity: 0.75; }
-/* Only shown once the names are gone; see the phone block at the bottom. */
-.mono-glyph { display: none; }
-.mono-houses { font-size: 0.8em; letter-spacing: -1px; }
-.mono-tokens { display: flex; flex-wrap: wrap; justify-content: center; gap: 1px; }
+.mono-price { font-variant-numeric: tabular-nums; color: var(--text-muted); font-size: 0.92em; }
+.mono-owner { font-weight: 700; letter-spacing: -0.5px; }
+.mono-index {
+  position: absolute;
+  left: 2px;
+  bottom: 0;
+  font-size: 0.72em;
+  line-height: 1.1;
+  color: var(--text-muted);
+  opacity: 0.55;
+  font-variant-numeric: tabular-nums;
+}
+/* Tokens sit over the tile so they never push the words out of the way. */
+.mono-tokens {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  display: flex;
+  gap: 1px;
+}
 .mono-token {
-  font-size: 1.5em;
+  font-size: 1.15em;
   line-height: 1;
   border-radius: 50%;
   border: 1.5px solid transparent;
 }
 .mono-token.mine { box-shadow: 0 0 0 1.5px var(--text); }
-.mono-centre {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 8px;
-  text-align: center;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
-}
-.mono-centre strong { font-size: clamp(0.8rem, 3vw, 1.3rem); letter-spacing: 0.04em; }
-.mono-card {
-  margin: 0;
-  font-size: clamp(0.6rem, 1.8vw, 0.85rem);
-  line-height: 1.35;
-  color: var(--text);
-  max-width: 22ch;
-}
 
-
-/*
- * Phones. A cell is roughly 32px across here, which cannot hold a name and a price, so it stops
- * trying: the space becomes a block of its group colour, which is how anyone reads a real board
- * at a glance anyway. Tapping opens the full detail, so nothing is actually lost.
- */
 @media (max-width: 620px) {
+  /* Edge to edge: on a narrow screen the room's padding is worth more as board. */
   .mono-board {
-    /* Edge to edge — on a narrow screen the room's padding is worth more as board. */
     width: calc(100% + 32px);
     margin-inline: -16px;
     border-radius: 0;
     border-inline: none;
-    font-size: 0.5rem;
   }
-  .mono-space { background: color-mix(in srgb, var(--group, transparent) 34%, var(--surface)); }
-  .mono-space.owned { border-width: 2.5px; }
-  .mono-stripe { display: none; }
-  .mono-name, .mono-price { display: none; }
-  .mono-glyph { display: block; font-size: 1.1em; line-height: 1; }
-  /* Corners still say what they are — they are the landmarks you navigate by. */
-  .mono-space.corner .mono-name { display: block; font-size: 0.52rem; }
-  .mono-token { font-size: 1.15em; }
-  .mono-houses { position: absolute; bottom: 0; right: 1px; font-size: 0.55em; }
 }

@@ -101,13 +101,18 @@ Split across four files because the game got big:
   order is `seed` mixed with the number of draws so far.
 - **Deliberately missing**: auctions, trading and mortgages. Each needs a negotiation flow, and a
   game between friends works without them. A declined property stays with the bank.
-- Board rendering is a square CSS grid of `(side + 2)²`; `gridPosition()` maps a space index to a
-  cell, going anticlockwise from Go at bottom-right.
-- **Below 620px the board stops printing words.** A cell is about 32px there, which cannot hold a
-  name and a price, so the space becomes a block of its group colour (`--group`, set inline) and
-  the non-properties fall back to a glyph. The words live in `SpaceSheet`, opened by tapping, plus
-  a "You are on …" card that always spells out the one space you need. Do not try to shrink text
-  into the cells instead — it was unreadable, which is what prompted this.
+- **The board is not a ring.** A real one is hollow because the cards, money and tokens sit in
+  the middle; on screen that hole was about sixty percent of the area doing nothing while the
+  spaces were squeezed to ~32px. `layout.ts` lays all the spaces out filling the rectangle, in
+  boustrophedon order — rows alternate direction, so consecutive spaces stay adjacent, which is
+  the one property the ring had that a plain grid would lose. Tiles are three to four times the
+  area, which is the difference between a readable name and "Main C…". The faint number on each
+  tile is what tells you which way a row runs.
+- `boardLayout()` picks the factor pair closest to "a bit taller than wide", so the grid is
+  always exactly full — 40 → 5×8, 36 → 6×6, 32 → 4×8. A board whose space count is prime still
+  works, it just looks odd.
+- Tapping a space opens `SpaceSheet` with everything about it; a "You are on …" card under the
+  board always spells out the current space.
 
 ## Everything in a room is public
 
