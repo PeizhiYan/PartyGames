@@ -103,6 +103,11 @@ Split across four files because the game got big:
   game between friends works without them. A declined property stays with the bank.
 - Board rendering is a square CSS grid of `(side + 2)²`; `gridPosition()` maps a space index to a
   cell, going anticlockwise from Go at bottom-right.
+- **Below 620px the board stops printing words.** A cell is about 32px there, which cannot hold a
+  name and a price, so the space becomes a block of its group colour (`--group`, set inline) and
+  the non-properties fall back to a glyph. The words live in `SpaceSheet`, opened by tapping, plus
+  a "You are on …" card that always spells out the one space you need. Do not try to shrink text
+  into the cells instead — it was unreadable, which is what prompted this.
 
 ## Everything in a room is public
 

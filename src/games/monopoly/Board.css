@@ -17,6 +17,10 @@
 }
 .mono-space {
   position: relative;
+  /* A grid cell, not a button: none of the usual button chrome applies. */
+  min-height: 0;
+  font: inherit;
+  cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -42,6 +46,8 @@
   -webkit-box-orient: vertical;
 }
 .mono-price { font-variant-numeric: tabular-nums; opacity: 0.75; }
+/* Only shown once the names are gone; see the phone block at the bottom. */
+.mono-glyph { display: none; }
 .mono-houses { font-size: 0.8em; letter-spacing: -1px; }
 .mono-tokens { display: flex; flex-wrap: wrap; justify-content: center; gap: 1px; }
 .mono-token {
@@ -69,4 +75,30 @@
   line-height: 1.35;
   color: var(--text);
   max-width: 22ch;
+}
+
+
+/*
+ * Phones. A cell is roughly 32px across here, which cannot hold a name and a price, so it stops
+ * trying: the space becomes a block of its group colour, which is how anyone reads a real board
+ * at a glance anyway. Tapping opens the full detail, so nothing is actually lost.
+ */
+@media (max-width: 620px) {
+  .mono-board {
+    /* Edge to edge — on a narrow screen the room's padding is worth more as board. */
+    width: calc(100% + 32px);
+    margin-inline: -16px;
+    border-radius: 0;
+    border-inline: none;
+    font-size: 0.5rem;
+  }
+  .mono-space { background: color-mix(in srgb, var(--group, transparent) 34%, var(--surface)); }
+  .mono-space.owned { border-width: 2.5px; }
+  .mono-stripe { display: none; }
+  .mono-name, .mono-price { display: none; }
+  .mono-glyph { display: block; font-size: 1.1em; line-height: 1; }
+  /* Corners still say what they are — they are the landmarks you navigate by. */
+  .mono-space.corner .mono-name { display: block; font-size: 0.52rem; }
+  .mono-token { font-size: 1.15em; }
+  .mono-houses { position: absolute; bottom: 0; right: 1px; font-size: 0.55em; }
 }

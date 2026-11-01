@@ -58,6 +58,9 @@ on the game's own screen.
     which board you are on, so buying a property picks it by name at its printed price. That is
     what lets the final standings **add themselves up**; nobody types what their property is
     worth any more.
+  - On a phone the board drops its text and reads as bands of colour, with a glyph for the
+    railways, utilities, taxes and card spaces. Tap any space for its name, price, owner and rent
+    ladder; a card under the board always spells out where you are standing.
   - Four boards, and they are different shapes, not just different names: **Vancouver** and
     **New York** are the long 40-space game with eight colour groups, **Japan** is 36 spaces with
     six, and **China** is 32 — so a monopoly comes together sooner and the game runs shorter.

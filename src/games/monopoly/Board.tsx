@@ -21,6 +21,14 @@ export function gridPosition(index: number, side: number): { row: number; col: n
   return { row: index - (3 * side + 3) + 1, col: n };
 }
 
+/**
+ * What a space shows when there is no room for its name. A property has its colour band to go on;
+ * everything else would otherwise be an anonymous white square.
+ */
+const GLYPH: Partial<Record<Space['kind'], string>> = {
+  chance: '❓', chest: '🎁', tax: '💸', rail: '🚆', utility: '💡',
+};
+
 const SHORT: Record<Space['kind'], string> = {
   go: 'GO', jail: 'Jail', parking: 'Free', gotojail: 'Go to jail',
   chance: '?', chest: 'Chest', tax: 'Tax', property: '', rail: '', utility: '',
@@ -30,8 +38,21 @@ function label(space: Space): string {
   return 'name' in space ? space.name : SHORT[space.kind];
 }
 
-/** The ring, with everyone's token on it. Read-only: all the controls live under it. */
-export default function Board({ state, board, uid }: { state: MonopolyState; board: BoardDef; uid: string }) {
+/**
+ * The ring, with everyone's token on it.
+ *
+ * On a phone a cell is about 32px across, which is too small for a name and a price — so it
+ * stops trying. Below the breakpoint in Board.css the text is dropped and the space becomes a
+ * block of its group colour instead, which is what you actually read a board by. Tapping any
+ * space opens the full detail, so nothing is lost by not printing it.
+ */
+export default function Board({ state, board, uid, onSelect }: {
+  state: MonopolyState;
+  board: BoardDef;
+  uid: string;
+  /** Called with the space index when one is tapped. */
+  onSelect?: (index: number) => void;
+}) {
   const side = spacesPerSide(board);
   const n = side + 2;
 
@@ -47,13 +68,22 @@ export default function Board({ state, board, uid }: { state: MonopolyState; boa
         const corner = index % (side + 1) === 0;
 
         return (
-          <div
+          <button
+            type="button"
             key={index}
             className={`mono-space${corner ? ' corner' : ''}${owner ? ' owned' : ''}`}
-            style={{ gridRow: row, gridColumn: col, borderColor: ownerSeat?.color ?? undefined }}
-            title={isOwnable(space) ? `${space.name} · ${board.currency}${space.price}` : label(space)}
+            style={{
+              gridRow: row,
+              gridColumn: col,
+              borderColor: ownerSeat?.color ?? undefined,
+              // Read by the compact layout to tint the whole cell, not just the stripe.
+              ...(stripe ? { ['--group' as string]: stripe } : {}),
+            }}
+            onClick={() => onSelect?.(index)}
+            aria-label={isOwnable(space) ? `${space.name}, ${board.currency}${space.price}` : label(space)}
           >
             {stripe && <span className="mono-stripe" style={{ background: stripe }} aria-hidden />}
+            {GLYPH[space.kind] && <span className="mono-glyph" aria-hidden>{GLYPH[space.kind]}</span>}
             <span className="mono-name">{label(space)}</span>
             {isOwnable(space) && !owner && (
               <span className="mono-price">{board.currency}{space.price}</span>
@@ -73,7 +103,7 @@ export default function Board({ state, board, uid }: { state: MonopolyState; boa
                 ))}
               </span>
             )}
-          </div>
+          </button>
         );
       })}
       <div className="mono-centre" style={{ gridRow: `2 / ${n}`, gridColumn: `2 / ${n}` }}>
