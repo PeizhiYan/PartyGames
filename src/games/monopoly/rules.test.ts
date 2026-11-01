@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { COLORS, TOKENS, monopoly, ranking, seatOf, totalWealth, type MonopolyState } from './rules';
+import { BOARDS, COLORS, TOKENS, monopoly, propertyValue, ranking, seatOf, totalWealth, type MonopolyState } from './rules';
 import { GameRuleError, type GameContext, type RoomPlayer } from '../../types';
 
 const alice: RoomPlayer = { uid: 'alice', name: 'Alice', joinedAt: 1 };
@@ -19,7 +19,7 @@ const sync = (state: MonopolyState, players: RoomPlayer[]): MonopolyState =>
 /** A two-player game taken all the way to the playing phase. */
 function playing(players: RoomPlayer[] = [alice, bob]): MonopolyState {
   let state = sync(monopoly.newState(ctx('alice', players)) as unknown as MonopolyState, players);
-  state = run(state, 'alice', { type: 'start' }, players);
+  state = run(state, 'alice', { type: 'start', seed: 7 }, players);
   for (const [i, p] of players.entries()) {
     state = run(state, p.uid, { type: 'pick', token: TOKENS[i], color: COLORS[i] }, players);
   }
@@ -42,7 +42,7 @@ describe('getting started', () => {
   it('only lets the host configure and start', () => {
     const state = sync(monopoly.newState(ctx('alice')) as unknown as MonopolyState, [alice, bob]);
     expect(() => run(state, 'bob', { type: 'configure', startingBalance: 2000 })).toThrow(/host/i);
-    expect(() => run(state, 'bob', { type: 'start' })).toThrow(/host/i);
+    expect(() => run(state, 'bob', { type: 'start', seed: 7 })).toThrow(/host/i);
   });
 
   it('refuses a silly starting balance', () => {
@@ -54,13 +54,13 @@ describe('getting started', () => {
 
   it('will not start with one player', () => {
     const alone = sync(monopoly.newState(ctx('alice', [alice])) as unknown as MonopolyState, [alice]);
-    expect(() => run(alone, 'alice', { type: 'start' }, [alice])).toThrow(/two players/i);
+    expect(() => run(alone, 'alice', { type: 'start', seed: 7 }, [alice])).toThrow(/two players/i);
   });
 
   it('hands out the starting money once everyone has picked', () => {
     let state = sync(monopoly.newState(ctx('alice')) as unknown as MonopolyState, [alice, bob]);
     state = run(state, 'alice', { type: 'configure', startingBalance: 2000 });
-    state = run(state, 'alice', { type: 'start' });
+    state = run(state, 'alice', { type: 'start', seed: 7 });
     state = run(state, 'alice', { type: 'pick', token: TOKENS[0], color: COLORS[0] });
     expect(state.phase).toBe('pick');
     state = run(state, 'bob', { type: 'pick', token: TOKENS[1], color: COLORS[1] });
@@ -70,14 +70,14 @@ describe('getting started', () => {
 
   it('refuses a token someone else already locked in', () => {
     let state = sync(monopoly.newState(ctx('alice')) as unknown as MonopolyState, [alice, bob]);
-    state = run(state, 'alice', { type: 'start' });
+    state = run(state, 'alice', { type: 'start', seed: 7 });
     state = run(state, 'alice', { type: 'pick', token: TOKENS[0], color: COLORS[0] });
     expect(() => run(state, 'bob', { type: 'pick', token: TOKENS[0], color: COLORS[1] })).toThrow(/already took/i);
   });
 
   it('refuses anything that is not two real dice', () => {
     let state = sync(monopoly.newState(ctx('alice')) as unknown as MonopolyState, [alice, bob]);
-    state = run(state, 'alice', { type: 'start' });
+    state = run(state, 'alice', { type: 'start', seed: 7 });
     state = run(state, 'alice', { type: 'pick', token: TOKENS[0], color: COLORS[0] });
     state = run(state, 'bob', { type: 'pick', token: TOKENS[1], color: COLORS[1] });
     expect(() => run(state, 'alice', { type: 'rollOrder', dice: [7, 1] })).toThrow(/two dice/i);
@@ -181,7 +181,7 @@ describe('bank requests', () => {
   });
 });
 
-describe('finishing', () => {
+describe('finishing a bank game', () => {
   it('needs everyone to agree, and one no puts them back in the game', () => {
     let state = run(playing(), 'alice', { type: 'endGame' });
     expect(state.phase).toBe('endVote');
@@ -192,45 +192,96 @@ describe('finishing', () => {
 
     state = run(state, 'bob', { type: 'endGame' });
     state = run(state, 'alice', { type: 'respondEnd', approve: true });
-    expect(state.phase).toBe('assets');
+    // Straight to the results: nothing left to ask anyone.
+    expect(state.phase).toBe('results');
   });
 
-  it('ranks everyone by cash plus property', () => {
-    let state = run(playing(), 'alice', { type: 'send', to: 'bob', amount: 500, note: '' });
+  /*
+   * The point of recording which space was bought. The old flow asked every player to type what
+   * their property was worth, which was slow and, since nobody recounts their deeds, usually wrong.
+   */
+  it('adds up what everyone owns without asking them', () => {
+    const board = BOARDS[0];
+    const cheap = board.spaces.findIndex((sp) => sp.kind === 'property' && sp.price === 60);
+    const dear = board.spaces.findIndex((sp) => sp.kind === 'property' && sp.price === 400);
+
+    let state = playing();
+    state = run(state, 'alice', { type: 'buyProperty', space: cheap });
+    state = run(state, 'bob', { type: 'buyProperty', space: dear });
+
+    expect(propertyValue(state, 'alice')).toBe(60);
+    expect(propertyValue(state, 'bob')).toBe(400);
+    expect(seatOf(state, 'alice')!.balance).toBe(1500 - 60);
+    expect(seatOf(state, 'bob')!.balance).toBe(1500 - 400);
+
+    // Buying at the printed price moves wealth between columns without changing the total, so
+    // after only buying, everyone is still level. Rent and building are what separate people.
+    expect(totalWealth(state, seatOf(state, 'alice')!)).toBe(1500);
+    expect(totalWealth(state, seatOf(state, 'bob')!)).toBe(1500);
+
+    state = run(state, 'alice', { type: 'send', to: 'bob', amount: 300, note: 'Rent' });
     state = run(state, 'alice', { type: 'endGame' });
     state = run(state, 'bob', { type: 'respondEnd', approve: true });
-    state = run(state, 'alice', { type: 'submitAssets', value: 2000 });
-    expect(state.phase).toBe('assets');
-    state = run(state, 'bob', { type: 'submitAssets', value: 100 });
-    expect(state.phase).toBe('results');
 
     const [first, second] = ranking(state);
-    expect(first.uid).toBe('alice'); // 1000 cash + 2000 property
-    expect(totalWealth(first)).toBe(3000);
-    expect(second.uid).toBe('bob'); // 2000 cash + 100 property
-    expect(totalWealth(second)).toBe(2100);
+    expect(first.uid).toBe('bob');
+    expect(totalWealth(state, first)).toBe(1800);
+    expect(second.uid).toBe('alice');
+    expect(totalWealth(state, second)).toBe(1200);
   });
 
-  it('refuses a second asset total and a negative one', () => {
-    let state = run(playing(), 'alice', { type: 'endGame' });
-    state = run(state, 'bob', { type: 'respondEnd', approve: true });
-    expect(() => run(state, 'alice', { type: 'submitAssets', value: -5 })).toThrow(/0 or more/i);
-    state = run(state, 'alice', { type: 'submitAssets', value: 10 });
-    expect(() => run(state, 'alice', { type: 'submitAssets', value: 20 })).toThrow(/already sent/i);
+  it('counts houses towards what a property is worth', () => {
+    const board = BOARDS[0];
+    const pair = board.spaces
+      .map((sp, i) => (sp.kind === 'property' && sp.group === 'east' ? i : -1))
+      .filter((i) => i >= 0);
+
+    let state = playing();
+    for (const space of pair) state = run(state, 'alice', { type: 'buyProperty', space });
+    const bare = propertyValue(state, 'alice');
+    state = run(state, 'alice', { type: 'build', space: pair[0] });
+    expect(propertyValue(state, 'alice')).toBe(bare + board.groups.east.houseCost);
   });
 
-  it('starts another game with the same settings and seats', () => {
-    let state = run(playing(), 'alice', { type: 'endGame' });
+  it('will not build without the whole set, or unevenly', () => {
+    const board = BOARDS[0];
+    const pair = board.spaces
+      .map((sp, i) => (sp.kind === 'property' && sp.group === 'east' ? i : -1))
+      .filter((i) => i >= 0);
+
+    let state = run(playing(), 'alice', { type: 'buyProperty', space: pair[0] });
+    expect(() => run(state, 'alice', { type: 'build', space: pair[0] })).toThrow(/whole set/i);
+
+    state = run(state, 'alice', { type: 'buyProperty', space: pair[1] });
+    state = run(state, 'alice', { type: 'build', space: pair[0] });
+    // The second house has to go on the other one first.
+    expect(() => run(state, 'alice', { type: 'build', space: pair[0] })).toThrow(/evenly/i);
+    expect(() => run(state, 'alice', { type: 'build', space: pair[1] })).not.toThrow();
+  });
+
+  it('refuses a space somebody already holds, and one that is not for sale', () => {
+    const board = BOARDS[0];
+    const land = board.spaces.findIndex((sp) => sp.kind === 'property');
+    const corner = 0;
+    let state = run(playing(), 'alice', { type: 'buyProperty', space: land });
+    expect(() => run(state, 'bob', { type: 'buyProperty', space: land })).toThrow(/already owns/i);
+    expect(() => run(state, 'bob', { type: 'buyProperty', space: corner })).toThrow(/not for sale/i);
+    state = run(state, 'bob', { type: 'buyProperty', space: land + 2 });
+    expect(seatOf(state, 'bob')!.balance).toBeLessThan(1500);
+  });
+
+  it('starts another game with the same settings, board and seats', () => {
+    let state = run(playing(), 'alice', { type: 'buyProperty', space: 1 });
+    state = run(state, 'alice', { type: 'endGame' });
     state = run(state, 'bob', { type: 'respondEnd', approve: true });
-    state = run(state, 'alice', { type: 'submitAssets', value: 10 });
-    state = run(state, 'bob', { type: 'submitAssets', value: 20 });
     expect(() => run(state, 'bob', { type: 'newGame' })).toThrow(/host/i);
 
     const fresh = run(state, 'alice', { type: 'newGame' });
     expect(fresh.phase).toBe('lobby');
-    expect(fresh.seats.map((s) => s.uid)).toEqual(['alice', 'bob']);
-    expect(fresh.seats.every((s) => s.balance === 1500 && s.assets === null && !s.ready)).toBe(true);
-    expect(fresh.seats[0].token).toBe(TOKENS[0]); // tokens are kept for a quick rematch
+    expect(fresh.settings.boardId).toBe(state.settings.boardId);
+    expect(fresh.owned).toEqual({});
+    expect(fresh.seats.every((s) => s.balance === 1500 && !s.ready && !s.bankrupt)).toBe(true);
+    expect(fresh.seats[0].token).toBe(TOKENS[0]);
     expect(fresh.log).toEqual([]);
   });
 });
@@ -240,7 +291,7 @@ describe('actions out of phase', () => {
     const lobby = sync(monopoly.newState(ctx('alice')) as unknown as MonopolyState, [alice, bob]);
     expect(() => run(lobby, 'alice', { type: 'send', to: 'bob', amount: 1, note: '' })).toThrow(GameRuleError);
     expect(() => run(lobby, 'alice', { type: 'roll', dice: [1, 1] })).toThrow(GameRuleError);
-    expect(() => run(playing(), 'alice', { type: 'start' })).toThrow(GameRuleError);
+    expect(() => run(playing(), 'alice', { type: 'start', seed: 7 })).toThrow(GameRuleError);
     expect(() => run(playing(), 'alice', { type: 'unknown' })).toThrow(/unknown move/i);
   });
 });

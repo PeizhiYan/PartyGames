@@ -1,0 +1,72 @@
+/* The ring. A square grid of (side + 2)²; see gridPosition() for which cell each space lands in. */
+.mono-board {
+  display: grid;
+  grid-template-columns: repeat(var(--n), 1fr);
+  grid-template-rows: repeat(var(--n), 1fr);
+  aspect-ratio: 1;
+  width: 100%;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 14px;
+  background: var(--inset);
+  border: 1px solid var(--border);
+  /* Everything on a space is tiny by necessity; it is a map, not a reading surface. */
+  font-size: clamp(0.3rem, 1.1vw, 0.56rem);
+  line-height: 1.15;
+  user-select: none;
+}
+.mono-space {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  overflow: hidden;
+  padding: 2px 1px;
+  text-align: center;
+  border-radius: 3px;
+  border: 1px solid transparent;
+  background: var(--surface);
+  color: var(--text-muted);
+}
+.mono-space.corner { background: color-mix(in srgb, var(--accent) 10%, var(--surface)); font-weight: 700; }
+.mono-space.owned { border-width: 2px; }
+.mono-stripe { position: absolute; top: 0; left: 0; right: 0; height: 18%; }
+.mono-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.mono-price { font-variant-numeric: tabular-nums; opacity: 0.75; }
+.mono-houses { font-size: 0.8em; letter-spacing: -1px; }
+.mono-tokens { display: flex; flex-wrap: wrap; justify-content: center; gap: 1px; }
+.mono-token {
+  font-size: 1.5em;
+  line-height: 1;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+}
+.mono-token.mine { box-shadow: 0 0 0 1.5px var(--text); }
+.mono-centre {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px;
+  text-align: center;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+}
+.mono-centre strong { font-size: clamp(0.8rem, 3vw, 1.3rem); letter-spacing: 0.04em; }
+.mono-card {
+  margin: 0;
+  font-size: clamp(0.6rem, 1.8vw, 0.85rem);
+  line-height: 1.35;
+  color: var(--text);
+  max-width: 22ch;
+}

@@ -49,11 +49,19 @@ on the game's own screen.
   marked, the winning five
   is struck through, colours swap each rematch, and the room keeps the score. Against the computer
   there's also **Insight**: the board shaded by what each point is worth.
-- **MonopolyBuddy** – the host sets the starting balance and whether balances are public. Everyone
-  picks a token and a colour, rolls for turn order, then sends money, pays the bank, or asks the
-  bank for money (which **every other player** has to approve). Ending the game needs everyone's
-  agreement; then each player types in what their property is worth and the app ranks everyone by
-  cash plus property, with a chart of how the money moved.
+- **Monopoly** – two ways to play, chosen by the host.
+  - **Play the board** — the whole game happens here. Tokens move, rent is charged, Chance and
+    Community Chest are drawn, jail works three ways in and three ways out, houses build evenly on
+    a complete set, and a player who cannot pay goes bankrupt until one is left. No auctions,
+    trading or mortgages.
+  - **Bank only** — you have a real board on the table and the app moves money. It still knows
+    which board you are on, so buying a property picks it by name at its printed price. That is
+    what lets the final standings **add themselves up**; nobody types what their property is
+    worth any more.
+  - Four boards, and they are different shapes, not just different names: **Vancouver** and
+    **New York** are the long 40-space game with eight colour groups, **Japan** is 36 spaces with
+    six, and **China** is 32 — so a monopoly comes together sooner and the game runs shorter.
+    Each has its own currency, prices and salary.
 - **Sign-in with Google.** Registration can be open to anyone or closed to an invite list.
 - **Users** (admin only) – open or close registration, invite people by email, and remove an
   account, which locks them out and deletes their rooms.

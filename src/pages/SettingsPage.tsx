@@ -36,7 +36,7 @@ export default function SettingsPage() {
         <h3>About</h3>
         <ul className="about">
           <li>Gomoku ported from Peizhi's original JavaScript version, computer opponent and all.</li>
-          <li>MonopolyBuddy ported from the Socket.io app, now running on the same rooms as everything else.</li>
+          <li>Monopoly plays the whole board here, or just banks for the one on your table.</li>
           <li>Rooms vanish once everybody has left them.</li>
         </ul>
         <p className="row between" style={{ marginBottom: 0 }}>

@@ -1,110 +1,72 @@
 /**
- * MonopolyBuddy as a room game: the bank for a physical Monopoly board, so nobody has to count
- * paper money. Ported from the Socket.io server in ../MonopolyBuddy (backend/server.js).
+ * Monopoly, in two modes.
  *
- * The original kept the whole game in one server's memory and identified players by a session
- * token. Here the state lives in the room document and players are identified by their signed-in
- * uid, so a refresh (or a new phone) picks up where they left off. The phase machine, the
- * all-others-must-approve bank requests, and the end-game vote are the original's.
+ * **Bank** is for a real board on the table: the app only moves money, but it knows which board
+ * you are playing, so buying a property records *which* one and the final standings add
+ * themselves up. **Board** plays the whole game here — tokens, rent, cards, jail — and is in
+ * `./play`.
  *
- * Dice rolls arrive in the action rather than being generated here, so this reducer stays pure and
- * testable; it checks they are two numbers from 1 to 6. In a group of friends sharing a board that
- * is enough — nothing of value rides on a roll the app can't verify.
+ * Ported from the Socket.io app in ../MonopolyBuddy, whose phase machine, all-others-must-approve
+ * bank requests and unanimous end-game vote survive intact. Players are identified by their
+ * signed-in uid rather than a session token, so a refresh picks up where they left off.
+ *
+ * Dice and the card seed arrive in the action rather than being generated here, so the reducer
+ * stays pure and testable; it checks dice are two numbers from 1 to 6. Among friends sharing a
+ * table that is enough — nothing of value rides on a roll the app cannot verify.
  */
 import { GameRuleError, type GameContext, type GameDefinition, type RoomPlayer } from '../../types';
+import { boardOf, isOwnable, DEFAULT_BOARD_ID } from './boards';
+import {
+  build, buyPending, canBuild, endTurn, rollAndMove, rollsAgain, settleIfOver,
+} from './play';
+import {
+  activeSeats, boardFor, isBoardMode, propertyValue, ranking, seatOf, totalWealth,
+  type DraftEntry, type Entry, type Mode, type MonopolyState, type Phase, type Seat,
+} from './state';
 
-export type Phase =
-  /** The owner sets the starting balance and waits for everyone to arrive. */
-  | 'lobby'
-  /** Everyone picks a token and a colour. */
-  | 'pick'
-  /** Everyone rolls to decide who goes first. */
-  | 'roll'
-  /** The roll is in: the play order is shown before the game starts. */
-  | 'order'
-  | 'playing'
-  /** Someone asked to end the game; everyone else has to agree. */
-  | 'endVote'
-  /** Everyone types in what their property and houses are worth. */
-  | 'assets'
-  | 'results';
+export * from './state';
+export { canBuild, rollsAgain } from './play';
+export { BOARDS, boardOf, spacesPerSide } from './boards';
 
 export const TOKENS = ['🎩', '🚂', '🐕', '🏎️', '⛵️', '👢', '🐈', '🎀'] as const;
 export const COLORS = [
   '#dc2626', '#2563eb', '#16a34a', '#ca8a04',
   '#7c3aed', '#ea580c', '#db2777', '#0d9488',
 ] as const;
-export const PAY_REASONS = ['Buy land', 'Buy house(s)', 'Rent', 'Pay fine', 'Tax', 'Other'] as const;
+/** Reasons for a hand-entered payment in bank mode. Buying is its own action, so it isn't here. */
+export const PAY_REASONS = ['Rent', 'Pay fine', 'Tax', 'Other'] as const;
 
 export const MIN_BALANCE = 100;
-export const MAX_BALANCE = 100_000;
+export const MAX_BALANCE = 1_000_000;
 export const DEFAULT_BALANCE = 1500;
-/** The log is capped so a long game can't outgrow the room document. */
 const MAX_LOG = 300;
 
-export interface Seat {
-  uid: string;
-  name: string;
-  photoURL?: string;
-  token: string | null;
-  color: string | null;
-  balance: number;
-  ready: boolean;
-  /** The two dice from the play-order roll, and their total. */
-  dice: [number, number] | null;
-  /** What this player says their property is worth, at the end. */
-  assets: number | null;
-}
-
-export type Entry =
-  | { id: string; at: number; kind: 'transfer'; from: string; to: string; amount: number; note: string }
-  | { id: string; at: number; kind: 'payBank'; from: string; amount: number; note: string }
-  | { id: string; at: number; kind: 'fromBank'; to: string; amount: number; note: string };
-
-export interface BankRequest {
-  id: string;
-  uid: string;
-  amount: number;
-  reason: string;
-  /** Who has approved so far. Every other player has to, before the money appears. */
-  approvedBy: string[];
-  at: number;
-}
-
-export interface MonopolyState {
-  phase: Phase;
-  settings: { startingBalance: number; showBalances: boolean };
-  seats: Seat[];
-  /** uids, highest opening roll first. Informational: the app doesn't enforce turns. */
-  order: string[];
-  requests: BankRequest[];
-  log: Entry[];
-  /** uid -> balance over time, for the chart on the results screen. */
-  history: Record<string, { t: number; b: number }[]>;
-  lastRoll: { uid: string; dice: [number, number]; total: number; at: number } | null;
-  endVote: { by: string; approvedBy: string[] } | null;
-}
-
 export type MonopolyAction =
-  | { type: 'configure'; startingBalance?: number; showBalances?: boolean }
-  | { type: 'start' }
+  | { type: 'configure'; startingBalance?: number; showBalances?: boolean; mode?: Mode; boardId?: string }
+  | { type: 'start'; seed: number }
   | { type: 'pick'; token: string; color: string }
   | { type: 'rollOrder'; dice: [number, number] }
   | { type: 'beginPlay' }
   | { type: 'roll'; dice: [number, number] }
+  /** Board mode: answer the offer to buy the space you landed on. */
+  | { type: 'buy' }
+  | { type: 'decline' }
+  | { type: 'endTurn' }
+  /** Bank mode: take a named property off the board and pay the bank for it. */
+  | { type: 'buyProperty'; space: number }
+  | { type: 'build'; space: number }
   | { type: 'send'; to: string; amount: number; note: string }
   | { type: 'payBank'; amount: number; reason: string }
   | { type: 'requestBank'; amount: number; reason: string }
   | { type: 'respondBank'; id: string; approve: boolean }
   | { type: 'endGame' }
   | { type: 'respondEnd'; approve: boolean }
-  | { type: 'submitAssets'; value: number }
   | { type: 'newGame' };
 
 function initial(): MonopolyState {
   return {
     phase: 'lobby',
-    settings: { startingBalance: DEFAULT_BALANCE, showBalances: true },
+    settings: { startingBalance: DEFAULT_BALANCE, showBalances: true, mode: 'bank', boardId: DEFAULT_BOARD_ID },
     seats: [],
     order: [],
     requests: [],
@@ -112,24 +74,39 @@ function initial(): MonopolyState {
     history: {},
     lastRoll: null,
     endVote: null,
+    owned: {},
+    houses: {},
+    turn: null,
+    pending: null,
+    doubles: 0,
+    rolled: false,
+    card: null,
+    draws: 0,
+    seed: 0,
   };
 }
 
-export const seatOf = (state: MonopolyState, uid: string): Seat | undefined =>
-  state.seats.find((s) => s.uid === uid);
+/* ── Shared plumbing ──────────────────────────────────────────────────────── */
 
-export const totalWealth = (seat: Seat): number => seat.balance + (seat.assets ?? 0);
-
-/** Players ranked by cash plus what they say their property is worth. */
-export const ranking = (state: MonopolyState): Seat[] =>
-  [...state.seats].sort((a, b) => totalWealth(b) - totalWealth(a));
-
-/** Ids are built from the clock plus the actor, so the reducer needs no randomness. */
 const makeId = (ctx: GameContext, tag: string) => `${tag}-${ctx.now.toString(36)}-${ctx.actorUid.slice(0, 6)}`;
+
+function append(log: Entry[], entry: Entry): Entry[] {
+  const next = [...log, entry];
+  return next.length > MAX_LOG ? next.slice(-MAX_LOG) : next;
+}
+
+const record = (state: MonopolyState, uid: string, balance: number, now: number) => ({
+  ...state.history,
+  [uid]: [...(state.history[uid] ?? []), { t: now, b: balance }],
+});
+
+const withSeat = (state: MonopolyState, uid: string, patch: Partial<Seat>): Seat[] =>
+  state.seats.map((s) => (s.uid === uid ? { ...s, ...patch } : s));
 
 function requireSeat(state: MonopolyState, ctx: GameContext): Seat {
   const seat = seatOf(state, ctx.actorUid);
   if (!seat) throw new GameRuleError('You are not in this game.');
+  if (seat.bankrupt) throw new GameRuleError('You are out of this game.');
   return seat;
 }
 
@@ -141,10 +118,17 @@ function requirePhase(state: MonopolyState, phase: Phase): void {
   if (state.phase !== phase) throw new GameRuleError('That is not possible right now.');
 }
 
-function wholeAmount(amount: unknown, what = 'amount'): number {
+/** Board mode only: refuse anything out of turn, or while a decision is outstanding. */
+function requireTurn(state: MonopolyState, ctx: GameContext): Seat {
+  const seat = requireSeat(state, ctx);
+  if (isBoardMode(state) && state.turn !== ctx.actorUid) throw new GameRuleError("It is not your turn.");
+  return seat;
+}
+
+function wholeAmount(amount: unknown): number {
   const value = Math.floor(Number(amount));
-  if (!Number.isFinite(value) || value <= 0) throw new GameRuleError(`Enter an ${what} above zero.`);
-  if (value > 10_000_000) throw new GameRuleError('That is more money than this game holds.');
+  if (!Number.isFinite(value) || value <= 0) throw new GameRuleError('Enter an amount above zero.');
+  if (value > 100_000_000) throw new GameRuleError('That is more money than this game holds.');
   return value;
 }
 
@@ -155,53 +139,41 @@ function checkDice(dice: [number, number]): [number, number] {
   return [dice[0], dice[1]];
 }
 
-function note(text: unknown, fallback = ''): string {
-  return String(text ?? '').trim().slice(0, 60) || fallback;
-}
+const note = (text: unknown, fallback = ''): string => String(text ?? '').trim().slice(0, 60) || fallback;
 
-function record(state: MonopolyState, uid: string, balance: number, now: number): MonopolyState['history'] {
-  const previous = state.history[uid] ?? [];
-  return { ...state.history, [uid]: [...previous, { t: now, b: balance }] };
-}
-
-function append(log: Entry[], entry: Entry): Entry[] {
-  const next = [...log, entry];
-  return next.length > MAX_LOG ? next.slice(-MAX_LOG) : next;
-}
-
-function withSeat(state: MonopolyState, uid: string, patch: Partial<Seat>): Seat[] {
-  return state.seats.map((s) => (s.uid === uid ? { ...s, ...patch } : s));
-}
+const logged = (state: MonopolyState, ctx: GameContext, entry: DraftEntry): Entry[] =>
+  append(state.log, { ...entry, id: makeId(ctx, 'tx'), at: ctx.now } as Entry);
 
 /**
- * Keeps the seats in step with who is in the room. Before the game starts, arrivals get a seat and
- * leavers lose theirs. Once play is under way a seat is kept even while its player is away, so
- * their money survives a closed tab — the host starts a new game to clear them out.
+ * Keeps the seats in step with the room. Before the game starts, arrivals get a seat and leavers
+ * lose theirs; once play is under way a seat is kept even while its player is away, so their
+ * money and deeds survive a closed tab.
  */
 function syncSeats(state: MonopolyState, ctx: GameContext): MonopolyState {
-  const before: Phase[] = ['lobby', 'pick'];
-  if (!before.includes(state.phase)) return state;
+  if (state.phase !== 'lobby' && state.phase !== 'pick') return state;
   const present = new Map(ctx.players.map((p: RoomPlayer) => [p.uid, p]));
   const kept = state.seats
     .filter((s) => present.has(s.uid))
     .map((s) => ({ ...s, name: present.get(s.uid)!.name, photoURL: present.get(s.uid)!.photoURL }));
   const known = new Set(kept.map((s) => s.uid));
-  const added: Seat[] = ctx.players
-    .filter((p) => !known.has(p.uid))
-    .map((p) => ({
-      uid: p.uid,
-      name: p.name,
-      photoURL: p.photoURL,
-      token: null,
-      color: null,
-      balance: state.settings.startingBalance,
-      ready: false,
-      dice: null,
-      assets: null,
-    }));
+  const added: Seat[] = ctx.players.filter((p) => !known.has(p.uid)).map((p) => ({
+    uid: p.uid,
+    name: p.name,
+    photoURL: p.photoURL,
+    token: null,
+    color: null,
+    balance: state.settings.startingBalance,
+    ready: false,
+    dice: null,
+    position: 0,
+    jailTurns: 0,
+    bankrupt: false,
+  }));
   if (added.length === 0 && kept.length === state.seats.length) return state;
   return { ...state, seats: [...kept, ...added] };
 }
+
+/* ── Setting up ───────────────────────────────────────────────────────────── */
 
 function configure(state: MonopolyState, action: Extract<MonopolyAction, { type: 'configure' }>, ctx: GameContext): MonopolyState {
   requireOwner(ctx);
@@ -215,15 +187,26 @@ function configure(state: MonopolyState, action: Extract<MonopolyAction, { type:
     settings.startingBalance = value;
   }
   if (action.showBalances !== undefined) settings.showBalances = !!action.showBalances;
-  // Nobody has spent anything yet, so everyone's balance follows the new setting.
+  if (action.mode !== undefined) {
+    if (action.mode !== 'bank' && action.mode !== 'board') throw new GameRuleError('Pick one of the two modes.');
+    settings.mode = action.mode;
+  }
+  if (action.boardId !== undefined) {
+    if (!boardOf(action.boardId) || boardOf(action.boardId).id !== action.boardId) {
+      throw new GameRuleError('There is no such board.');
+    }
+    settings.boardId = action.boardId;
+  }
+  // Nobody has spent anything yet, so everyone's balance follows the setting.
   return { ...state, settings, seats: state.seats.map((s) => ({ ...s, balance: settings.startingBalance })) };
 }
 
-function start(state: MonopolyState, ctx: GameContext): MonopolyState {
+function start(state: MonopolyState, seed: number, ctx: GameContext): MonopolyState {
   requireOwner(ctx);
   requirePhase(state, 'lobby');
   if (state.seats.length < 2) throw new GameRuleError('You need at least two players.');
-  return { ...state, phase: 'pick' };
+  const value = Math.floor(Number(seed));
+  return { ...state, phase: 'pick', seed: Number.isFinite(value) ? Math.abs(value) : 1 };
 }
 
 function pick(state: MonopolyState, action: Extract<MonopolyAction, { type: 'pick' }>, ctx: GameContext): MonopolyState {
@@ -231,12 +214,12 @@ function pick(state: MonopolyState, action: Extract<MonopolyAction, { type: 'pic
   requireSeat(state, ctx);
   if (!TOKENS.includes(action.token as (typeof TOKENS)[number])) throw new GameRuleError('Pick one of the tokens.');
   if (!COLORS.includes(action.color as (typeof COLORS)[number])) throw new GameRuleError('Pick one of the colours.');
-  const taken = state.seats.some((s) => s.uid !== ctx.actorUid && s.ready && s.token === action.token);
-  if (taken) throw new GameRuleError('Someone already took that token.');
-
+  if (state.seats.some((s) => s.uid !== ctx.actorUid && s.ready && s.token === action.token)) {
+    throw new GameRuleError('Someone already took that token.');
+  }
   const seats = withSeat(state, ctx.actorUid, { token: action.token, color: action.color, ready: true });
   if (!seats.every((s) => s.ready)) return { ...state, seats };
-  // Everyone is ready: hand out the starting money and roll for who goes first.
+
   const paid = seats.map((s) => ({ ...s, balance: state.settings.startingBalance }));
   let history = state.history;
   for (const seat of paid) history = { ...history, [seat.uid]: [{ t: ctx.now, b: seat.balance }] };
@@ -249,16 +232,17 @@ function rollOrder(state: MonopolyState, dice: [number, number], ctx: GameContex
   if (seat.dice) throw new GameRuleError('You have already rolled.');
   const seats = withSeat(state, ctx.actorUid, { dice: checkDice(dice) });
   if (!seats.every((s) => s.dice)) return { ...state, seats };
-  // Highest total goes first; a tie goes to whoever joined the room first.
-  const byUid = new Map(ctx.players.map((p) => [p.uid, p.joinedAt]));
+  const joined = new Map(ctx.players.map((p) => [p.uid, p.joinedAt]));
   const order = [...seats]
     .sort((a, b) => {
       const diff = (b.dice![0] + b.dice![1]) - (a.dice![0] + a.dice![1]);
-      return diff !== 0 ? diff : (byUid.get(a.uid) ?? 0) - (byUid.get(b.uid) ?? 0);
+      return diff !== 0 ? diff : (joined.get(a.uid) ?? 0) - (joined.get(b.uid) ?? 0);
     })
     .map((s) => s.uid);
   return { ...state, seats, order, phase: 'order' };
 }
+
+/* ── Money, by hand (bank mode) ───────────────────────────────────────────── */
 
 function send(state: MonopolyState, action: Extract<MonopolyAction, { type: 'send' }>, ctx: GameContext): MonopolyState {
   requirePhase(state, 'playing');
@@ -275,14 +259,10 @@ function send(state: MonopolyState, action: Extract<MonopolyAction, { type: 'sen
       if (s.uid === to.uid) return { ...s, balance: s.balance + amount };
       return s;
     }),
-    log: append(state.log, {
-      id: makeId(ctx, 'tx'), at: ctx.now, kind: 'transfer',
-      from: from.uid, to: to.uid, amount, note: note(action.note),
-    }),
+    log: logged(state, ctx, { kind: 'transfer', from: from.uid, to: to.uid, amount, note: note(action.note) }),
   };
   next = { ...next, history: record(next, from.uid, from.balance - amount, ctx.now) };
-  next = { ...next, history: record(next, to.uid, to.balance + amount, ctx.now) };
-  return next;
+  return { ...next, history: record(next, to.uid, to.balance + amount, ctx.now) };
 }
 
 function payBank(state: MonopolyState, action: Extract<MonopolyAction, { type: 'payBank' }>, ctx: GameContext): MonopolyState {
@@ -294,9 +274,32 @@ function payBank(state: MonopolyState, action: Extract<MonopolyAction, { type: '
   const next: MonopolyState = {
     ...state,
     seats: withSeat(state, seat.uid, { balance }),
-    log: append(state.log, {
-      id: makeId(ctx, 'tx'), at: ctx.now, kind: 'payBank',
-      from: seat.uid, amount, note: note(action.reason, 'Other'),
+    log: logged(state, ctx, { kind: 'payBank', from: seat.uid, amount, note: note(action.reason, 'Other') }),
+  };
+  return { ...next, history: record(next, seat.uid, balance, ctx.now) };
+}
+
+/**
+ * Bank mode's buy: take a named space off this room's board and pay the bank its printed price.
+ *
+ * This is the whole reason the board data exists in bank mode. Recording *which* space was bought
+ * is what lets the results screen add up what everyone owns instead of asking them to count it.
+ */
+function buyProperty(state: MonopolyState, index: number, ctx: GameContext): MonopolyState {
+  requirePhase(state, 'playing');
+  const seat = requireSeat(state, ctx);
+  const space = boardFor(state).spaces[index];
+  if (!space || !isOwnable(space)) throw new GameRuleError('That space is not for sale.');
+  if (state.owned[index]) throw new GameRuleError('Somebody already owns that.');
+  if (seat.balance < space.price) throw new GameRuleError('You do not have that much.');
+
+  const balance = seat.balance - space.price;
+  const next: MonopolyState = {
+    ...state,
+    owned: { ...state.owned, [index]: seat.uid },
+    seats: withSeat(state, seat.uid, { balance }),
+    log: logged(state, ctx, {
+      kind: 'buy', from: seat.uid, amount: space.price, note: space.name, space: index,
     }),
   };
   return { ...next, history: record(next, seat.uid, balance, ctx.now) };
@@ -307,9 +310,8 @@ function requestBank(state: MonopolyState, action: Extract<MonopolyAction, { typ
   const seat = requireSeat(state, ctx);
   const amount = wholeAmount(action.amount);
   if (state.requests.some((r) => r.uid === seat.uid)) throw new GameRuleError('Your last request is still waiting.');
-  const request: BankRequest = {
-    id: makeId(ctx, 'req'), uid: seat.uid, amount,
-    reason: note(action.reason), approvedBy: [], at: ctx.now,
+  const request = {
+    id: makeId(ctx, 'req'), uid: seat.uid, amount, reason: note(action.reason), approvedBy: [], at: ctx.now,
   };
   return settleRequest({ ...state, requests: [...state.requests, request] }, request.id, ctx);
 }
@@ -318,12 +320,9 @@ function respondBank(state: MonopolyState, action: Extract<MonopolyAction, { typ
   requirePhase(state, 'playing');
   requireSeat(state, ctx);
   const request = state.requests.find((r) => r.id === action.id);
-  if (!request) return state; // already settled by someone else
+  if (!request) return state;
   if (request.uid === ctx.actorUid) throw new GameRuleError('You cannot approve your own request.');
-  if (!action.approve) {
-    // One "no" is enough: the request is dropped.
-    return { ...state, requests: state.requests.filter((r) => r.id !== request.id) };
-  }
+  if (!action.approve) return { ...state, requests: state.requests.filter((r) => r.id !== request.id) };
   const approvedBy = request.approvedBy.includes(ctx.actorUid)
     ? request.approvedBy
     : [...request.approvedBy, ctx.actorUid];
@@ -335,7 +334,7 @@ function respondBank(state: MonopolyState, action: Extract<MonopolyAction, { typ
 function settleRequest(state: MonopolyState, id: string, ctx: GameContext): MonopolyState {
   const request = state.requests.find((r) => r.id === id);
   if (!request) return state;
-  const others = state.seats.filter((s) => s.uid !== request.uid);
+  const others = activeSeats(state).filter((s) => s.uid !== request.uid);
   if (!others.every((s) => request.approvedBy.includes(s.uid))) return state;
 
   const seat = seatOf(state, request.uid);
@@ -346,103 +345,156 @@ function settleRequest(state: MonopolyState, id: string, ctx: GameContext): Mono
     ...state,
     requests,
     seats: withSeat(state, seat.uid, { balance }),
-    log: append(state.log, {
-      id: makeId(ctx, 'tx'), at: ctx.now, kind: 'fromBank',
-      to: seat.uid, amount: request.amount, note: request.reason,
-    }),
+    log: logged(state, ctx, { kind: 'fromBank', to: seat.uid, amount: request.amount, note: request.reason }),
   };
   return { ...next, history: record(next, seat.uid, balance, ctx.now) };
 }
+
+/* ── Finishing ────────────────────────────────────────────────────────────── */
 
 function respondEnd(state: MonopolyState, approve: boolean, ctx: GameContext): MonopolyState {
   requirePhase(state, 'endVote');
   requireSeat(state, ctx);
   if (!state.endVote) return { ...state, phase: 'playing' };
-  // One "no" puts everyone back in the game, as in the original.
   if (!approve) return { ...state, phase: 'playing', endVote: null };
   const approvedBy = state.endVote.approvedBy.includes(ctx.actorUid)
     ? state.endVote.approvedBy
     : [...state.endVote.approvedBy, ctx.actorUid];
-  if (!state.seats.every((s) => approvedBy.includes(s.uid))) {
+  if (!activeSeats(state).every((s) => approvedBy.includes(s.uid))) {
     return { ...state, endVote: { ...state.endVote, approvedBy } };
   }
-  return { ...state, phase: 'assets', endVote: null };
-}
-
-function submitAssets(state: MonopolyState, value: number, ctx: GameContext): MonopolyState {
-  requirePhase(state, 'assets');
-  const seat = requireSeat(state, ctx);
-  if (seat.assets !== null) throw new GameRuleError('You already sent your total.');
-  const amount = Math.floor(Number(value));
-  if (!Number.isFinite(amount) || amount < 0) throw new GameRuleError('Enter 0 or more.');
-  const seats = withSeat(state, seat.uid, { assets: amount });
-  const done = seats.every((s) => s.assets !== null);
-  return { ...state, seats, phase: done ? 'results' : 'assets' };
+  // No asset-entry step any more: everything anyone bought is already recorded.
+  return { ...state, phase: 'results', endVote: null };
 }
 
 function newGame(state: MonopolyState, ctx: GameContext): MonopolyState {
   requireOwner(ctx);
   if (state.phase !== 'results') throw new GameRuleError('Finish this game first.');
-  // Keep the settings and who is sitting here; everything else starts fresh. Tokens and colours
-  // are kept too, so a quick rematch doesn't make everyone pick again.
+  // Keep the settings and who is sitting here, and their tokens, so a rematch is quick.
   return {
     ...initial(),
     settings: state.settings,
+    seed: state.seed,
     seats: state.seats.map((s) => ({
-      ...s, balance: state.settings.startingBalance, ready: false, dice: null, assets: null,
+      ...s,
+      balance: state.settings.startingBalance,
+      ready: false,
+      dice: null,
+      position: 0,
+      jailTurns: 0,
+      bankrupt: false,
     })),
   };
 }
 
+/* ── The reducer ──────────────────────────────────────────────────────────── */
+
+function reduce(state: MonopolyState, action: MonopolyAction, ctx: GameContext): MonopolyState {
+  switch (action.type) {
+    case 'configure': return configure(state, action, ctx);
+    case 'start': return start(state, action.seed, ctx);
+    case 'pick': return pick(state, action, ctx);
+    case 'rollOrder': return rollOrder(state, action.dice, ctx);
+
+    case 'beginPlay': {
+      requirePhase(state, 'order');
+      requireSeat(state, ctx);
+      // Board mode needs somebody to be on move; bank mode never enforces turns.
+      return { ...state, phase: 'playing', turn: isBoardMode(state) ? state.order[0] ?? null : null };
+    }
+
+    case 'roll': {
+      requirePhase(state, 'playing');
+      const dice = checkDice(action.dice);
+      if (!isBoardMode(state)) {
+        requireSeat(state, ctx);
+        // Bank mode: the dice are just announced, because the board is on the table.
+        return { ...state, lastRoll: { uid: ctx.actorUid, dice, total: dice[0] + dice[1], at: ctx.now } };
+      }
+      requireTurn(state, ctx);
+      if (state.pending) throw new GameRuleError('Answer the offer first.');
+      if (state.rolled) throw new GameRuleError('You have already rolled — end your turn.');
+      const moved = rollAndMove(state, ctx.actorUid, dice, ctx.now);
+      // A double buys another go; anything else ends the moving part of the turn.
+      return settleIfOver({ ...moved, rolled: !rollsAgain(moved, ctx.actorUid) });
+    }
+
+    case 'buy': {
+      requirePhase(state, 'playing');
+      requireTurn(state, ctx);
+      if (!state.pending) throw new GameRuleError('There is nothing to buy.');
+      return settleIfOver(buyPending(state, ctx.actorUid, ctx.now));
+    }
+
+    case 'decline': {
+      requirePhase(state, 'playing');
+      requireTurn(state, ctx);
+      // The bank keeps it. No auction — see the note at the top of ./play.
+      return { ...state, pending: null };
+    }
+
+    case 'endTurn': {
+      requirePhase(state, 'playing');
+      requireTurn(state, ctx);
+      if (state.pending) throw new GameRuleError('Answer the offer first.');
+      if (rollsAgain(state, ctx.actorUid)) throw new GameRuleError('You rolled a double — roll again.');
+      return endTurn(state);
+    }
+
+    case 'buyProperty': {
+      if (isBoardMode(state)) throw new GameRuleError('Land on it first.');
+      return buyProperty(state, action.space, ctx);
+    }
+
+    case 'build': {
+      requirePhase(state, 'playing');
+      const seat = isBoardMode(state) ? requireTurn(state, ctx) : requireSeat(state, ctx);
+      if (!canBuild(state, seat.uid, action.space)) {
+        throw new GameRuleError('You cannot build there — you need the whole set, built up evenly, and the money.');
+      }
+      return build(state, seat.uid, action.space, ctx.now);
+    }
+
+    case 'send': return send(state, action, ctx);
+    case 'payBank': return payBank(state, action, ctx);
+    case 'requestBank': return requestBank(state, action, ctx);
+    case 'respondBank': return respondBank(state, action, ctx);
+
+    case 'endGame': {
+      requirePhase(state, 'playing');
+      requireSeat(state, ctx);
+      if (isBoardMode(state)) {
+        throw new GameRuleError('A board game ends when only one player is left.');
+      }
+      return { ...state, phase: 'endVote', endVote: { by: ctx.actorUid, approvedBy: [ctx.actorUid] } };
+    }
+
+    case 'respondEnd': return respondEnd(state, action.approve, ctx);
+    case 'newGame': return newGame(state, ctx);
+    default: throw new GameRuleError('Unknown move.');
+  }
+}
+
 export const monopoly: GameDefinition<MonopolyState, MonopolyAction> = {
   id: 'monopoly',
-  name: 'MonopolyBuddy',
-  tagline: 'The bank for your Monopoly board. No paper money, no banker.',
+  name: 'Monopoly',
+  tagline: 'Play the whole board online, or just be the bank for the one on your table.',
   emoji: '🎲',
   minPlayers: 2,
   maxPlayers: 8,
   solo: false,
   newState: initial,
   onPlayersChanged: syncSeats,
-  reduce(state, action, ctx) {
-    switch (action.type) {
-      case 'configure': return configure(state, action, ctx);
-      case 'start': return start(state, ctx);
-      case 'pick': return pick(state, action, ctx);
-      case 'rollOrder': return rollOrder(state, action.dice, ctx);
-      case 'beginPlay':
-        requirePhase(state, 'order');
-        requireSeat(state, ctx);
-        return { ...state, phase: 'playing' };
-      case 'roll':
-        requirePhase(state, 'playing');
-        requireSeat(state, ctx);
-        return {
-          ...state,
-          lastRoll: {
-            uid: ctx.actorUid, dice: checkDice(action.dice),
-            total: action.dice[0] + action.dice[1], at: ctx.now,
-          },
-        };
-      case 'send': return send(state, action, ctx);
-      case 'payBank': return payBank(state, action, ctx);
-      case 'requestBank': return requestBank(state, action, ctx);
-      case 'respondBank': return respondBank(state, action, ctx);
-      case 'endGame':
-        requirePhase(state, 'playing');
-        requireSeat(state, ctx);
-        // Whoever calls it is counted as agreeing already.
-        return { ...state, phase: 'endVote', endVote: { by: ctx.actorUid, approvedBy: [ctx.actorUid] } };
-      case 'respondEnd': return respondEnd(state, action.approve, ctx);
-      case 'submitAssets': return submitAssets(state, action.value, ctx);
-      case 'newGame': return newGame(state, ctx);
-      default: throw new GameRuleError('Unknown move.');
-    }
-  },
+  reduce,
 };
+
+export { propertyValue, ranking, totalWealth };
 
 /** Two dice, for the caller to put in a `roll` action. */
 export const throwDice = (): [number, number] => [
   1 + Math.floor(Math.random() * 6),
   1 + Math.floor(Math.random() * 6),
 ];
+
+/** A seed for the card order, for the caller to put in the `start` action. */
+export const newSeed = (): number => Math.floor(Math.random() * 2 ** 31);
