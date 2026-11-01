@@ -6,6 +6,7 @@ import Icon from '../../ui/Icon';
 import Segmented from '../../ui/Segmented';
 import Sheet from '../../ui/Sheet';
 import Board from './Board';
+import SpaceSheet from './SpaceSheet';
 import {
   BOARDS, COLORS, DEFAULT_BALANCE, PAY_REASONS, TOKENS, boardOf, canBuild, isBoardMode, newSeed,
   propertyValue, ranking, rollsAgain, seatOf, throwDice, totalWealth,
@@ -701,6 +702,18 @@ function LogRow({ entry, uid, seats }: { entry: Entry; uid: string; seats: Seat[
 
 /* ─────────────────────────────── Playing the board ─────────────────────────────── */
 
+const CORNER_NAMES: Record<string, string> = {
+  go: 'Go', jail: 'Jail', parking: 'Free parking', gotojail: 'Go to jail',
+  chance: 'Chance', chest: 'Community Chest',
+};
+
+/** What to call a space in a sentence. */
+function spaceLabel(board: ReturnType<typeof boardOf>, index: number): string {
+  const space = board.spaces[index];
+  if (!space) return '';
+  return 'name' in space ? space.name : CORNER_NAMES[space.kind] ?? space.kind;
+}
+
 /**
  * Board mode. The ring is read-only; everything you can do sits underneath it, and only the
  * player on move has anything to press.
@@ -709,6 +722,8 @@ function BoardPlay({ state, uid, me, act, busy }: PhaseProps) {
   const board = boardOf(state.settings.boardId);
   const [rolling, setRolling] = useState(false);
   const [building, setBuilding] = useState(false);
+  /** Which space the player has tapped to read. The board itself shows no words on a phone. */
+  const [looking, setLooking] = useState<number | null>(null);
 
   const myTurn = state.turn === uid && !me?.bankrupt;
   const onMove = state.seats.find((s) => s.uid === state.turn);
@@ -726,7 +741,21 @@ function BoardPlay({ state, uid, me, act, busy }: PhaseProps) {
 
   return (
     <>
-      <Board state={state} board={board} uid={uid} />
+      <Board state={state} board={board} uid={uid} onSelect={setLooking} />
+
+      {/* Where you are, spelled out — the one space you always need to be able to read. */}
+      {me && !me.bankrupt && (
+        <button type="button" className="here-card" onClick={() => setLooking(me.position)}>
+          <span className="token" style={{ borderColor: me.color ?? 'var(--border)', background: `${me.color ?? '#000'}22` }}>
+            {me.token}
+          </span>
+          <span className="grow col" style={{ gap: 0, minWidth: 0 }}>
+            <small className="muted">{me.jailTurns > 0 ? 'In jail' : 'You are on'}</small>
+            <strong className="truncate">{spaceLabel(board, me.position)}</strong>
+          </span>
+          <Icon name="right" size={18} />
+        </button>
+      )}
 
       <div className="row between" style={{ margin: '12px 0' }}>
         <span className="turn-pill">
@@ -800,6 +829,8 @@ function BoardPlay({ state, uid, me, act, busy }: PhaseProps) {
           </div>
         )}
       </Sheet>
+
+      <SpaceSheet state={state} board={board} index={looking} onClose={() => setLooking(null)} />
 
       <Sheet open={building} title="Build a house" onClose={() => setBuilding(false)}>
         <div className="col">

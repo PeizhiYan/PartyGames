@@ -689,3 +689,23 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .board-choice button:disabled:not(.selected) { opacity: 0.45; }
 .action-grid-4 { grid-template-columns: repeat(4, 1fr); }
 @media (max-width: 420px) { .action-grid-4 { grid-template-columns: repeat(2, 1fr); } }
+
+/* One Monopoly space, opened from the board. */
+.space-band { display: block; height: 10px; border-radius: 999px; }
+.list > li.now { background: var(--accent-soft); border-radius: 8px; padding-inline: 8px; }
+
+/* "You are on …" — the one space that always has to be readable. */
+.here-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  text-align: left;
+  font-weight: 500;
+}
+.here-card strong { font-size: 1rem; }
