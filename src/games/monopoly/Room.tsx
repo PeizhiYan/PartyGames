@@ -740,15 +740,22 @@ function BoardPlay({ state, uid, me, act, busy }: PhaseProps) {
   }
 
   return (
-    <>
+    <div className="board-play">
+      {/*
+        Two columns once there is room: the board on the left, everything you do on the right.
+        Below the breakpoint they stack, board first.
+      */}
+      <div className="board-play-board">
+        <Board state={state} board={board} uid={uid} onSelect={setLooking} />
+      </div>
+
+      <div className="board-play-side">
       {state.card && (
         <div className="room-banner" role="status">
           <span aria-hidden>🎴</span>
           <span className="grow">{state.card.text}</span>
         </div>
       )}
-
-      <Board state={state} board={board} uid={uid} onSelect={setLooking} />
 
       {/* Where you are, spelled out — the one space you always need to be able to read. */}
       {me && !me.bankrupt && (
@@ -837,6 +844,8 @@ function BoardPlay({ state, uid, me, act, busy }: PhaseProps) {
         )}
       </Sheet>
 
+      </div>
+
       <SpaceSheet state={state} board={board} index={looking} onClose={() => setLooking(null)} />
 
       <Sheet open={building} title="Build a house" onClose={() => setBuilding(false)}>
@@ -857,7 +866,7 @@ function BoardPlay({ state, uid, me, act, busy }: PhaseProps) {
           })}
         </div>
       </Sheet>
-    </>
+    </div>
   );
 }
 

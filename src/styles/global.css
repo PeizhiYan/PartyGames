@@ -709,3 +709,22 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
   font-weight: 500;
 }
 .here-card strong { font-size: 1rem; }
+
+/*
+ * Playing the board. One column on a phone (board first, then everything you do); two side by
+ * side once the window can hold them, because a centred 640px strip wastes a desktop and makes
+ * the board smaller than it needs to be.
+ */
+.board-play { display: grid; gap: 14px; }
+.board-play-side { display: flex; flex-direction: column; gap: 0; min-width: 0; }
+
+@media (min-width: 900px) {
+  /* Wider than the usual room, which is sized for reading rather than for a board. */
+  .room-screen.wide { max-width: 1080px; }
+  .board-play {
+    grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+    gap: 24px;
+    align-items: start;
+  }
+  .board-play-side { position: sticky; top: 64px; }
+}

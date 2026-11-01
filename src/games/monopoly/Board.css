@@ -1,26 +1,67 @@
 /*
- * Every space, filling the rectangle. Rows alternate direction (see ./layout), so the hole a real
- * board needs for its cards and money becomes playing area instead — which is what lets a tile be
- * big enough to read.
+ * Two layouts, chosen by width. Narrow is the default (mobile first); the ring is the override.
+ * Which cell a tile lands in comes from custom properties the component writes on every tile, so
+ * switching is a media query — no resize listener, no flash of the wrong shape.
  */
+
+/* ── Narrow: rows that alternate direction ────────────────────────────────── */
+
 .mono-board {
   display: grid;
   grid-template-columns: repeat(var(--cols), 1fr);
   grid-auto-rows: clamp(54px, 14vw, 86px);
-  gap: 3px;
-  padding: 3px;
+  column-gap: 3px;
+  /* Rows are separated more than columns, so each one reads as its own lane. */
+  row-gap: 15px;
+  padding: 4px 3px;
   width: 100%;
   border-radius: 14px;
   background: var(--inset);
   border: 1px solid var(--border);
   user-select: none;
 }
+
+/*
+ * The lane behind one row. Its border is what makes the back-and-forth order followable — without
+ * it forty tiles in a block are just a wall, and nobody can tell where a row ends.
+ */
+.mono-lane {
+  position: relative;
+  pointer-events: none;
+}
+.mono-lane::before {
+  content: '';
+  position: absolute;
+  inset: -4px -3px;
+  border: 1.5px solid color-mix(in srgb, var(--accent) 35%, transparent);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+}
+/* Where the row hands over to the next one. */
+.mono-lane::after {
+  content: '↓';
+  position: absolute;
+  bottom: -14px;
+  display: grid;
+  place-items: center;
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 10px;
+  line-height: 1;
+  font-weight: 700;
+}
+.mono-lane[data-turn='right']::after { right: -1px; }
+.mono-lane[data-turn='left']::after { left: -1px; }
+.mono-lane[data-turn='none']::after { content: none; }
+
 .mono-space {
   position: relative;
-  /* A grid cell, not a button: none of the usual button chrome applies. */
-  min-height: 0;
-  font: inherit;
-  cursor: pointer;
+  z-index: 1;
+  grid-row: var(--g-row);
+  grid-column: var(--g-col);
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -39,7 +80,7 @@
   color: var(--text);
   cursor: pointer;
 }
-.mono-space.special { background: color-mix(in srgb, var(--accent) 7%, var(--surface)); }
+.mono-space.special { background: color-mix(in srgb, var(--accent) 9%, var(--surface)); }
 .mono-space.owned { border-width: 3px; }
 .mono-band { display: block; height: 22%; min-height: 7px; flex: none; }
 .mono-body {
@@ -74,20 +115,12 @@
   font-variant-numeric: tabular-nums;
 }
 /* Tokens sit over the tile so they never push the words out of the way. */
-.mono-tokens {
-  position: absolute;
-  right: 1px;
-  bottom: 1px;
-  display: flex;
-  gap: 1px;
-}
-.mono-token {
-  font-size: 1.15em;
-  line-height: 1;
-  border-radius: 50%;
-  border: 1.5px solid transparent;
-}
+.mono-tokens { position: absolute; right: 1px; bottom: 1px; display: flex; gap: 1px; }
+.mono-token { font-size: 1.15em; line-height: 1; border-radius: 50%; border: 1.5px solid transparent; }
 .mono-token.mine { box-shadow: 0 0 0 1.5px var(--text); }
+
+/* The ring's middle; there is no middle here. */
+.mono-centre { display: none; }
 
 @media (max-width: 620px) {
   /* Edge to edge: on a narrow screen the room's padding is worth more as board. */
@@ -99,14 +132,37 @@
   }
 }
 
+/* ── Wide: the ring, the way a board is printed ───────────────────────────── */
 
-/* Phones: edge to edge, because the room's padding is worth more as board. The tiles are big
-   enough to keep their words here, which is the whole point of not drawing a ring. */
-@media (max-width: 620px) {
+@media (min-width: 621px) {
   .mono-board {
-    width: calc(100% + 32px);
-    margin-inline: -16px;
-    border-radius: 0;
-    border-inline: none;
+    grid-template-columns: repeat(var(--ring), 1fr);
+    grid-template-rows: repeat(var(--ring), 1fr);
+    grid-auto-rows: auto;
+    aspect-ratio: 1;
+    gap: 2px;
+    padding: 2px;
+  }
+  .mono-space {
+    grid-row: var(--r-row);
+    grid-column: var(--r-col);
+    font-size: clamp(0.42rem, 1.1vw, 0.62rem);
+  }
+  /* The ring runs in an obvious circle, so the order needs no numbering. */
+  .mono-index { display: none; }
+  .mono-lane { display: none; }
+
+  .mono-centre {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    grid-row: 2 / var(--ring);
+    grid-column: 2 / var(--ring);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+    font-size: clamp(1rem, 3.2vw, 1.6rem);
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
   }
 }

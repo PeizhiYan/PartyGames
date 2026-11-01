@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BOARDS } from './boards';
-import { boardLayout, gridPosition } from './layout';
+import { boardLayout, gridPosition, ringPosition, ringSide, spacesPerSide } from './layout';
 
 describe('boardLayout', () => {
   it.each(BOARDS.map((b) => [b.name, b.spaces.length] as const))(
@@ -57,5 +57,47 @@ describe('gridPosition', () => {
       const steps = Math.abs(a.row - b.row) + Math.abs(a.col - b.col);
       expect(steps).toBe(1);
     }
+  });
+});
+
+describe('ringPosition', () => {
+  it('puts the four corners where a printed board has them', () => {
+    for (const board of BOARDS) {
+      const n = board.spaces.length;
+      const side = spacesPerSide(n);
+      const edge = ringSide(n);
+      expect(ringPosition(0, n)).toEqual({ row: edge, col: edge });              // Go, bottom-right
+      expect(ringPosition(side + 1, n)).toEqual({ row: edge, col: 1 });          // Jail, bottom-left
+      expect(ringPosition(2 * side + 2, n)).toEqual({ row: 1, col: 1 });         // Parking, top-left
+      expect(ringPosition(3 * side + 3, n)).toEqual({ row: 1, col: edge });      // Go to jail, top-right
+    }
+  });
+
+  it('uses every edge cell exactly once and never the middle', () => {
+    for (const board of BOARDS) {
+      const n = board.spaces.length;
+      const edge = ringSide(n);
+      const seen = new Set<string>();
+      for (let i = 0; i < n; i++) {
+        const { row, col } = ringPosition(i, n);
+        const onEdge = row === 1 || row === edge || col === 1 || col === edge;
+        expect(onEdge, `space ${i} of ${board.id} is not on the edge`).toBe(true);
+        seen.add(`${row}:${col}`);
+      }
+      expect(seen.size).toBe(n);
+    }
+  });
+
+  it('keeps consecutive spaces touching, all the way round', () => {
+    const n = 40;
+    for (let i = 1; i < n; i++) {
+      const a = ringPosition(i - 1, n);
+      const b = ringPosition(i, n);
+      expect(Math.abs(a.row - b.row) + Math.abs(a.col - b.col)).toBe(1);
+    }
+    // And the last space wraps back to Go.
+    const last = ringPosition(n - 1, n);
+    const go = ringPosition(0, n);
+    expect(Math.abs(last.row - go.row) + Math.abs(last.col - go.col)).toBe(1);
   });
 });
