@@ -16,12 +16,27 @@ import {
 import { NotFoundError, NotSignedInError } from '../../services/errors';
 import type { Backend, RoomRepo, Unsubscribe } from '../../services/types';
 
+/** See the `dev` object in `createMemoryBackend`. */
+export interface MemoryDevTools {
+  people(): AppUser[];
+  current(): AppUser | null;
+  actAs(uid: string): void;
+  addPerson(): AppUser;
+  seat(roomId: string, person: AppUser): void;
+}
+
+/** True when the backend in use is the in-browser one, which is the only one with dev tools. */
+export const hasDevTools = (b: unknown): b is { dev: MemoryDevTools } =>
+  typeof b === 'object' && b !== null && 'dev' in b;
+
 const KEY = 'partygames:memory';
 const IDENTITY_KEY = 'partygames:memory:me';
 const CHANNEL = 'partygames:memory';
 
 interface Store {
   rooms: Record<string, Room>;
+  /** Every identity this browser has invented, so one tab can act as any of them. */
+  people: AppUser[];
   members: Record<string, Member>;
   allowlist: string[];
   openSignup: boolean;
@@ -29,7 +44,7 @@ interface Store {
   identities: number;
 }
 
-const emptyStore = (): Store => ({ rooms: {}, members: {}, allowlist: [], openSignup: true, identities: 0 });
+const emptyStore = (): Store => ({ rooms: {}, people: [], members: {}, allowlist: [], openSignup: true, identities: 0 });
 
 /** localStorage holds JSON, so Dates come back as strings and have to be revived. */
 function reviveDates<T>(value: T): T {
@@ -81,7 +96,7 @@ function update(change: (store: Store) => void): void {
   write(store);
 }
 
-export function createMemoryBackend(): Backend {
+export function createMemoryBackend(): Backend & { dev: MemoryDevTools } {
   const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL ?? 'admin@example.com').toLowerCase();
   let user: AppUser | null = null;
   const authListeners = new Set<(u: AppUser | null) => void>();
@@ -97,6 +112,7 @@ export function createMemoryBackend(): Backend {
       ? { uid: 'admin', email: adminEmail, displayName: 'Admin (you)' }
       : { uid: `player${n + 1}`, email: `player${n + 1}@example.com`, displayName: `Player ${n + 1}` };
     sessionStorage.setItem(IDENTITY_KEY, JSON.stringify(fresh));
+    update((st) => { if (!st.people.some((q) => q.uid === fresh.uid)) st.people.push(fresh); });
     return fresh;
   }
 
@@ -251,8 +267,57 @@ export function createMemoryBackend(): Backend {
     },
   };
 
+  /**
+   * Playtesting helpers, memory backend only.
+   *
+   * A two-player game normally needs two browser tabs and the whole ask-to-join dance before you
+   * can look at anything. These let one tab invent the other players, seat them, and then act as
+   * each in turn — which is what makes a four-player Monopoly testable without four devices.
+   *
+   * Deliberately not on the `Backend` interface: it is not something a real backend could or
+   * should offer, and `DevBar` is the only caller.
+   */
+  const dev: MemoryDevTools = {
+    people: () => read().people,
+    current: () => user,
+    actAs(uid) {
+      const person = read().people.find((p) => p.uid === uid);
+      if (!person) return;
+      sessionStorage.setItem(IDENTITY_KEY, JSON.stringify(person));
+      user = person;
+      for (const l of authListeners) l(user);
+    },
+    addPerson() {
+      const n = read().identities;
+      update((st) => { st.identities = n + 1; });
+      const person: AppUser = {
+        uid: `player${n + 1}`,
+        email: `player${n + 1}@example.com`,
+        displayName: `Player ${n + 1}`,
+      };
+      update((st) => { if (!st.people.some((q) => q.uid === person.uid)) st.people.push(person); });
+      return person;
+    },
+    seat(roomId, person) {
+      update((store) => {
+        const room = store.rooms[roomId];
+        if (!room || room.playerUids.includes(person.uid)) return;
+        const players = [...room.players, { uid: person.uid, name: person.displayName, joinedAt: Date.now() }];
+        room.players = players;
+        room.playerUids = players.map((q) => q.uid);
+        room.requests = room.requests.filter((r) => r.uid !== person.uid);
+        room.presence[person.uid] = new Date();
+        room.state = syncGamePlayers(room.game, room.state, {
+          actorUid: room.ownerUid, ownerUid: room.ownerUid, players, now: Date.now(),
+        });
+        room.updatedAt = new Date();
+      });
+    },
+  };
+
   return {
     name: 'memory',
+    dev,
     auth: {
       onChange(cb) {
         authListeners.add(cb);
