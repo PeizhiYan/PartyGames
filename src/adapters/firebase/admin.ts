@@ -2,7 +2,7 @@ import {
   collection, deleteDoc, doc, getDoc, getDocs, query, serverTimestamp, setDoc, Timestamp, where,
   writeBatch, type DocumentData,
 } from 'firebase/firestore';
-import type { Member } from '../../domain/types';
+import type { Member } from '../../types';
 import type { AccountRepo, AdminRepo } from '../../services/types';
 import { NotSignedInError } from '../../services/errors';
 import { ROOT, type FirebaseContext } from './app';

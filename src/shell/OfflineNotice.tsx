@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
-import { GAMES } from '../domain/games';
+import { GAMES } from '../games/registry';
 import { useOnline } from '../hooks/useOnline';
-import Icon from './ui/Icon';
+import Icon from '../ui/Icon';
 
 /**
  * Says so when there is no connection, and points at what still works.

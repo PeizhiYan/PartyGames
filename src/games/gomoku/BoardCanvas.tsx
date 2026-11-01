@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { SIZE, colOf, idx, rowOf, type Board, type Player } from '../../domain/gomoku/board';
-import './GomokuBoard.css';
+import { SIZE, colOf, idx, rowOf, type Board, type Player } from './board';
+import './BoardCanvas.css';
 
 /** Board padding and stone size as a share of one cell, so everything scales with the canvas. */
 const PAD_CELLS = 0.72;

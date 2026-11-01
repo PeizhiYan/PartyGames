@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
-import type { AppUser } from '../domain/types';
+import type { AppUser } from '../types';
 import { backend, type Access } from '../services';
 import { errorMessage } from '../services/errors';
 

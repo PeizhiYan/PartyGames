@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
-import GomokuBoard from './GomokuBoard';
-import Avatar from '../ui/Avatar';
-import Icon from '../ui/Icon';
-import type { Player } from '../../domain/gomoku/board';
-import { bothSeated, seatOf, type GomokuState } from '../../domain/gomoku/game';
-import type { Room } from '../../domain/types';
-import { useGameAction } from '../../hooks/useRooms';
+import GomokuBoard from './BoardCanvas';
+import Avatar from '../../ui/Avatar';
+import Icon from '../../ui/Icon';
+import type { Player } from './board';
+import { bothSeated, seatOf, type GomokuState } from './rules';
+import type { Room } from '../../types';
+import { useGameAction } from '../../rooms/useRooms';
 import { firstName } from '../../lib/format';
 
 /**

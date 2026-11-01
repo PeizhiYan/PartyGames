@@ -8,18 +8,25 @@ orientation for working in the code.
 ## The shape of it
 
 ```
-pages → components/hooks → services → adapters
-                  ↘ domain ↙          (domain depends on nothing)
+pages ─┐
+shell ─┼─► games/ ──► rooms/ ──► services/ ──► adapters/
+ui   ──┘      └──────────┴──────► types.ts   (depends on nothing)
 ```
 
-Three rules hold the whole design together:
+A **game owns a folder** and nothing else knows its name. Everything else is a layer it plugs into.
 
-1. **`src/domain/` is pure.** No React, no `firebase`, no `Date.now()`, no `Math.random()` inside a
-   reducer — time comes in as `ctx.now`, dice come in on the action. That is what makes the games
+Four rules hold the design together:
+
+1. **Game rules are pure.** No React, no `firebase`, no `Date.now()`, no `Math.random()` inside a
+   reducer — time comes in as `ctx.now`, dice come in on the action. That is what makes games
    testable, and what lets the backend run a reducer inside a transaction.
-2. **Only `src/adapters/firebase/` may import `firebase`.** Everything above it talks to the
+2. **The two registries are split for that reason.** `games/registry.ts` holds rules only and is
+   what the adapters import; `games/screens.tsx` holds React and is imported only by the UI. Mixing
+   them would drag React into the backend — and into a future Node server. There is a check for
+   this in "Testing".
+3. **Only `src/adapters/firebase/` may import `firebase`.** Everything above it talks to the
    interfaces in `src/services/types.ts`.
-3. **A game is a `GameDefinition`**: `newState`, `reduce(state, action, ctx)`, and optionally
+4. **A game is a `GameDefinition`**: `newState`, `reduce(state, action, ctx)`, and optionally
    `onPlayersChanged`. `reduce` throws `GameRuleError` with a message written for a player; the UI
    shows it as-is.
 
@@ -48,21 +55,31 @@ One document per room, holding the players, the join queue, the game state, and 
 
 ## Where things live
 
+```
+src/
+├─ types.ts        the shared vocabulary: Room, AppUser, GameDefinition, GameId
+├─ games/          one folder per game — rules, screens, art, tests, all of it
+│  ├─ registry.ts    rules only. PURE: the adapters import this
+│  ├─ screens.tsx    id → { Room, Solo?, Art }. React: only the UI imports this
+│  ├─ art.ts         the 640x200 canvas every cover is drawn on
+│  ├─ gomoku/        rules board ai (+tests) · Room BoardCanvas Solo Art
+│  └─ monopoly/      rules (+tests) · Room Dice BalanceChart Art
+├─ rooms/          the multiplayer layer games plug into: rules, useRooms, RoomList
+├─ services/       the backend contract
+├─ adapters/       firebase/ and memory/ — the only places that know a backend exists
+├─ ui/             design-system primitives: Icon Sheet Toast Segmented Avatar
+├─ shell/          app chrome: AppShell Waves ThemePicker InstallCard OfflineNotice
+├─ pages/          screens that are not a game
+├─ hooks/          useAuth useInstall useOnline
+└─ lib/ styles/    formatting, theme, version · global CSS
+```
+
 | Thing | File |
 |---|---|
-| The vocabulary (`Room`, `AppUser`, `GameDefinition`) | `src/domain/types.ts` |
-| Join codes, staleness, who-may-do-what | `src/domain/rooms.ts` |
-| The list of games | `src/domain/games.ts` |
-| Gomoku geometry and win detection | `src/domain/gomoku/board.ts` |
-| The Gomoku computer opponent | `src/domain/gomoku/ai.ts` |
-| Gomoku's two-player rules | `src/domain/gomoku/game.ts` |
-| MonopolyBuddy's whole state machine | `src/domain/monopoly/game.ts` |
-| The backend contract | `src/services/types.ts` |
+| Join codes, staleness, who-may-do-what | `src/rooms/rules.ts` |
 | Firestore transactions, queries, presence | `src/adapters/firebase/rooms.ts` |
 | The dev backend (two tabs can play each other) | `src/adapters/memory/index.ts` |
 | Theme tokens, every shared class | `src/styles/global.css` |
-| Each game's cover art | `src/components/art/GameArt.tsx` |
-| The waves along the bottom | `src/components/layout/Waves.tsx` |
 | Accent + light/dark choice | `src/lib/theme.ts` |
 
 ## Everything in a room is public
@@ -75,16 +92,22 @@ a server. Decide that before the first card game, not during it.
 
 ## Adding a game
 
-1. `src/domain/<game>/game.ts` exporting a `GameDefinition`.
-2. Add it to `GAMES` in `src/domain/games.ts`.
-3. `src/components/<game>/<Game>Room.tsx`, taking `{ room, uid }`.
-4. Add it to the `Game` pick in `src/pages/RoomPage.tsx`, and draw its cover in
-   `src/components/art/GameArt.tsx` (320x160, shown at 2:1 on the card and 5:2 on the lobby
-   banner, so keep anything important away from the very top and bottom).
-5. Add its id to `d.game in ['gomoku', 'monopoly']` in `firestore.rules`.
+Everything about a game lives in `src/games/<id>/`. Adding one is three edits, and TypeScript
+names the ones you forget:
 
-For a game playable alone, set `solo: true` and add a branch to `SoloGame` in `src/App.tsx`
-(the route `/g/:game/solo` already exists).
+1. Add the id to the `GameId` union in `src/types.ts`. Both registries are `Record<GameId, …>`,
+   so this alone makes the build fail until the game is fully wired — that is deliberate.
+2. Create `src/games/<id>/` with `rules.ts` (a `GameDefinition`), `Room.tsx` (taking
+   `{ room, uid }`), `Art.tsx`, and `Solo.tsx` if it plays alone. Tests go in the same folder.
+3. Register it in `games/registry.ts` (rules) and `games/screens.tsx` (screens).
+
+Then one thing outside the code: add the id to `d.game in [...]` in `firestore.rules`.
+
+Nothing else. The home grid, the lobby, the room page, the solo route and the room list all read
+the registries — there are no per-game branches left anywhere else in the app.
+
+Cover art is drawn on a 640x200 canvas and cropped two ways; see `src/games/art.ts` for the safe
+zone before drawing.
 
 ## Gomoku: the port
 
@@ -114,7 +137,7 @@ Three things that were real bugs in the original or in this port, and have tests
   reason.
 - **`updatedAt` on a heartbeat**: see Rooms above. Changing that needs the rules changed too.
 - **The board arrives as a fresh array on every snapshot**, including an opponent's heartbeat, so
-  don't hang UI state off board identity (`GomokuBoard` watches `placing` instead).
+  don't hang UI state off board identity (`BoardCanvas` watches `placing` instead).
 - **`firestore.rules` is the whole project's rules file, and this repo owns it.** It covers every
   app in `vibed-apps`, and only this repo deploys it — CoffeeGlass deploys `--only hosting` and
   keeps its copy just to run its own rules tests. A new app's block goes here, not in its own repo.
@@ -131,7 +154,7 @@ Three things that were real bugs in the original or in this port, and have tests
 - **A sticky bar must be opaque.** `.room-bar` used to fade out over its own bottom edge, so
   content scrolling under it showed through and the top of the screen looked blurred on a phone.
   The soft edge belongs in `::after`, below the bar.
-- **Cover art has to survive two crops.** It is drawn on 640x200 and `slice`-cropped into a 2:1
+- **Cover art has to survive two crops** (`src/games/art.ts`). It is drawn on 640x200 and `slice`-cropped into a 2:1
   card (sides trimmed) and a ~5:1 lobby banner (top and bottom trimmed), so anything that matters
   lives inside x 120-520, y 34-166. The canvas started at 320x160 and the banner cropped three
   times into the middle of it.
@@ -141,7 +164,7 @@ Three things that were real bugs in the original or in this port, and have tests
 - **The waves loop by translating exactly one period.** Each layer is two viewports wide and holds
   two periods of the same wave, so `translateX(-50%)` is seamless. Change the period and the
   animation has to change with it.
-- **An optimistic stone has to outlive the write that replaces it.** `GomokuRoom` keeps drawing
+- **An optimistic stone has to outlive the write that replaces it.** `games/gomoku/Room.tsx` keeps drawing
   the local stone until the shared state actually contains it (`pending.sent`), and draws it
   *identically* to a real one from the moment it is sent. Clearing it when the write starts made
   the stone blink out for however long the round trip took.
@@ -159,7 +182,7 @@ The service worker precaches the whole shell, so the app opens with no connectio
 | | Offline |
 |---|---|
 | Opening the app, signing in *again* | Yes — Firebase Auth persists the user, and `useAuth` falls back to the last access answer it cached in localStorage |
-| Gomoku vs the computer | Yes, entirely. `GomokuSoloPage` imports nothing from `src/services` |
+| Gomoku vs the computer | Yes, entirely. `games/gomoku/Solo.tsx` imports nothing from `src/services` |
 | Room lists | Stale. Firestore serves its cache and does *not* raise an error, so what is on screen may be gone |
 | Anything in a room | No. Every move is a transaction against the server |
 | First ever sign-in | No. Google sign-in needs the network |
@@ -178,3 +201,12 @@ npm run test:rules     # firestore.rules against the emulator (needs Java instal
 
 `src/adapters/memory/rooms.test.ts` drives the room layer the way two phones would — create, ask,
 approve, play out of turn, leave, hand over, reap. Point it at a new adapter to check it.
+
+To confirm the rules registry has not picked up React (rule 2 above):
+
+```bash
+npx esbuild src/adapters/firebase/index.ts --bundle --platform=neutral \
+  --resolve-extensions=.ts,.tsx --outfile=/dev/null --metafile=meta.json --external:firebase/*
+```
+
+Nothing in `meta.json`'s inputs should be a `.tsx`, a `.css`, or React.

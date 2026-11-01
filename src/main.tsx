@@ -3,8 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import { registerSW } from 'virtual:pwa-register';
 import App from './App';
-import Waves from './components/layout/Waves';
-import { ToastProvider } from './components/ui/Toast';
+import Waves from './shell/Waves';
+import { ToastProvider } from './ui/Toast';
 import { AuthProvider } from './hooks/useAuth';
 // Imported for its side effect: it has to catch `beforeinstallprompt`, which fires once and early.
 import './hooks/useInstall';

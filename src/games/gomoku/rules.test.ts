@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { gomoku, seatOf, type GomokuState } from './game';
+import { gomoku, seatOf, type GomokuState } from './rules';
 import { idx } from './board';
-import { GameRuleError, type GameContext, type RoomPlayer } from '../types';
+import { GameRuleError, type GameContext, type RoomPlayer } from '../../types';
 
 const alice: RoomPlayer = { uid: 'alice', name: 'Alice', joinedAt: 1 };
 const bob: RoomPlayer = { uid: 'bob', name: 'Bob', joinedAt: 2 };

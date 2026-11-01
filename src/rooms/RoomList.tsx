@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { findGame } from '../domain/games';
-import { activePlayers, standing } from '../domain/rooms';
-import type { RoomSummary } from '../domain/types';
+import { findGame } from '../games/registry';
+import { activePlayers, standing } from './rules';
+import type { RoomSummary } from '../types';
 import { useOnline } from '../hooks/useOnline';
 import { backend } from '../services';
 import { errorMessage } from '../services/errors';
 import { timeAgo } from '../lib/format';
-import Avatar from './ui/Avatar';
-import { useToast } from './ui/Toast';
+import Avatar from '../ui/Avatar';
+import { useToast } from '../ui/Toast';
 
 const LABELS = {
   owner: 'Your room',

@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   ABANDONED_AFTER_MS, CODE_LENGTH, PRESENCE_TIMEOUT_MS, activePlayers, isStale, newRoomCode,
   normalizeCode, sortRooms, standing,
-} from './rooms';
-import type { RoomSummary } from './types';
+} from './rules';
+import type { RoomSummary } from '../types';
 
 const NOW = 1_700_000_000_000;
 

@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
-import GameArt from '../components/art/GameArt';
-import InstallCard from '../components/InstallCard';
-import Icon from '../components/ui/Icon';
-import { GAMES } from '../domain/games';
+import { GameArt } from '../games/screens';
+import InstallCard from '../shell/InstallCard';
+import Icon from '../ui/Icon';
+import { GAMES } from '../games/registry';
 import { useCurrentUser } from '../hooks/useAuth';
 import { firstName } from '../lib/format';
 

@@ -1,7 +1,7 @@
 // The backend contract. The app depends ONLY on these interfaces; each adapter in src/adapters/*
 // implements them for one backend (Firebase today; a REST API over Postgres, Supabase, a
 // self-hosted Node server... would be another folder here and one line in index.ts).
-import type { AppUser, GameId, Member, Room, RoomSummary } from '../domain/types';
+import type { AppUser, GameId, Member, Room, RoomSummary } from '../types';
 
 export type Unsubscribe = () => void;
 

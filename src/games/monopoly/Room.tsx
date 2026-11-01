@@ -1,17 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import BalanceChart from './BalanceChart';
 import Dice from './Dice';
-import Avatar from '../ui/Avatar';
-import Icon from '../ui/Icon';
-import Segmented from '../ui/Segmented';
-import Sheet from '../ui/Sheet';
+import Avatar from '../../ui/Avatar';
+import Icon from '../../ui/Icon';
+import Segmented from '../../ui/Segmented';
+import Sheet from '../../ui/Sheet';
 import {
   COLORS, DEFAULT_BALANCE, PAY_REASONS, TOKENS, ranking, seatOf, throwDice, totalWealth,
   type Entry, type MonopolyState, type Seat,
-} from '../../domain/monopoly/game';
-import { isOwner } from '../../domain/rooms';
-import type { Room } from '../../domain/types';
-import { useGameAction } from '../../hooks/useRooms';
+} from './rules';
+import { isOwner } from '../../rooms/rules';
+import type { Room } from '../../types';
+import { useGameAction } from '../../rooms/useRooms';
 import { firstName, money, timeAgo } from '../../lib/format';
 
 interface Props { room: Room; uid: string }

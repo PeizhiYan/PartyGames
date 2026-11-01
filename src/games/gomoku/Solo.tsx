@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import GomokuBoard from '../components/gomoku/GomokuBoard';
-import Icon from '../components/ui/Icon';
-import Segmented from '../components/ui/Segmented';
-import { chooseMove, heatMap, type Difficulty } from '../domain/gomoku/ai';
-import { emptyBoard, fiveThrough, isFull, type Board } from '../domain/gomoku/board';
+import GomokuBoard from './BoardCanvas';
+import Icon from '../../ui/Icon';
+import Segmented from '../../ui/Segmented';
+import { chooseMove, heatMap, type Difficulty } from './ai';
+import { emptyBoard, fiveThrough, isFull, type Board } from './board';
 
 const DIFFICULTY_LABELS: { id: Difficulty; label: string }[] = [
   { id: 'easy', label: 'Easy' },

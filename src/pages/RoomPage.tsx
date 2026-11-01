@@ -1,17 +1,16 @@
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import GomokuRoom from '../components/gomoku/GomokuRoom';
-import MonopolyRoom from '../components/monopoly/MonopolyRoom';
-import OfflineNotice from '../components/OfflineNotice';
-import Avatar from '../components/ui/Avatar';
-import Icon from '../components/ui/Icon';
-import Sheet from '../components/ui/Sheet';
-import { useToast } from '../components/ui/Toast';
-import { findGame } from '../domain/games';
-import { hasRequested, isOwner, isPlayer } from '../domain/rooms';
-import type { Room } from '../domain/types';
+import OfflineNotice from '../shell/OfflineNotice';
+import Avatar from '../ui/Avatar';
+import Icon from '../ui/Icon';
+import Sheet from '../ui/Sheet';
+import { useToast } from '../ui/Toast';
+import { findGame } from '../games/registry';
+import { screensFor } from '../games/screens';
+import { hasRequested, isOwner, isPlayer } from '../rooms/rules';
+import type { Room } from '../types';
 import { useCurrentUser } from '../hooks/useAuth';
-import { useRoom } from '../hooks/useRooms';
+import { useRoom } from '../rooms/useRooms';
 import { firstName } from '../lib/format';
 import { backend } from '../services';
 import { errorMessage } from '../services/errors';
@@ -88,7 +87,8 @@ export default function RoomPage() {
     );
   }
 
-  const Game = game.id === 'gomoku' ? GomokuRoom : MonopolyRoom;
+  const Game = screensFor(game.id)?.Room;
+  if (!Game) return <Gone message="That game has no screen yet." game={game.id} />;
 
   return (
     <div className="room-screen">

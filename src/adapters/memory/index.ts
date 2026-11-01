@@ -7,12 +7,12 @@
  * another player — and the whole multiplayer flow (ask to join, approve, play, leave, reap) can be
  * exercised without a Firebase project.
  */
-import { applyGameAction, getGame, syncGamePlayers } from '../../domain/games';
-import { defaultRoomName, isStale, newRoomCode, normalizeCode } from '../../domain/rooms';
+import { applyGameAction, getGame, syncGamePlayers } from '../../games/registry';
+import { defaultRoomName, isStale, newRoomCode, normalizeCode } from '../../rooms/rules';
 import {
   GameRuleError, type AppUser, type GameContext, type GameId, type JoinRequest, type Member,
   type Room, type RoomPlayer, type RoomSummary,
-} from '../../domain/types';
+} from '../../types';
 import { NotFoundError, NotSignedInError } from '../../services/errors';
 import type { Backend, RoomRepo, Unsubscribe } from '../../services/types';
 

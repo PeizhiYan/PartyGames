@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
-import Avatar from '../components/ui/Avatar';
-import Icon from '../components/ui/Icon';
-import Segmented from '../components/ui/Segmented';
-import Sheet from '../components/ui/Sheet';
-import { useToast } from '../components/ui/Toast';
-import type { Member } from '../domain/types';
+import Avatar from '../ui/Avatar';
+import Icon from '../ui/Icon';
+import Segmented from '../ui/Segmented';
+import Sheet from '../ui/Sheet';
+import { useToast } from '../ui/Toast';
+import type { Member } from '../types';
 import { useCurrentUser } from '../hooks/useAuth';
 import { shortDate } from '../lib/format';
 import { backend } from '../services';

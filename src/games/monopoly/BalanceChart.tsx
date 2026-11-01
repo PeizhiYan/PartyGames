@@ -1,4 +1,4 @@
-import type { MonopolyState, Seat } from '../../domain/monopoly/game';
+import type { MonopolyState, Seat } from './rules';
 import { firstName, money } from '../../lib/format';
 
 const WIDTH = 320;
