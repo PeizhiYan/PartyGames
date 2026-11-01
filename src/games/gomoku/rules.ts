@@ -20,6 +20,11 @@ export interface GomokuState {
   white: string | null;
   /** uids that have asked for a rematch. */
   rematch: string[];
+  /**
+   * A player asking to unplay their last move. The opponent has to agree, because a stone is
+   * already on their board — there is no window in which a move is private.
+   */
+  takeback: { by: string; at: number } | null;
   /** Games played in this room. Colours swap each round so black doesn't always start. */
   round: number;
   /** uid -> games won in this room. */
@@ -29,20 +34,46 @@ export interface GomokuState {
 export type GomokuAction =
   | { type: 'place'; cell: number }
   | { type: 'resign' }
-  | { type: 'rematch' };
+  | { type: 'rematch' }
+  | { type: 'requestTakeback' }
+  /** `approve` from the opponent decides it; from the asker it withdraws the request. */
+  | { type: 'respondTakeback'; approve: boolean };
 
-const newGame = (round: number): Pick<GomokuState, 'board' | 'moves' | 'turn' | 'outcome' | 'winLine' | 'rematch' | 'round'> => ({
+const newGame = (round: number): Pick<GomokuState,
+  'board' | 'moves' | 'turn' | 'outcome' | 'winLine' | 'rematch' | 'takeback' | 'round'> => ({
   board: emptyBoard(),
   moves: [],
   turn: 1,
   outcome: 0,
   winLine: [],
   rematch: [],
+  takeback: null,
   round,
 });
 
 function initial(): GomokuState {
   return { ...newGame(0), black: null, white: null, wins: {} };
+}
+
+/** The colour that played the move at index `i`. Black opens, and turns strictly alternate. */
+const playerOfMove = (i: number): Player => (i % 2 === 0 ? 1 : 2);
+
+/** The index of `seat`'s most recent move, or -1 if they have not played yet. */
+function lastMoveBy(state: GomokuState, seat: Player): number {
+  for (let i = state.moves.length - 1; i >= 0; i--) {
+    if (playerOfMove(i) === seat) return i;
+  }
+  return -1;
+}
+
+/**
+ * Whether this player could ask to take a move back right now. The reducer enforces the same
+ * conditions; this is so the button can be disabled rather than failing when pressed.
+ */
+export function canRequestTakeback(state: GomokuState, uid: string): boolean {
+  if (state.outcome !== 0 || state.takeback) return false;
+  const seat = seatOf(state, uid);
+  return seat !== null && lastMoveBy(state, seat) >= 0;
 }
 
 /** The colour this uid plays, or null if they are only watching. */
@@ -93,6 +124,8 @@ function place(state: GomokuState, cell: number, ctx: GameContext): GomokuState 
     ...state,
     board,
     moves: [...state.moves, cell],
+    // Playing on supersedes an outstanding request: it was about a position that no longer exists.
+    takeback: null,
     turn: seat === 1 ? 2 : 1,
     outcome: five ? seat : draw ? 3 : 0,
     winLine: five ?? [],
@@ -110,6 +143,7 @@ function resign(state: GomokuState, ctx: GameContext): GomokuState {
     ...state,
     outcome: winner,
     winLine: [],
+    takeback: null,
     wins: winnerUid ? { ...state.wins, [winnerUid]: (state.wins[winnerUid] ?? 0) + 1 } : state.wins,
   };
 }
@@ -128,6 +162,55 @@ function rematch(state: GomokuState, ctx: GameContext): GomokuState {
   );
 }
 
+/**
+ * Asks the opponent to unplay this player's last move.
+ *
+ * There is no private window in which a move can be withdrawn unilaterally — the stone is on the
+ * other person's board the moment it is played — so taking one back is a request, not an action.
+ */
+function requestTakeback(state: GomokuState, ctx: GameContext): GomokuState {
+  if (state.outcome !== 0) throw new GameRuleError('This game is over — ask for a rematch instead.');
+  const seat = seatOf(state, ctx.actorUid);
+  if (seat === null) throw new GameRuleError('You are watching this game.');
+  if (state.takeback) throw new GameRuleError('There is already a request waiting.');
+  if (lastMoveBy(state, seat) < 0) throw new GameRuleError('You have not played a stone yet.');
+  return { ...state, takeback: { by: ctx.actorUid, at: ctx.now } };
+}
+
+/**
+ * Settles a request. The opponent approves or refuses; the asker can also withdraw their own.
+ *
+ * Approving unplays everything back to and including the asker's last move — which is one stone
+ * if the opponent has not replied yet, and two if they have. Either way it ends with the board as
+ * the asker last saw it and the turn back with them.
+ */
+function respondTakeback(state: GomokuState, approve: boolean, ctx: GameContext): GomokuState {
+  const request = state.takeback;
+  if (!request) return state; // already settled by the other player
+  const seat = seatOf(state, ctx.actorUid);
+  if (seat === null) throw new GameRuleError('You are watching this game.');
+  // The asker can only withdraw; approving your own request would make it unilateral.
+  if (ctx.actorUid === request.by && approve) throw new GameRuleError('Your opponent has to agree.');
+  if (!approve) return { ...state, takeback: null };
+
+  const askerSeat = seatOf(state, request.by);
+  const cut = askerSeat === null ? -1 : lastMoveBy(state, askerSeat);
+  if (cut < 0) return { ...state, takeback: null };
+
+  const moves = state.moves.slice(0, cut);
+  const board = emptyBoard();
+  moves.forEach((cell, i) => { board[cell] = playerOfMove(i); });
+  return {
+    ...state,
+    board,
+    moves,
+    turn: askerSeat!,
+    outcome: 0,
+    winLine: [],
+    takeback: null,
+  };
+}
+
 export const gomoku: GameDefinition<GomokuState, GomokuAction> = {
   id: 'gomoku',
   name: 'Gomoku',
@@ -143,6 +226,8 @@ export const gomoku: GameDefinition<GomokuState, GomokuAction> = {
       case 'place': return place(state, action.cell, ctx);
       case 'resign': return resign(state, ctx);
       case 'rematch': return rematch(state, ctx);
+      case 'requestTakeback': return requestTakeback(state, ctx);
+      case 'respondTakeback': return respondTakeback(state, action.approve, ctx);
       default: throw new GameRuleError('Unknown move.');
     }
   },

@@ -17,11 +17,10 @@ interface Props {
   /** Per-cell scores from the AI's heat map, or null to hide it. */
   heat: number[] | null;
   /**
-   * A stone this player has put down that the shared board does not show yet. Ghosted and ringed
-   * while it can still be taken back, then plain once it has been sent — it has to look identical
-   * to a real stone from that moment on, or handing over to the server's copy is a visible flicker.
+   * A stone this player has put down that the shared board does not show yet. Drawn exactly like
+   * a real one — the handover to the server's copy has to be invisible, or the stone flickers.
    */
-  pending?: { cell: number; player: Player; sent: boolean } | null;
+  pending?: { cell: number; player: Player } | null;
   onPlace: (cell: number) => void;
 }
 
@@ -195,17 +194,7 @@ export default function GomokuBoard({ board, placing, lastMove, winLine, heat, p
     }
 
     if (pending && board[pending.cell] === 0) {
-      paintStone(pending.cell, pending.player, pending.sent ? 1 : 0.7);
-      if (!pending.sent) {
-        const { x, y } = at(pending.cell);
-        ctx.strokeStyle = 'rgba(255,90,140,0.95)';
-        ctx.lineWidth = Math.max(1.8, cell * 0.07);
-        ctx.setLineDash([cell * 0.16, cell * 0.12]);
-        ctx.beginPath();
-        ctx.arc(x, y, cell * (STONE + 0.16), 0, Math.PI * 2);
-        ctx.stroke();
-        ctx.setLineDash([]);
-      }
+      paintStone(pending.cell, pending.player, 1);
     } else if (hover !== null && placing && board[hover] === 0) {
       paintStone(hover, placing, 0.4);
     }

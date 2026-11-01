@@ -164,10 +164,15 @@ Three things that were real bugs in the original or in this port, and have tests
 - **The waves loop by translating exactly one period.** Each layer is two viewports wide and holds
   two periods of the same wave, so `translateX(-50%)` is seamless. Change the period and the
   animation has to change with it.
-- **An optimistic stone has to outlive the write that replaces it.** `games/gomoku/Room.tsx` keeps drawing
-  the local stone until the shared state actually contains it (`pending.sent`), and draws it
-  *identically* to a real one from the moment it is sent. Clearing it when the write starts made
-  the stone blink out for however long the round trip took.
+- **An optimistic stone has to outlive the write that replaces it.** `games/gomoku/Room.tsx`
+  draws the stone locally the instant it is tapped and keeps drawing it until the shared state
+  actually contains it — identically to a real one, so the handover is invisible. Dropping the
+  local copy when the write starts made the stone blink out for the length of the round trip.
+- **Taking a move back is a request, not an action.** A stone is on the opponent's board the
+  moment it is played, so there is no window in which it is private and no way to withdraw it
+  alone. `requestTakeback` / `respondTakeback` need the opponent's agreement, and approving
+  unplays everything back to the asker's last move — one stone, or two if the reply has landed.
+  `canRequestTakeback` is exported so the button and the reducer cannot disagree.
 - **Dice** are rolled on the device (`throwDice()`) and passed in the action; the reducer only
   checks they're two numbers from 1 to 6.
 - **`beforeinstallprompt` fires once and early**, usually before React has mounted, so

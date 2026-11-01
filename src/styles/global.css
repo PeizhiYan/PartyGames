@@ -626,10 +626,8 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 }
 .install-steps strong { color: var(--text); font-size: inherit; }
 
-/* The window between playing a stone and sending it: a bar that drains as the clock runs down. */
+/* Shown to the player who has asked to take a move back, while they wait for an answer. */
 .undo-bar {
-  position: relative;
-  overflow: hidden;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -640,17 +638,6 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
   border: 1px solid var(--accent);
   font-size: 0.92rem;
 }
-.undo-progress {
-  position: absolute;
-  inset: 0;
-  transform-origin: left;
-  background: color-mix(in srgb, var(--accent) 18%, transparent);
-  animation: undo-drain var(--undo-ms, 3000ms) linear forwards;
-  pointer-events: none;
-}
-@keyframes undo-drain { from { transform: scaleX(1); } to { transform: scaleX(0); } }
-.undo-bar > *:not(.undo-progress) { position: relative; }
-@media (prefers-reduced-motion: reduce) { .undo-progress { animation: none; opacity: 0.5; } }
 
 /* Theme picker */
 .accent-grid { display: flex; flex-wrap: wrap; gap: 12px; }
