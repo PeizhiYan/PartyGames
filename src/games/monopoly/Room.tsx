@@ -5,10 +5,13 @@ import Avatar from '../../ui/Avatar';
 import Icon from '../../ui/Icon';
 import Segmented from '../../ui/Segmented';
 import Sheet from '../../ui/Sheet';
+import Board from './Board';
 import {
-  COLORS, DEFAULT_BALANCE, PAY_REASONS, TOKENS, ranking, seatOf, throwDice, totalWealth,
-  type Entry, type MonopolyState, type Seat,
+  BOARDS, COLORS, DEFAULT_BALANCE, PAY_REASONS, TOKENS, boardOf, canBuild, isBoardMode, newSeed,
+  propertyValue, ranking, rollsAgain, seatOf, throwDice, totalWealth,
+  type Mode, type MonopolyState, type Entry, type Seat,
 } from './rules';
+import { isOwnable } from './boards';
 import { isOwner } from '../../rooms/rules';
 import type { Room } from '../../types';
 import { useGameAction } from '../../rooms/useRooms';
@@ -46,8 +49,9 @@ export default function MonopolyRoom({ room, uid }: Props) {
       {state.phase === 'pick' && <Pick {...shared} />}
       {state.phase === 'roll' && <RollForOrder {...shared} />}
       {state.phase === 'order' && <Order {...shared} />}
-      {(state.phase === 'playing' || state.phase === 'endVote') && <Playing {...shared} />}
-      {state.phase === 'assets' && <Assets {...shared} />}
+      {(state.phase === 'playing' || state.phase === 'endVote') && (
+        isBoardMode(state) ? <BoardPlay {...shared} /> : <Playing {...shared} />
+      )}
       {state.phase === 'results' && <Results {...shared} />}
     </>
   );
@@ -84,6 +88,51 @@ function Lobby({ state, owner, act, busy, players }: PhaseProps & { players: num
           ))}
         </div>
         {players < 2 && <p className="empty">Share the room code — you need at least two players.</p>}
+      </section>
+
+      <section className="card">
+        <h3>How are you playing?</h3>
+        {owner ? (
+          <Segmented
+            label="Mode"
+            block
+            value={state.settings.mode}
+            onChange={(mode: Mode) => act({ type: 'configure', mode })}
+            options={[{ id: 'bank', label: 'Bank only' }, { id: 'board', label: 'Play the board' }]}
+          />
+        ) : (
+          <p style={{ margin: 0 }}>
+            <strong>{state.settings.mode === 'board' ? 'Playing the board here' : 'Bank only'}</strong>
+          </p>
+        )}
+        <p className="muted" style={{ margin: '10px 0 0', fontSize: '0.9rem' }}>
+          {state.settings.mode === 'board'
+            ? 'Everything happens in the app — tokens, rent, cards, jail. No board on the table.'
+            : 'You have a real board out. The app moves the money and keeps track of who bought what.'}
+        </p>
+      </section>
+
+      <section className="card">
+        <h3>Board</h3>
+        <div className="board-choice">
+          {BOARDS.map((b) => (
+            <button
+              key={b.id}
+              type="button"
+              disabled={!owner}
+              className={b.id === state.settings.boardId ? 'selected' : ''}
+              onClick={() => act({ type: 'configure', boardId: b.id })}
+            >
+              <strong>{b.name}</strong>
+              <small className="muted">{b.spaces.length} spaces · {b.currency}</small>
+            </button>
+          ))}
+        </div>
+        <p className="muted" style={{ margin: '10px 0 0', fontSize: '0.88rem' }}>
+          Boards differ in length and in how many colour groups they have, so some games run
+          shorter than others. In bank mode this is the list you pick properties from, so choose
+          the one on your table.
+        </p>
       </section>
 
       <section className="card">
@@ -133,7 +182,7 @@ function Lobby({ state, owner, act, busy, players }: PhaseProps & { players: num
 
       {owner ? (
         <button type="button" className="primary block" disabled={busy || state.seats.length < 2}
-          onClick={() => act({ type: 'start' })}>
+          onClick={() => act({ type: 'start', seed: newSeed() })}>
           Start the game
         </button>
       ) : (
@@ -271,10 +320,18 @@ function Order({ state, uid, act, busy }: PhaseProps) {
 
 /* ─────────────────────────────── The game ─────────────────────────────── */
 
-type Dialog = 'send' | 'pay' | 'request' | null;
+type Dialog = 'buy' | 'send' | 'pay' | 'request' | null;
 
 function Playing({ state, uid, me, act, busy }: PhaseProps) {
   const [dialog, setDialog] = useState<Dialog>(null);
+  const [search, setSearch] = useState('');
+  const bankBoard = boardOf(state.settings.boardId);
+  /** Everything on this board nobody has bought yet, narrowed by the search box. */
+  const forSale = bankBoard.spaces
+    .map((space, index) => ({ space, index }))
+    .filter((e): e is { space: Extract<typeof e.space, { price: number }>; index: number } =>
+      isOwnable(e.space) && !state.owned[e.index])
+    .filter((e) => e.space.name.toLowerCase().includes(search.trim().toLowerCase()));
   const [rolling, setRolling] = useState(false);
   const [target, setTarget] = useState('');
   const [amount, setAmount] = useState('');
@@ -302,6 +359,7 @@ function Playing({ state, uid, me, act, busy }: PhaseProps) {
 
   function close() {
     setDialog(null);
+    setSearch('');
     setTarget('');
     setAmount('');
     setNote('');
@@ -358,7 +416,10 @@ function Playing({ state, uid, me, act, busy }: PhaseProps) {
         </div>
       )}
 
-      <div className="action-grid">
+      <div className="action-grid action-grid-4">
+        <button type="button" onClick={() => setDialog('buy')}>
+          <span aria-hidden>🏘️</span><span>Buy</span>
+        </button>
         <button type="button" onClick={() => setDialog('send')}>
           <span aria-hidden>💸</span><span>Send</span>
         </button>
@@ -397,6 +458,35 @@ function Playing({ state, uid, me, act, busy }: PhaseProps) {
       </section>
 
       <button type="button" className="block" onClick={() => setLeaving(true)}>End the game</button>
+
+      {/* Buying a property off the board on the table */}
+      <Sheet open={dialog === 'buy'} title="Buy a property" onClose={close}>
+        <div className="col">
+          <p className="muted" style={{ margin: 0, fontSize: '0.9rem' }}>
+            From the <strong>{bankBoard.name}</strong> board. The price is the printed one, and
+            recording it here is what lets the final standings add themselves up.
+          </p>
+          <input value={search} onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search" aria-label="Search properties" />
+          <div className="col" style={{ gap: 6, maxHeight: '46vh', overflowY: 'auto' }}>
+            {forSale.length === 0 && <p className="empty">Nothing left unowned.</p>}
+            {forSale.map(({ index, space }) => (
+              <button key={index} type="button" className="row between" disabled={busy}
+                onClick={async () => { if (await act({ type: 'buyProperty', space: index })) close(); }}>
+                <span className="row" style={{ gap: 8, minWidth: 0 }}>
+                  {space.kind === 'property' && (
+                    <span className="swatch" style={{
+                      background: bankBoard.groups[space.group]?.color, width: 10, height: 18, borderRadius: 3,
+                    }} aria-hidden />
+                  )}
+                  <span className="truncate">{space.name}</span>
+                </span>
+                <strong className="tabular">{bankBoard.currency}{space.price.toLocaleString()}</strong>
+              </button>
+            ))}
+          </div>
+        </div>
+      </Sheet>
 
       {/* Send money */}
       <Sheet open={dialog === 'send'} title="Send money" onClose={close}>
@@ -609,50 +699,127 @@ function LogRow({ entry, uid, seats }: { entry: Entry; uid: string; seats: Seat[
 
 /* ─────────────────────────────── After the game ─────────────────────────────── */
 
-function Assets({ state, uid, me, act, busy }: PhaseProps) {
-  const [value, setValue] = useState('');
-  const amount = Math.floor(Number(value));
-  const valid = Number.isFinite(amount) && amount >= 0 && value !== '';
+/* ─────────────────────────────── Playing the board ─────────────────────────────── */
 
-  if (me?.assets !== null && me?.assets !== undefined) {
-    return (
-      <section className="card">
-        <h3>Adding everything up</h3>
-        <ul className="list">
-          {state.seats.map((s) => (
-            <li key={s.uid}>
-              <span className="row" style={{ gap: 8 }}>
-                <span style={{ fontSize: '1.1rem' }} aria-hidden>{s.token}</span>
-                <span>{s.uid === uid ? 'You' : firstName(s.name)}</span>
-              </span>
-              <span className={`badge${s.assets !== null ? ' badge-live' : ''}`}>
-                {s.assets !== null ? 'Sent' : 'Counting…'}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
-    );
+/**
+ * Board mode. The ring is read-only; everything you can do sits underneath it, and only the
+ * player on move has anything to press.
+ */
+function BoardPlay({ state, uid, me, act, busy }: PhaseProps) {
+  const board = boardOf(state.settings.boardId);
+  const [rolling, setRolling] = useState(false);
+  const [building, setBuilding] = useState(false);
+
+  const myTurn = state.turn === uid && !me?.bankrupt;
+  const onMove = state.seats.find((s) => s.uid === state.turn);
+  const pending = state.pending;
+  const offered = pending ? board.spaces[pending.space] : undefined;
+  const buildable = me ? Object.keys(state.owned)
+    .map(Number)
+    .filter((i) => canBuild(state, me.uid, i)) : [];
+
+  async function roll() {
+    setRolling(true);
+    await act({ type: 'roll', dice: throwDice() });
+    window.setTimeout(() => setRolling(false), 500);
   }
 
   return (
-    <section className="card">
-      <h3>What is your property worth?</h3>
-      <div className="col">
-        <p className="muted" style={{ margin: 0, fontSize: '0.9rem' }}>
-          Add up the printed value of your land, houses and hotels. Your cash ({money(me?.balance)}) is counted already.
-        </p>
-        <label className="field">
-          <span>Property and houses</span>
-          <input className="money-input" type="number" inputMode="numeric" min={0} value={value}
-            onChange={(e) => setValue(e.target.value)} placeholder="0" autoFocus />
-        </label>
-        <button type="button" className="primary block" disabled={busy || !valid}
-          onClick={() => act({ type: 'submitAssets', value: amount })}>
-          Send my total
-        </button>
+    <>
+      <Board state={state} board={board} uid={uid} />
+
+      <div className="row between" style={{ margin: '12px 0' }}>
+        <span className="turn-pill">
+          {me?.bankrupt ? 'You are out' : myTurn ? 'Your turn' : `${firstName(onMove?.name ?? '')}'s turn`}
+        </span>
+        <strong className="tabular">{board.currency}{(me?.balance ?? 0).toLocaleString()}</strong>
       </div>
-    </section>
+
+      {state.lastRoll && (
+        <div className="row center" style={{ marginBottom: 12 }}>
+          <Dice dice={state.lastRoll.dice} rolling={rolling} />
+        </div>
+      )}
+
+      {myTurn && (
+        <div className="action-grid">
+          <button type="button" disabled={busy || rolling || state.rolled || !!pending} onClick={roll}>
+            <span aria-hidden>🎲</span><span>Roll</span>
+          </button>
+          <button type="button" disabled={busy || buildable.length === 0} onClick={() => setBuilding(true)}>
+            <span aria-hidden>🏠</span><span>Build</span>
+          </button>
+          <button type="button" disabled={busy || !state.rolled || !!pending || rollsAgain(state, uid)}
+            onClick={() => act({ type: 'endTurn' })}>
+            <span aria-hidden>✓</span><span>End turn</span>
+          </button>
+        </div>
+      )}
+
+      <section className="card">
+        <h3>Players</h3>
+        <div className="player-grid">
+          {state.seats.map((s) => (
+            <div key={s.uid} className="player-chip" style={{ opacity: s.bankrupt ? 0.5 : 1 }}>
+              <span className="token" style={{ borderColor: s.color ?? 'var(--border)', background: `${s.color ?? '#000'}22` }}>
+                {s.token}
+              </span>
+              <span className="grow" style={{ minWidth: 0 }}>
+                <small className="truncate">
+                  {s.uid === uid ? 'You' : firstName(s.name)}
+                  {s.jailTurns > 0 && ' · in jail'}
+                  {s.bankrupt && ' · out'}
+                </small>
+                <b>{state.settings.showBalances || s.uid === uid
+                  ? `${board.currency}${s.balance.toLocaleString()}`
+                  : '•••'}</b>
+              </span>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <Sheet open={!!pending && myTurn} title="Buy it?">
+        {pending && offered && isOwnable(offered) && (
+          <div className="col">
+            <p style={{ margin: 0 }}>
+              <strong>{offered.name}</strong> is unowned. It costs{' '}
+              <strong>{board.currency}{pending.price.toLocaleString()}</strong>.
+            </p>
+            <p className="muted" style={{ margin: 0, fontSize: '0.9rem' }}>
+              Decline and it stays with the bank — there is no auction.
+            </p>
+            <div className="row" style={{ gap: 8 }}>
+              <button type="button" className="grow" disabled={busy} onClick={() => act({ type: 'decline' })}>
+                No thanks
+              </button>
+              <button type="button" className="primary grow" disabled={busy} onClick={() => act({ type: 'buy' })}>
+                Buy it
+              </button>
+            </div>
+          </div>
+        )}
+      </Sheet>
+
+      <Sheet open={building} title="Build a house" onClose={() => setBuilding(false)}>
+        <div className="col">
+          {buildable.length === 0 ? (
+            <p className="empty">Nothing to build on yet — you need every property in a colour group.</p>
+          ) : buildable.map((index) => {
+            const space = board.spaces[index];
+            if (space?.kind !== 'property') return null;
+            const cost = board.groups[space.group].houseCost;
+            return (
+              <button key={index} type="button" className="row between" disabled={busy}
+                onClick={async () => { if (await act({ type: 'build', space: index })) setBuilding(false); }}>
+                <span>{space.name} · {'🏠'.repeat(state.houses[index] ?? 0) || 'no houses'}</span>
+                <strong>{board.currency}{cost.toLocaleString()}</strong>
+              </button>
+            );
+          })}
+        </div>
+      </Sheet>
+    </>
   );
 }
 
@@ -665,7 +832,7 @@ function Results({ state, uid, owner, act, busy }: PhaseProps) {
       <div className="col" style={{ alignItems: 'center', gap: 2, margin: '8px 0 18px' }}>
         <span style={{ fontSize: '2.6rem' }} aria-hidden>🏆</span>
         <h1>Final standings</h1>
-        <p className="muted" style={{ margin: 0 }}>Cash plus property.</p>
+        <p className="muted" style={{ margin: 0 }}>Cash plus everything you bought — added up for you.</p>
       </div>
 
       {ranked.map((s, i) => (
@@ -674,9 +841,12 @@ function Results({ state, uid, owner, act, busy }: PhaseProps) {
           <span style={{ fontSize: '1.3rem' }} aria-hidden>{s.token}</span>
           <span className="grow col" style={{ gap: 0, minWidth: 0 }}>
             <strong className="truncate">{s.uid === uid ? 'You' : firstName(s.name)}</strong>
-            <small className="muted tabular">{money(s.balance)} cash · {money(s.assets ?? 0)} property</small>
+            <small className="muted tabular">
+              {money(s.balance)} cash · {money(propertyValue(state, s.uid))} property
+              {s.bankrupt && ' · bankrupt'}
+            </small>
           </span>
-          <strong className="tabular">{money(totalWealth(s))}</strong>
+          <strong className="tabular">{money(totalWealth(state, s))}</strong>
         </div>
       ))}
 

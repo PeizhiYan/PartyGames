@@ -82,6 +82,28 @@ src/
 | Theme tokens, every shared class | `src/styles/global.css` |
 | Accent + light/dark choice | `src/lib/theme.ts` |
 
+## Monopoly's two modes
+
+Split across four files because the game got big:
+
+| File | What |
+|---|---|
+| `boards/` | Four boards as data, each its own shape. `checkBoard()` and a test enforce that a board is a square with corners in the right places. |
+| `state.ts` | The state shape, and the readings both halves need — ownership, rent, what a player's property is worth. |
+| `play.ts` | Board mode: movement, landing, cards, jail, building, bankruptcy. Pure. |
+| `rules.ts` | The `GameDefinition`, the reducer, and bank mode's hand-entered money. |
+
+- **Bank mode still needs the board data.** Buying records *which* space, which is the only reason
+  the results screen can total everyone's property instead of asking them to type it. That was the
+  point of the whole exercise; do not let `buy` become a free-text amount again.
+- **Dice and the card seed come in on the action** (`roll`, `start`), never from `Math.random()`
+  inside the reducer, so the whole game stays a pure function and can run in a transaction. Card
+  order is `seed` mixed with the number of draws so far.
+- **Deliberately missing**: auctions, trading and mortgages. Each needs a negotiation flow, and a
+  game between friends works without them. A declined property stays with the bank.
+- Board rendering is a square CSS grid of `(side + 2)²`; `gridPosition()` maps a space index to a
+  cell, going anticlockwise from Go at bottom-right.
+
 ## Everything in a room is public
 
 A room is one document and every player in it reads all of it, so there is **nowhere to keep a
