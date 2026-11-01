@@ -118,6 +118,9 @@ Split across four files because the game got big:
 - **A room can ask for the whole window.** `GameScreens.wide(room)` is asked per *room*, not per
   game, because Monopoly only wants it in board mode — bank mode is a column of cards and reads
   better narrow. On a wide screen `BoardPlay` puts the board left and everything you do right.
+- **The board grows with the window, capped by height.** It is square, so a width-only cap makes
+  it taller than the screen on a wide monitor; `max-width: min(100%, calc(100dvh - 150px))` lets
+  whichever dimension runs out first decide. Tile text tracks `min(vw, vh)` for the same reason.
 - Tapping a space opens `SpaceSheet`; a "You are on …" card always spells out the current space.
 - **Do not try to shrink text back into the tiles** on the narrow layout. That was the ring's
   problem, and the first fix dropped the words entirely instead.

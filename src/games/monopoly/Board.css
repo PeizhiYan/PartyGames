@@ -146,7 +146,11 @@
   .mono-space {
     grid-row: var(--r-row);
     grid-column: var(--r-col);
-    font-size: clamp(0.42rem, 1.1vw, 0.62rem);
+    /*
+     * Track whichever dimension is limiting the board, since it is square — on a short wide
+     * monitor the height decides, and sizing off width alone would overflow the cells.
+     */
+    font-size: clamp(0.45rem, min(0.95vw, 1.15vh), 0.88rem);
   }
   /* The ring runs in an obvious circle, so the order needs no numbering. */
   .mono-index { display: none; }
@@ -160,7 +164,7 @@
     grid-column: 2 / var(--ring);
     border-radius: 10px;
     background: color-mix(in srgb, var(--accent) 7%, var(--surface));
-    font-size: clamp(1rem, 3.2vw, 1.6rem);
+    font-size: clamp(1rem, min(3vw, 3.6vh), 2.2rem);
     font-weight: 700;
     letter-spacing: 0.05em;
     color: var(--text-muted);
