@@ -17,6 +17,10 @@
 }
 .mono-space {
   position: relative;
+  /* A grid cell, not a button: none of the usual button chrome applies. */
+  min-height: 0;
+  font: inherit;
+  cursor: pointer;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -87,6 +91,18 @@
 
 @media (max-width: 620px) {
   /* Edge to edge: on a narrow screen the room's padding is worth more as board. */
+  .mono-board {
+    width: calc(100% + 32px);
+    margin-inline: -16px;
+    border-radius: 0;
+    border-inline: none;
+  }
+}
+
+
+/* Phones: edge to edge, because the room's padding is worth more as board. The tiles are big
+   enough to keep their words here, which is the whole point of not drawing a ring. */
+@media (max-width: 620px) {
   .mono-board {
     width: calc(100% + 32px);
     margin-inline: -16px;

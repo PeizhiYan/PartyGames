@@ -113,6 +113,10 @@ Split across four files because the game got big:
   works, it just looks odd.
 - Tapping a space opens `SpaceSheet` with everything about it; a "You are on …" card under the
   board always spells out the current space.
+- **Do not try to shrink text back into the tiles.** That was the ring's problem: at ~32px a cell
+  cannot hold a name and a price, and the first attempt to fix it dropped the words entirely. The
+  grid exists so they fit again. The board is still edge to edge below 620px, where the room's
+  padding is worth more as board.
 
 ## Everything in a room is public
 
