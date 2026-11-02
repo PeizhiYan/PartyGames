@@ -11,9 +11,12 @@ import {
 } from '@firebase/rules-unit-testing';
 import {
   deleteDoc, doc, getDoc, getDocs, collection, query, serverTimestamp, setDoc, updateDoc, where,
-  type Firestore,
+  orderBy, limit, type Firestore,
 } from 'firebase/firestore';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { createHanoiLeaderboard } from '../src/adapters/firebase/hanoi';
+import type { FirebaseContext } from '../src/adapters/firebase/app';
+import { completedRun } from './helpers/hanoi';
 
 const ROOT = 'apps/partygames';
 const ADMIN = 'yanpeizhi2008@gmail.com';
@@ -237,6 +240,77 @@ describe('rooms', () => {
     await seed(['rooms', 'room1'], newRoom('u1'));
     await closeSignup();
     await assertFails(getDoc(roomDoc(as('u2', 'b@b.com'))));
+  });
+});
+
+describe('Hanoi leaderboard', () => {
+  const scoreDoc = (db: Firestore, uid = 'u1') => doc(db, ROOT, 'leaderboards', 'hanoi', 'scores', uid);
+  const score = (overrides: Record<string, unknown> = {}) => ({
+    uid: 'u1', displayName: 'Player One', durationMs: 180_000, moves: 129,
+    achievedAt: serverTimestamp(), ...overrides,
+  });
+
+  it('allows a personal best and the ordered top-50 query', async () => {
+    await assertSucceeds(setDoc(scoreDoc(as('u1', 'a@b.com')), score()));
+    const scores = collection(as('u2', 'b@b.com'), ROOT, 'leaderboards', 'hanoi', 'scores');
+    const result = await assertSucceeds(getDocs(query(scores, orderBy('durationMs'), orderBy('moves'), limit(50))));
+    expect(result.docs).toHaveLength(1);
+  });
+  it('prevents writing another player’s score, uid spoofing and non-admin deletion', async () => {
+    const db = as('u1', 'a@b.com');
+    await assertFails(setDoc(scoreDoc(db, 'u2'), score({ uid: 'u2' })));
+    await assertFails(setDoc(scoreDoc(db), score({ uid: 'u2' })));
+    await assertSucceeds(setDoc(scoreDoc(db), score()));
+    await assertFails(setDoc(scoreDoc(as('u2', 'b@b.com')), score({ durationMs: 1000 })));
+    await assertFails(deleteDoc(scoreDoc(db)));
+    await assertSucceeds(deleteDoc(scoreDoc(as('admin', ADMIN))));
+  });
+  it('only accepts a faster time, or fewer moves at the same time', async () => {
+    const ref = scoreDoc(as('u1', 'a@b.com'));
+    await assertSucceeds(setDoc(ref, score()));
+    await assertFails(setDoc(ref, score({ durationMs: 190_000, moves: 127 })));
+    await assertFails(setDoc(ref, score()));
+    await assertSucceeds(setDoc(ref, score({ moves: 127 })));
+    await assertSucceeds(setDoc(ref, score({ durationMs: 170_000, moves: 131 })));
+  });
+  it('rejects invalid scores, extra data and forged timestamps', async () => {
+    const ref = scoreDoc(as('u1', 'a@b.com'));
+    for (const patch of [
+      { moves: 126 }, { moves: 127.5 }, { moves: 10001 }, { durationMs: 0 }, { durationMs: -1 },
+      { durationMs: 1.5 }, { durationMs: 86400001 }, { displayName: '' }, { displayName: 'x'.repeat(101) },
+      { email: 'should-not-be-public@example.com' }, { achievedAt: new Date(0) },
+    ]) await assertFails(setDoc(ref, score(patch)));
+  });
+  it('blocks signed-out, disabled, unverified and uninvited accounts', async () => {
+    const signedOut = env.unauthenticatedContext().firestore() as unknown as Firestore;
+    await assertFails(getDoc(scoreDoc(signedOut)));
+    await assertFails(setDoc(scoreDoc(signedOut), score()));
+    const unverified = env.authenticatedContext('u1', { email: 'a@b.com', email_verified: false }).firestore() as unknown as Firestore;
+    await assertFails(setDoc(scoreDoc(unverified), score()));
+    await seed(['members', 'u1'], { email: 'a@b.com', disabled: true });
+    await assertFails(getDoc(scoreDoc(as('u1', 'a@b.com'))));
+    await assertFails(setDoc(scoreDoc(as('u1', 'a@b.com')), score()));
+    await closeSignup();
+    await assertFails(getDoc(scoreDoc(as('u2', 'b@b.com'))));
+    await assertFails(setDoc(scoreDoc(as('u2', 'b@b.com'), 'u2'), score({ uid: 'u2' })));
+    await seed(['allowlist', 'b@b.com'], { addedAt: serverTimestamp() });
+    await assertSucceeds(setDoc(scoreDoc(as('u2', 'b@b.com'), 'u2'), score({ uid: 'u2' })));
+  });
+  it('the real adapter replays a solution and preserves the best of concurrent results', async () => {
+    const db = as('u1', 'a@b.com');
+    const repo = createHanoiLeaderboard({
+      db, auth: { currentUser: { uid: 'u1', displayName: 'Player One' } },
+    } as FirebaseContext);
+    await expect(repo.submit({ durationMs: 1000, moves: [] })).rejects.toThrow(/finish/i);
+    await Promise.all([repo.submit(completedRun(200_000)), repo.submit(completedRun(180_000, true))]);
+    expect((await getDoc(scoreDoc(db))).data()).toMatchObject({ durationMs: 180_000, moves: 129 });
+    expect(await repo.submit(completedRun(180_000))).toBe('saved');
+    expect(await repo.submit(completedRun(190_000))).toBe('kept');
+    expect(await repo.submit(completedRun(180_000))).toBe('kept');
+    expect((await getDoc(scoreDoc(db))).data()).toMatchObject({ durationMs: 180_000, moves: 127 });
+  });
+  it('does not allow a solo-only Hanoi room', async () => {
+    await assertFails(setDoc(roomDoc(as('u1', 'a@b.com')), newRoom('u1', { game: 'hanoi' })));
   });
 });
 

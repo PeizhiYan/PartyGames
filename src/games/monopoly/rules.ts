@@ -487,6 +487,7 @@ export const monopoly: GameDefinition<MonopolyState, MonopolyAction> = {
   minPlayers: 2,
   maxPlayers: 8,
   solo: false,
+  multiplayer: true,
   newState: initial,
   onPlayersChanged: syncSeats,
   reduce,

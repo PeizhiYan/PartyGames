@@ -2,6 +2,8 @@
 // implements them for one backend (Firebase today; a REST API over Postgres, Supabase, a
 // self-hosted Node server... would be another folder here and one line in index.ts).
 import type { AppUser, GameId, Member, Room, RoomSummary } from '../types';
+import type { HanoiRun } from '../games/hanoi/rules';
+import type { HanoiScore } from '../games/hanoi/leaderboard';
 
 export type Unsubscribe = () => void;
 
@@ -77,4 +79,12 @@ export interface Backend {
   rooms: RoomRepo;
   admin: AdminRepo;
   account: AccountRepo;
+  hanoiLeaderboard: HanoiLeaderboardRepo;
+}
+
+export interface HanoiLeaderboardRepo {
+  /** Fastest 50 personal bests, with moves breaking ties. */
+  watch(cb: (scores: HanoiScore[]) => void, onError?: (e: Error) => void): Unsubscribe;
+  /** Validates a completed replay and atomically improves only the signed-in player's best. */
+  submit(run: HanoiRun): Promise<'saved' | 'kept'>;
 }

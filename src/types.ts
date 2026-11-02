@@ -8,7 +8,7 @@ export interface AppUser {
 }
 
 /** Every game in the app. Used as the room's `game` field and in URLs. */
-export type GameId = 'gomoku' | 'monopoly';
+export type GameId = 'gomoku' | 'monopoly' | 'hanoi';
 
 export interface RoomPlayer {
   uid: string;
@@ -83,8 +83,12 @@ export interface GameDefinition<S, A> {
   emoji: string;
   minPlayers: number;
   maxPlayers: number;
-  /** True if this game can also be played alone (against the computer) with no room. */
+  /** True if this game can be played alone with no room. */
   solo: boolean;
+  /** False for solo puzzles: they appear in the games hub but never offer rooms. */
+  multiplayer: boolean;
+  soloTitle?: string;
+  soloDescription?: string;
   newState(ctx: GameContext): S;
   /** Must be pure. Throws `GameRuleError` if the action isn't allowed. */
   reduce(state: S, action: A, ctx: GameContext): S;

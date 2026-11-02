@@ -22,7 +22,7 @@ export default defineConfig({
         id: '/',
         name: 'PartyGames',
         short_name: 'PartyGames',
-        description: 'Play Gomoku and run a Monopoly bank with your friends.',
+        description: 'Play Gomoku, Monopoly and Hanoi Tower with your friends.',
         theme_color: '#f26a1b',
         background_color: '#b23c06',
         display: 'standalone',
