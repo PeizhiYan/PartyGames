@@ -110,10 +110,28 @@ Split across four files because the game got big:
   the wrong shape.
 - **The narrow layout was rows alternating direction (boustrophedon) first, and that failed.**
   Which way a row ran was invisible, and bordered lanes with turn markers only made it busier.
-  A spiral is a shape you recognise before you read anything, so it needs no scaffolding — just
-  the index on each tile. The jump from the last space back to `GO` is the price: in the ring
-  they are neighbours, in the spiral the end is in the middle. That is why every tile is
-  numbered on the narrow layout and not on the ring.
+  A spiral is at least a shape you recognise before you read anything.
+- **The spiral walls its laps off, and each lap opens at its top-left.** Recognising the shape
+  is not the same as seeing which lap a tile is on — two tiles side by side across a boundary
+  are twenty spaces apart — so each lap gets an outline running down the middle of the gutter
+  (`.mono-coil`, one per `coilCount()`), open where the route steps into it. The gutter is 8px
+  wide to hold the line; at 3px there was nowhere to put anything.
+  - The outlines are their own grid items, not children of a tile: `.mono-space` clips its
+    overflow and these have to live in the gutter. They sit at `z-index: 0`, behind the tiles,
+    so only the part crossing a gutter is ever seen.
+  - **An open lap is two elements, and nothing is erased.** The box is drawn without its left
+    border and with that side's corners squared (`.mono-coil.open`), and the left border is a
+    second element starting one row lower (`.mono-coil-side`). Three earlier versions painted
+    the board's background over a finished box to cut the opening: too short and a stub of line
+    was left that still read as closed, long enough to clear the corner and it notched the top
+    edge. Both read as the border having failed to draw. Do not go back to erasing.
+  - Every lap after the first is entered at its own top-left cell — that falls out of how
+    `spiralOrder()` walks the grid, and it is why the opening needs no per-lap arithmetic.
+  - Direction arrows in every gutter were the version before all of this, and were too noisy
+    for a board you are trying to read.
+- **The wrap still has to be written down.** On the ring the last space is next to `GO`; in the
+  spiral it finishes in the middle, so the last tile carries a `↺ 0` badge. It gives way to a
+  token, like the price and the second line of the name.
 - `boardLayout()` picks the factor pair closest to "a bit taller than wide" so the grid is always
   exactly full — 40 → 5×8, 36 → 6×6, 32 → 4×8; `spiralOrder()` then walks it inwards from the
   top-left. `ringPosition()` is the other one. The tests assert, for both, that every space has a
