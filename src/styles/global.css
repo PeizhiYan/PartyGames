@@ -486,14 +486,13 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .balance span { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-muted); }
 .action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0; }
 .action-grid button { flex-direction: column; gap: 2px; min-height: 76px; border-radius: var(--radius); font-size: 0.85rem; font-weight: 600; }
-.action-grid button span:first-child { font-size: 1.4rem; }
+.action-grid button .icon { opacity: 0.85; }
 .player-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px; }
 .player-chip { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-radius: 12px; background: var(--inset); min-width: 0; }
-.player-chip .token { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 50%; border: 1px solid; font-size: 1.1rem; flex: none; }
 .player-chip small { display: block; color: var(--text-muted); font-size: 0.75rem; }
 .player-chip b { font-variant-numeric: tabular-nums; }
 .choice-grid { display: grid; gap: 8px; grid-template-columns: repeat(4, 1fr); }
-.choice-grid button { min-height: 56px; font-size: 1.5rem; border-radius: 14px; padding: 0; }
+.choice-grid button { min-height: 56px; border-radius: 14px; padding: 0; }
 .choice-grid button.selected { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
 .choice-grid button:disabled { opacity: 0.3; }
 .swatch-grid { display: grid; gap: 8px; grid-template-columns: repeat(4, 1fr); }
@@ -531,7 +530,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .entry-amount.in { color: var(--success); }
 .rank-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--radius); background: var(--inset); margin-bottom: 8px; }
 .rank-row.winner { background: color-mix(in srgb, var(--gold) 16%, transparent); }
-.rank-medal { font-size: 1.4rem; width: 32px; text-align: center; flex: none; }
+.rank-medal { display: inline-flex; align-items: center; justify-content: center; width: 32px; font-size: 1.1rem; font-weight: 700; color: var(--text-muted); flex: none; }
+.rank-row.winner .rank-medal { color: var(--gold); }
+.trophy-mark { display: grid; place-items: center; width: 68px; height: 68px; border-radius: 50%; background: color-mix(in srgb, var(--gold) 20%, transparent); color: var(--gold); }
 
 /* Settings / admin */
 .account { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
@@ -722,19 +723,22 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
   /* The usual room is sized for reading; a board wants the window. */
   .room-screen.wide { max-width: min(1600px, 100%); }
   .board-play {
-    grid-template-columns: minmax(0, 1fr) clamp(300px, 24%, 400px);
-    gap: 28px;
+    --side: 340px;
+    --gap: 28px;
+    /*
+     * The board is square, so whichever runs out first decides its size: the width left after
+     * the side column, or the height the window has after the room's chrome. Without the height
+     * cap a wide monitor makes a board taller than the screen.
+     *
+     * Sizing the column rather than the element inside it is what lets `justify-content` centre
+     * the pair — with a `1fr` column there is no slack to centre, and the board floats in it.
+     */
+    grid-template-columns:
+      min(calc(100% - var(--side) - var(--gap)), calc(100dvh - 150px))
+      var(--side);
+    gap: var(--gap);
     align-items: start;
-  }
-  /*
-   * The board is square, so whichever of the two runs out first decides how big it gets: the
-   * width its column was given, or the height the window has left after the room's chrome.
-   * Without the height cap a wide monitor makes a board taller than the screen.
-   */
-  .board-play-board {
-    max-width: min(100%, calc(100dvh - 150px));
-    /* Against the left edge, not centred in the slack its column has left over. */
-    margin-inline: 0 auto;
+    justify-content: center;
   }
   .board-play-side { position: sticky; top: 64px; }
 }

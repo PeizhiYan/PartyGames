@@ -10,9 +10,7 @@
   display: grid;
   grid-template-columns: repeat(var(--cols), 1fr);
   grid-auto-rows: clamp(54px, 14vw, 86px);
-  column-gap: 3px;
-  /* Rows are separated more than columns, so each one reads as its own lane. */
-  row-gap: 15px;
+  gap: 3px;
   padding: 4px 3px;
   width: 100%;
   border-radius: 14px;
@@ -20,42 +18,6 @@
   border: 1px solid var(--border);
   user-select: none;
 }
-
-/*
- * The lane behind one row. Its border is what makes the back-and-forth order followable — without
- * it forty tiles in a block are just a wall, and nobody can tell where a row ends.
- */
-.mono-lane {
-  position: relative;
-  pointer-events: none;
-}
-.mono-lane::before {
-  content: '';
-  position: absolute;
-  inset: -4px -3px;
-  border: 1.5px solid color-mix(in srgb, var(--accent) 35%, transparent);
-  border-radius: 11px;
-  background: color-mix(in srgb, var(--accent) 5%, transparent);
-}
-/* Where the row hands over to the next one. */
-.mono-lane::after {
-  content: '↓';
-  position: absolute;
-  bottom: -14px;
-  display: grid;
-  place-items: center;
-  width: 15px;
-  height: 15px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--on-accent);
-  font-size: 10px;
-  line-height: 1;
-  font-weight: 700;
-}
-.mono-lane[data-turn='right']::after { right: -1px; }
-.mono-lane[data-turn='left']::after { left: -1px; }
-.mono-lane[data-turn='none']::after { content: none; }
 
 .mono-space {
   position: relative;
@@ -114,10 +76,25 @@
   opacity: 0.55;
   font-variant-numeric: tabular-nums;
 }
-/* Tokens sit over the tile so they never push the words out of the way. */
-.mono-tokens { position: absolute; right: 1px; bottom: 1px; display: flex; gap: 1px; }
-.mono-token { font-size: 1.15em; line-height: 1; border-radius: 50%; border: 1.5px solid transparent; }
-.mono-token.mine { box-shadow: 0 0 0 1.5px var(--text); }
+/*
+ * Tokens get the bottom line of the tile to themselves. They float over it rather than taking
+ * part in the layout — an empty tile should not reserve a gap — but an occupied one gives up its
+ * price to make room, because who is standing here matters more than what it costs, and a token
+ * dropped on top of the name made both unreadable.
+ */
+.mono-tokens {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 1px;
+  display: flex;
+  justify-content: center;
+  gap: 1px;
+}
+/* Who is here outranks what it costs, and outranks the second line of a long name. */
+.mono-space.has-tokens .mono-price { visibility: hidden; }
+.mono-space.has-tokens .mono-name { -webkit-line-clamp: 1; }
+.mono-space.has-tokens .mono-body { padding-bottom: calc(var(--tk, 22px) * 0.55); }
 
 /* The ring's middle; there is no middle here. */
 .mono-centre { display: none; }
@@ -154,7 +131,28 @@
   }
   /* The ring runs in an obvious circle, so the order needs no numbering. */
   .mono-index { display: none; }
-  .mono-lane { display: none; }
+  /* Tiles are larger here, so the thing you most need to find can be larger too. */
+  .mono-tokens .token-mark { --tk: 30px; }
+  .mono-space.has-tokens .mono-body { padding-bottom: 15px; }
+  /* The top row's band is along its bottom edge, so its tokens go above the words instead. */
+  .mono-space[data-edge='top'] .mono-tokens { top: 1px; bottom: auto; }
+  .mono-space[data-edge='top'].has-tokens .mono-body { padding-bottom: 0; padding-top: 15px; }
+
+  /*
+   * The colour band faces the middle, the way it does on a printed board — it is the clearest
+   * sign of which side of the ring you are looking at. The side tiles turn the tile into a row
+   * so the band becomes a vertical stripe; `data-edge` comes from `ringEdge()`.
+   */
+  .mono-space[data-edge='top'] { flex-direction: column-reverse; }
+  .mono-space[data-edge='left'] { flex-direction: row-reverse; }
+  .mono-space[data-edge='right'] { flex-direction: row; }
+  .mono-space[data-edge='left'] .mono-band,
+  .mono-space[data-edge='right'] .mono-band {
+    height: auto;
+    width: 16%;
+    min-width: 7px;
+    min-height: 0;
+  }
 
   .mono-centre {
     display: flex;
@@ -170,3 +168,27 @@
     color: var(--text-muted);
   }
 }
+
+/* ── Drawn marks ──────────────────────────────────────────────────────────── */
+
+.mono-icon { display: block; opacity: 0.8; }
+/* The owner's token sits where the price was, once a space is sold. */
+.mono-owner { display: inline-flex; align-items: center; gap: 3px; font-weight: 700; }
+.mono-owner b { font-size: 0.9em; }
+
+/**
+ * A player's token: their colour as a disc with their mark cut out of it. A disc because colour
+ * is what tells two players apart at a glance, and the token has to survive being the smallest
+ * thing on a tile.
+ */
+.token-mark {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: var(--tk, 22px);
+  height: var(--tk, 22px);
+  border-radius: 50%;
+  box-shadow: inset 0 -1px 2px rgb(0 0 0 / 0.25), 0 1px 2px rgb(0 0 0 / 0.3);
+}
+.token-mark svg { width: 62%; height: 62%; }
+.token-mark.is-me { box-shadow: inset 0 -1px 2px rgb(0 0 0 / 0.25), 0 0 0 2.5px var(--text); }

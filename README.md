@@ -58,11 +58,12 @@ on the game's own screen.
     which board you are on, so buying a property picks it by name at its printed price. That is
     what lets the final standings **add themselves up**; nobody types what their property is
     worth any more.
-  - On a wide screen the board is drawn as a ring, the way it is printed, with the controls
-    beside it on the right. On a phone a ring would spend most of its area on a hole it does not
-    need, so the spaces fill the whole width in rows that alternate direction, each row in its
-    own lane with a marker showing where it turns. Either way a tile is big enough for its name
-    and price; tap one for its owner, rent and the full rent ladder.
+  - On a wide screen the board is drawn as a ring, the way it is printed, colour bands facing
+    the middle, with the controls beside it on the right. On a phone a ring would spend most of
+    its area on a hole it does not need, so the spaces spiral inwards and fill the whole width.
+    Either way a tile is big enough for its name and price; tap one for its owner, rent and the
+    full rent ladder. Every mark on the board is drawn, not an emoji — including the eight
+    player pieces, each your colour with your token cut out of it.
   - Four boards, and they are different shapes, not just different names: **Vancouver** and
     **New York** are the long 40-space game with eight colour groups, **Japan** is 36 spaces with
     six, and **China** is 32 — so a monopoly comes together sooner and the game runs shorter.

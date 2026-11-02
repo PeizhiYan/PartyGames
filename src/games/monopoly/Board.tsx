@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { isOwnable, type BoardDef, type Space } from './boards';
-import { boardLayout, gridPosition, ringPosition, ringSide } from './layout';
+import { SpaceIcon, Token } from './Icons';
+import { boardLayout, ringPosition, ringSide, spiralPosition } from './layout';
 import { seatOf, type MonopolyState } from './rules';
 import './Board.css';
 
@@ -10,20 +11,24 @@ const SHORT: Partial<Record<Space['kind'], string>> = {
   chance: 'Chance', chest: 'Chest',
 };
 
-/** A picture for the spaces a colour band cannot describe. */
-const GLYPH: Partial<Record<Space['kind'], string>> = {
-  go: '→', jail: '🔒', parking: '🅿️', gotojail: '🚨',
-  chance: '❓', chest: '🎁', tax: '💸', rail: '🚆', utility: '💡',
-};
-
 const label = (space: Space): string => ('name' in space ? space.name : SHORT[space.kind] ?? space.kind);
+
+/** Which side of the ring a tile is on, so its colour band can face inwards. */
+function ringEdge({ row, col }: { row: number; col: number }, side: number): string {
+  const vertical = row === 1 || row === side;
+  const horizontal = col === 1 || col === side;
+  if (vertical && horizontal) return 'corner';
+  if (row === 1) return 'top';
+  if (row === side) return 'bottom';
+  return col === 1 ? 'left' : 'right';
+}
 
 /**
  * The board, laid out two ways.
  *
  * Wide screens get **the ring**, the way a board is printed, because there is room for it.
- * Narrow screens get **rows that alternate direction**, because a ring on a phone spends most of
- * its area on a hole and squeezes the spaces too small to read — see `./layout`.
+ * Narrow screens get **a spiral**, because a ring on a phone spends most of its area on a hole
+ * and squeezes the spaces too small to read — see `./layout`.
  *
  * Both positions are written onto every tile as custom properties and the switch is a media
  * query, so there is no resize listener and no flash of the wrong layout.
@@ -40,35 +45,25 @@ export default function Board({ state, board, uid, onSelect }: {
 
   return (
     <div className="mono-board" style={{ '--cols': cols, '--ring': side } as CSSProperties}>
-      {/*
-        One lane per row of the narrow layout, drawn behind the tiles. Without them the rows run
-        together and the back-and-forth order is genuinely hard to follow; the arrow marks where
-        each row hands over to the next. Hidden entirely on the ring.
-      */}
-      {Array.from({ length: rows }, (_, r) => (
-        <span
-          key={`lane-${r}`}
-          className="mono-lane"
-          data-turn={r === rows - 1 ? 'none' : r % 2 === 0 ? 'right' : 'left'}
-          style={{ gridRow: r + 1, gridColumn: '1 / -1' } as CSSProperties}
-          aria-hidden
-        />
-      ))}
-
       {board.spaces.map((space, index) => {
-        const grid = gridPosition(index, cols);
+        const grid = spiralPosition(index, cols, rows);
         const ring = ringPosition(index, count);
         const owner = state.owned[index];
         const ownerSeat = owner ? seatOf(state, owner) : undefined;
         const houses = state.houses[index] ?? 0;
         const here = state.seats.filter((s) => !s.bankrupt && s.position === index);
         const band = space.kind === 'property' ? board.groups[space.group]?.color : undefined;
+        // Which edge of the ring this tile sits on, so its colour band can face the middle the
+        // way a printed board's does. Meaningless in the spiral, where the CSS ignores it.
+        const edge = ringEdge(ring, side);
 
         return (
           <button
             type="button"
             key={index}
-            className={`mono-space${isOwnable(space) ? '' : ' special'}${owner ? ' owned' : ''}`}
+            className={`mono-space${isOwnable(space) ? '' : ' special'}${owner ? ' owned' : ''}`
+              + `${here.length > 0 ? ' has-tokens' : ''}`}
+            data-edge={edge}
             style={{
               '--g-row': grid.row, '--g-col': grid.col,
               '--r-row': ring.row, '--r-col': ring.col,
@@ -78,17 +73,18 @@ export default function Board({ state, board, uid, onSelect }: {
             aria-label={isOwnable(space) ? `${space.name}, ${board.currency}${space.price}` : label(space)}
           >
             {band && <span className="mono-band" style={{ background: band }} aria-hidden />}
-            {/* Rows run alternately left-to-right and right-to-left, which is not something you
-                can see. The number says which way, and doubles as something to count moves on. */}
+            {/* A spiral is only obvious once you have found the end of it. The number says where
+                you are in the order, and doubles as something to count moves on. */}
             <span className="mono-index" aria-hidden>{index}</span>
             <span className="mono-body">
-              {!band && <span className="mono-glyph" aria-hidden>{GLYPH[space.kind]}</span>}
+              {!band && <SpaceIcon kind={space.kind} />}
               <span className="mono-name">{label(space)}</span>
               {isOwnable(space) && (
                 <span className="mono-price">
                   {ownerSeat
-                    ? <span className="mono-owner" style={{ color: ownerSeat.color ?? undefined }}>
-                        {ownerSeat.token} {houses > 0 && (houses >= 5 ? '🏨' : '🏠'.repeat(houses))}
+                    ? <span className="mono-owner">
+                        <Token token={ownerSeat.token} color={ownerSeat.color} size={13} />
+                        {houses > 0 && <b>{houses >= 5 ? 'H' : houses}</b>}
                       </span>
                     : `${board.currency}${space.price.toLocaleString()}`}
                 </span>
@@ -100,10 +96,7 @@ export default function Board({ state, board, uid, onSelect }: {
             {here.length > 0 && (
               <span className="mono-tokens">
                 {here.map((s) => (
-                  <span key={s.uid} className={`mono-token${s.uid === uid ? ' mine' : ''}`}
-                    style={{ borderColor: s.color ?? undefined }}>
-                    {s.token}
-                  </span>
+                  <Token key={s.uid} token={s.token} color={s.color} size={22} ring={s.uid === uid} />
                 ))}
               </span>
             )}

@@ -28,7 +28,11 @@ export * from './state';
 export { canBuild, rollsAgain } from './play';
 export { BOARDS, boardOf, spacesPerSide } from './boards';
 
-export const TOKENS = ['🎩', '🚂', '🐕', '🏎️', '⛵️', '👢', '🐈', '🎀'] as const;
+/**
+ * Token ids. Names rather than emoji, so the state does not depend on a font and a token can be
+ * redrawn without touching it — see `./Icons` for the marks themselves.
+ */
+export const TOKENS = ['hat', 'car', 'dog', 'ship', 'boot', 'cat', 'bow', 'train'] as const;
 export const COLORS = [
   '#dc2626', '#2563eb', '#16a34a', '#ca8a04',
   '#7c3aed', '#ea580c', '#db2777', '#0d9488',

@@ -14,12 +14,19 @@ const PATHS = {
   undo: 'M3 7v6h6 M3.5 13a9 9 0 1 0 2.1-6.4L3 10',
   flag: 'M4 22V4 M4 4h11l-1.5 4L15 12H4',
   eye: 'M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
-  bank: 'M3 10l9-6 9 6 M5 10v10h14V10 M9 20v-6h6v6',
+  // A temple front, not a house — `home` is the house, and Monopoly uses both side by side.
+  bank: 'M3 9.5L12 4l9 5.5 M5 10v8 M9.3 10v8 M14.7 10v8 M19 10v8 M2.5 21h19',
   dice: 'M4 4h16v16H4z M8.5 8.5h.01 M15.5 15.5h.01 M12 12h.01',
   send: 'M22 2L11 13 M22 2l-7 20-4-9-9-4z',
   lock: 'M5 11h14v10H5z M8 11V7a4 4 0 0 1 8 0v4',
   info: 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 16v-5 M12 8h.01',
   copy: 'M9 9h10v12H9z M5 15H3V3h12v2',
+  cash: 'M2 6h20v12H2z M12 9.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5 M5.5 9.5h.01 M18.5 14.5h.01',
+  tag: 'M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0l-7.2-7.2A2 2 0 0 1 2.8 12V4a1 1 0 0 1 1-1h8a2 2 0 0 1 1.4.6l7.4 7.4a2 2 0 0 1 0 2.8z M7.5 7.5h.01',
+  card: 'M7 3h10a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z M12 8l2.5 3.5L12 15l-2.5-3.5z',
+  trophy: 'M8 21h8 M12 17v4 M7 3h10v6a5 5 0 0 1-10 0z M7 5H4a2.5 2.5 0 0 0 3 4.5 M17 5h3a2.5 2.5 0 0 1-3 4.5',
+  out: 'M7 17L17 7 M8 7h9v9',
+  in: 'M17 7L7 17 M16 17H7V8',
 } as const;
 
 export type IconName = keyof typeof PATHS;
