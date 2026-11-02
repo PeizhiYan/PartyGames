@@ -68,7 +68,7 @@ src/
 ├─ services/       the backend contract
 ├─ adapters/       firebase/ and memory/ — the only places that know a backend exists
 ├─ ui/             design-system primitives: Icon Sheet Toast Segmented Avatar
-├─ shell/          app chrome: AppShell Waves ThemePicker InstallCard OfflineNotice
+├─ shell/          app chrome: AppShell Backdrop ThemePicker InstallCard OfflineNotice
 ├─ pages/          screens that are not a game
 ├─ hooks/          useAuth useInstall useOnline
 └─ lib/ styles/    formatting, theme, version · global CSS
@@ -254,9 +254,23 @@ Three things that were real bugs in the original or in this port, and have tests
 - **`--bg` is a `color-mix()`**, so reading it back with `getPropertyValue('--bg')` returns the
   literal `color-mix(...)` text, not a colour. `applyTheme` takes the computed
   `backgroundColor` off `document.body` instead, for the `theme-color` meta.
-- **The waves loop by translating exactly one period.** Each layer is two viewports wide and holds
-  two periods of the same wave, so `translateX(-50%)` is seamless. Change the period and the
-  animation has to change with it.
+- **The backdrop is three forms in one component, picked by CSS.** `shell/Backdrop.tsx` renders
+  the waves, the smoke and the particles every time, and `data-backdrop` on `<html>` shows one —
+  the same trick `data-accent` and `data-mode` use, so switching needs no React state. A hidden
+  form is `display: none`, which stops its animations rather than leaving two unseen ones running
+  down the battery.
+  - **The waves loop by translating exactly one period.** Each layer is two viewports wide and
+    holds two periods of the same wave, so `translateX(-50%)` is seamless. Change the period and
+    the animation has to change with it.
+  - **The smoke drifts on `alternate`**, not a loop back to the start: a cloud that teleports
+    home is the one thing that gives it away as a short animation on repeat.
+  - **A particle's rise is in pixels, not percent.** A percentage in `translate` resolves against
+    the element's own box, and a mote is 4px across — asking for 60% moved them three pixels.
+  - The particle scatter comes from `Math.sin()` on each mote's index, not `Math.random()`, so the
+    arrangement is the same on every load instead of rearranging itself on every navigation.
+    Negative delays start them part-way up, so the band is full on the first frame.
+  - All three honour `prefers-reduced-motion`, and a mote needs its resting opacity set directly
+    there, because without the animation it would never fade in.
 - **An optimistic stone has to outlive the write that replaces it.** `games/gomoku/Room.tsx`
   draws the stone locally the instant it is tapped and keeps drawing it until the shared state
   actually contains it — identically to a real one, so the handover is invisible. Dropping the

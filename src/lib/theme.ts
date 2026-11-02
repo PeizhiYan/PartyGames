@@ -1,8 +1,10 @@
 /**
- * The look of the app: a highlight colour and a light/dark choice, both per device.
+ * The look of the app: a highlight colour, a light/dark choice and what moves along the bottom
+ * of the screen — all per device.
  *
- * Applied as attributes on <html> (`data-accent`, `data-mode`) which src/styles/global.css turns
- * into variable values — so changing theme repaints everything without React re-rendering a thing.
+ * Applied as attributes on <html> (`data-accent`, `data-mode`, `data-backdrop`) which the CSS
+ * turns into variable values and visibility — so changing theme repaints everything without
+ * React re-rendering a thing.
  */
 
 export const ACCENTS = [
@@ -14,6 +16,16 @@ export const ACCENTS = [
   { id: 'graphite', label: 'Graphite', swatch: '#64748b' },
 ] as const;
 
+/**
+ * What drifts along the bottom of every screen. All three are the accent colour and all three
+ * are decoration only; see `src/shell/Backdrop.tsx`.
+ */
+export const BACKDROPS = [
+  { id: 'waves', label: 'Waves' },
+  { id: 'smoke', label: 'Smoke' },
+  { id: 'particles', label: 'Particles' },
+] as const;
+
 export const MODES = [
   { id: 'system', label: 'System' },
   { id: 'light', label: 'Light' },
@@ -22,19 +34,22 @@ export const MODES = [
 
 export type AccentId = (typeof ACCENTS)[number]['id'];
 export type ModeId = (typeof MODES)[number]['id'];
+export type BackdropId = (typeof BACKDROPS)[number]['id'];
 
 export interface Theme {
   accent: AccentId;
   mode: ModeId;
+  backdrop: BackdropId;
 }
 
-/** White background, orange highlight, following the system for light and dark. */
-export const DEFAULT_THEME: Theme = { accent: 'sunset', mode: 'system' };
+/** White background, orange highlight, waves, following the system for light and dark. */
+export const DEFAULT_THEME: Theme = { accent: 'sunset', mode: 'system', backdrop: 'waves' };
 
 const KEY = 'partygames:theme';
 
 const isAccent = (v: unknown): v is AccentId => ACCENTS.some((a) => a.id === v);
 const isMode = (v: unknown): v is ModeId => MODES.some((m) => m.id === v);
+const isBackdrop = (v: unknown): v is BackdropId => BACKDROPS.some((b) => b.id === v);
 
 export function loadTheme(): Theme {
   try {
@@ -42,6 +57,8 @@ export function loadTheme(): Theme {
     return {
       accent: isAccent(saved?.accent) ? saved.accent : DEFAULT_THEME.accent,
       mode: isMode(saved?.mode) ? saved.mode : DEFAULT_THEME.mode,
+      // Added after the first release, so a theme saved before then has no backdrop in it.
+      backdrop: isBackdrop(saved?.backdrop) ? saved.backdrop : DEFAULT_THEME.backdrop,
     };
   } catch {
     return DEFAULT_THEME;
@@ -59,6 +76,7 @@ export function saveTheme(theme: Theme): void {
 export function applyTheme(theme: Theme): void {
   const root = document.documentElement;
   root.dataset.accent = theme.accent;
+  root.dataset.backdrop = theme.backdrop;
   // "system" is the absence of the attribute, which is what the CSS keys off.
   if (theme.mode === 'system') delete root.dataset.mode;
   else root.dataset.mode = theme.mode;
