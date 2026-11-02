@@ -83,6 +83,21 @@ export function spiralPosition(index: number, cols: number, rows: number): { row
   return order[index] ?? { row: 1, col: 1 };
 }
 
+/**
+ * How many coils deep a cell sits, counting in from the edge — 0 is the outer lap. Cells with
+ * the same coil number are the same lap of the spiral.
+ */
+export function coilOf(
+  { row, col }: { row: number; col: number },
+  cols: number,
+  rows: number,
+): number {
+  return Math.min(row - 1, col - 1, rows - row, cols - col);
+}
+
+/** How many laps the spiral makes on a grid of this shape. */
+export const coilCount = (cols: number, rows: number): number => Math.ceil(Math.min(cols, rows) / 2);
+
 /* ── The ring, for wide screens ───────────────────────────────────────────── */
 
 /** Spaces along one edge of the ring, between two corners. */

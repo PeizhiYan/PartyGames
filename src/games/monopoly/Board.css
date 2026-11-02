@@ -10,8 +10,8 @@
   display: grid;
   grid-template-columns: repeat(var(--cols), 1fr);
   grid-auto-rows: clamp(54px, 14vw, 86px);
-  gap: 3px;
-  padding: 4px 3px;
+  gap: 8px;
+  padding: 6px;
   width: 100%;
   border-radius: 14px;
   background: var(--inset);
@@ -94,7 +94,71 @@
 /* Who is here outranks what it costs, and outranks the second line of a long name. */
 .mono-space.has-tokens .mono-price { visibility: hidden; }
 .mono-space.has-tokens .mono-name { -webkit-line-clamp: 1; }
+/* Same priority: a token standing here beats the note about where the route goes next. */
+.mono-space.has-tokens .mono-wrap { display: none; }
 .mono-space.has-tokens .mono-body { padding-bottom: calc(var(--tk, 22px) * 0.55); }
+
+/*
+ * The laps, walled off from each other.
+ *
+ * A spiral is a shape you recognise, but which lap a tile is on is not — two tiles side by side
+ * across a boundary are twenty spaces apart. So each lap gets an outline running down the middle
+ * of the gutter, open at the top-left corner where the route steps into it. The gutter is 8px
+ * wide to hold the line; at 3px there was nowhere to put anything.
+ *
+ * The outlines are their own grid items rather than children of a tile, because `.mono-space`
+ * clips its overflow and these have to live in the gutter. They sit behind the tiles, so only
+ * the part crossing a gutter is ever visible.
+ *
+ * An open lap is drawn as TWO elements — the box without its left border, and the left border on
+ * its own starting a row lower. Three earlier versions painted the board's background over a
+ * finished box to cut the opening instead, and every one of them read as the border having
+ * failed to draw: too short and a stub of line was left, long enough to clear the corner and it
+ * notched the top edge. Nothing is erased now, so there is nothing to get wrong. (Direction
+ * arrows in every gutter were the version before all of that, and were too noisy.)
+ */
+.mono-coil,
+.mono-coil-side {
+  grid-row: var(--c-r1) / var(--c-r2);
+  margin: -5px;
+  z-index: 0;
+  pointer-events: none;
+  border: 0 solid color-mix(in srgb, var(--accent) 80%, transparent);
+}
+.mono-coil {
+  grid-column: var(--c-c1) / var(--c-c2);
+  border-width: 3px;
+  border-radius: 14px;
+}
+/* The lap the route steps into: no left side, and square where that side would have met. */
+.mono-coil.open {
+  border-left-width: 0;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.mono-coil-side {
+  grid-column: var(--c-c1);
+  border-left-width: 3px;
+}
+
+/*
+ * On the ring the last space sits next to GO. In the spiral it finishes in the middle, so the
+ * wrap is the one move the arrows cannot show and the only one that has to be spelled out.
+ */
+.mono-wrap {
+  position: absolute;
+  right: 2px;
+  bottom: 1px;
+  z-index: 2;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 0.72em;
+  font-weight: 700;
+  line-height: 1.4;
+  letter-spacing: -0.02em;
+}
 
 /* The ring's middle; there is no middle here. */
 .mono-centre { display: none; }
@@ -129,8 +193,10 @@
      */
     font-size: clamp(0.45rem, min(0.95vw, 1.15vh), 0.88rem);
   }
-  /* The ring runs in an obvious circle, so the order needs no numbering. */
+  /* The ring runs in an obvious circle, so it needs neither numbers nor arrows. */
   .mono-index { display: none; }
+  .mono-coil, .mono-coil-side { display: none; }
+  .mono-wrap { display: none; }
   /* The dice are thrown into the middle of the board instead. */
   .board-play .dice-aside { display: none; }
   /* Tiles are larger here, so the thing you most need to find can be larger too. */

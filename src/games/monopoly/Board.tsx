@@ -1,9 +1,9 @@
-import type { CSSProperties } from 'react';
+import { Fragment, type CSSProperties } from 'react';
 import { isOwnable, type BoardDef, type Space } from './boards';
 import { ThrownDice } from './Dice';
 import { SpaceIcon, Token } from './Icons';
 import Skyline from './Skyline';
-import { boardLayout, ringPosition, ringSide, spiralPosition } from './layout';
+import { boardLayout, coilCount, ringPosition, ringSide, spiralPosition } from './layout';
 import { seatOf, type MonopolyState } from './rules';
 import './Board.css';
 
@@ -47,6 +47,39 @@ export default function Board({ state, board, uid, onSelect }: {
 
   return (
     <div className="mono-board" style={{ '--cols': cols, '--ring': side } as CSSProperties}>
+      {/*
+        One outline per lap of the spiral, so you can see which lap a tile is on — two tiles
+        side by side across a boundary are twenty spaces apart.
+      */}
+      {Array.from({ length: coilCount(cols, rows) }, (_, k) => {
+        // Every lap after the first is entered at its own top-left corner, so that is where
+        // its wall has to open. The left side is drawn as a second element starting a row
+        // lower rather than painted over afterwards: erasing left either a stub of line or a
+        // notch in the top edge, and both read as the border having failed to draw.
+        const open = k > 0;
+        const sideFrom = k + 2;
+        const sideTo = rows - k + 1;
+        return (
+          <Fragment key={`coil-${k}`}>
+            <span
+              className={`mono-coil${open ? ' open' : ''}`}
+              style={{
+                '--c-r1': k + 1, '--c-r2': rows - k + 1,
+                '--c-c1': k + 1, '--c-c2': cols - k + 1,
+              } as CSSProperties}
+              aria-hidden
+            />
+            {open && sideFrom < sideTo && (
+              <span
+                className="mono-coil-side"
+                style={{ '--c-r1': sideFrom, '--c-r2': sideTo, '--c-c1': k + 1 } as CSSProperties}
+                aria-hidden
+              />
+            )}
+          </Fragment>
+        );
+      })}
+
       {board.spaces.map((space, index) => {
         const grid = spiralPosition(index, cols, rows);
         const ring = ringPosition(index, count);
@@ -60,9 +93,9 @@ export default function Board({ state, board, uid, onSelect }: {
         const edge = ringEdge(ring, side);
 
         return (
+          <Fragment key={index}>
           <button
             type="button"
-            key={index}
             className={`mono-space${isOwnable(space) ? '' : ' special'}${owner ? ' owned' : ''}`
               + `${here.length > 0 ? ' has-tokens' : ''}`}
             data-edge={edge}
@@ -78,6 +111,9 @@ export default function Board({ state, board, uid, onSelect }: {
             {/* A spiral is only obvious once you have found the end of it. The number says where
                 you are in the order, and doubles as something to count moves on. */}
             <span className="mono-index" aria-hidden>{index}</span>
+            {/* The one step the arrows cannot draw: the last space is in the middle here, not
+                next to GO, so the way back has to be written down. */}
+            {index === count - 1 && <span className="mono-wrap">↺ 0</span>}
             <span className="mono-body">
               {!band && <SpaceIcon kind={space.kind} />}
               <span className="mono-name">{label(space)}</span>
@@ -103,6 +139,7 @@ export default function Board({ state, board, uid, onSelect }: {
               </span>
             )}
           </button>
+          </Fragment>
         );
       })}
 
