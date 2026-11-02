@@ -1,8 +1,8 @@
 # PartyGames 🎮
 
-Games to play with friends on your phones, in one installable app. Two to start with: **Gomoku**
-(five in a row, against a friend or against the computer) and **MonopolyBuddy** (the bank for a
-real Monopoly board, so nobody has to count paper money).
+Games to play on your phones, in one installable app: **Gomoku** (five in a row, against a friend
+or the computer), **Monopoly** (play online or bank for a real board), and **Hanoi Tower**
+(a seven-disk solo puzzle with a shared leaderboard).
 
 A React + TypeScript Progressive Web App, built for phones first and fine on a tablet or desktop,
 hosted on Firebase's free Spark plan, with a **cloud-agnostic** backend layer.
@@ -25,7 +25,7 @@ from production builds entirely.
 
 ## How a game works
 
-Every game lives in a **room**:
+Multiplayer games live in a **room**:
 
 1. Somebody opens a room and gets a four-character code (`K7PQ`).
 2. Friends find the room in the list, or type the code, and **ask to join**.
@@ -42,11 +42,23 @@ Every game lives in a **room**:
 Gomoku can also be played **alone against the computer**, with no room — pick Easy, Normal or Hard
 on the game's own screen.
 
+Hanoi Tower is solo-only: no room or second player is needed. Its lobby shows the leaderboard
+and opens the puzzle directly.
+
 ## Features
 
 - Each game has its own drawn cover art (`src/games/<id>/Art.tsx`), shown on the home
   screen and again as the banner on that game's lobby — inline SVG, so it scales to any card size
   without a second request.
+- **Hanoi Tower** – the original seven-disk challenge, with colourful shaded disks and a wooden
+  stand. Tap a peg to lift its top disk, then another peg to move it; keyboard controls work too.
+  Move the full tower from the left peg to the right, without putting a larger disk on a smaller
+  one. The timer starts at Start, legal moves are counted, and 127 is the perfect solve.
+  Completed games automatically submit to the Firestore leaderboard: fastest time first, moves
+  break ties, and each signed-in player keeps one personal best. The top 50 appear in the lobby
+  and below the puzzle. Offline completions wait on the device and retry when the game is open
+  online; a failed save also has a Retry button. The memory backend has a local leaderboard for
+  playtesting. See the developer guide for the data model and trust boundary.
 - **Gomoku** – a 15×15 board on a canvas that scales to the screen. Tap an intersection to play
   there; with a mouse, a ghost stone follows the pointer. Against another player a mis-tap can be
   undone by **asking for it back** — the opponent sees the request and agrees or doesn't, and
@@ -79,7 +91,7 @@ on the game's own screen.
   account, which locks them out and deletes their rooms.
 - **Installable and playable offline**: standalone display, its own icon, no browser chrome, no
   pinch-zoom or pull-to-refresh, no edge-swipe navigation in the installed app. The whole app
-  shell is precached, so **Gomoku against the computer works with no connection at all** — the
+  shell is precached, so **Gomoku against the computer and Hanoi Tower work offline** — the
   board and the AI are local TypeScript and never touch the backend. Rooms need the server (every
   move is a transaction), so the app says so and stops offering what cannot work. The home page and Settings offer
   an **Install** button where the browser supports one, and the Share → Add to Home Screen steps on
@@ -124,7 +136,7 @@ first card game rather than during it.
 
 ### Backend portability
 
-`src/adapters/selfhost/` doesn't exist yet. The seam does — the app talks to 24 methods in
+`src/adapters/selfhost/` doesn't exist yet. The seam does — the app talks to the interfaces in
 `src/services/types.ts` and nothing outside `src/adapters/firebase/` imports `firebase` — so
 moving to a self-hosted Node server (or Supabase, or PocketBase) is one adapter plus one `case` in
 `src/services/index.ts`. `src/adapters/memory/index.ts` is a complete worked example in ~330
@@ -168,7 +180,8 @@ src/
 │  ├─ screens.tsx    id → { Room, Solo?, Art }. React; only the UI imports this.
 │  ├─ art.ts         The 640x200 canvas every cover is drawn on.
 │  ├─ gomoku/        rules · board · ai (+ tests) · Room · BoardCanvas · Solo · Art
-│  └─ monopoly/      rules (+ tests) · Room · Dice · BalanceChart · Art
+│  ├─ monopoly/      rules (+ tests) · Room · Dice · BalanceChart · Art
+│  └─ hanoi/         rules (+ tests) · Solo · Board · Leaderboard · Art
 ├─ rooms/          The multiplayer layer games plug into: rules, useRooms, RoomList.
 ├─ services/       The backend contract: interfaces + the switch that picks an adapter.
 ├─ adapters/
@@ -196,10 +209,12 @@ Everything about a game lives in `src/games/<id>/`, and TypeScript names anythin
 
 1. Add the id to the `GameId` union in `src/types.ts`. Both registries are typed `Record<GameId, …>`,
    so this alone breaks the build until the game is fully wired — deliberately.
-2. Create `src/games/<id>/` with `rules.ts` (a `GameDefinition`), `Room.tsx` (taking
-   `{ room, uid }`), `Art.tsx`, and `Solo.tsx` if it can be played alone. Tests sit beside them.
+2. Create `src/games/<id>/` with `rules.ts` (a `GameDefinition`), `Art.tsx`, and the relevant
+   screens. Multiplayer games need `Room.tsx` (taking `{ room, uid }`); solo games need `Solo.tsx`.
+   Set `multiplayer: false` for a solo-only puzzle. Tests sit beside the implementation.
 3. Register it in `games/registry.ts` and `games/screens.tsx`.
-4. Add the id to `d.game in [...]` in `firestore.rules`.
+4. For a multiplayer game, add the id to `d.game in [...]` in `firestore.rules`. Solo-only games
+   deliberately cannot create room documents. Optional `LobbyExtra` content can show a leaderboard.
 
 The home grid, the lobby, the room page, the solo route and the room list all read the registries,
 so there are no per-game branches anywhere else. The room layer — join codes, approval, presence,
@@ -378,6 +393,10 @@ Their `disabled` member record is what keeps them out in the meantime, so this s
 
 ## Credits
 
+- **Hanoi Tower** is ported from [`../PeizhiYan.github.io/js_codes/hanoi_tower`](../PeizhiYan.github.io/js_codes/hanoi_tower),
+  originally written by Peizhi Yan in 2023. The seven-disk rules, right-peg goal and rainbow disk
+  palette are preserved; the shaded canvas artwork is redrawn as SVG. The old hand-entered
+  leaderboard is replaced by signed-in players' Firestore results.
 - **Gomoku** is ported from the original JavaScript version in
   [`PeizhiYan.github.io/js_codes/gomoku`](../PeizhiYan.github.io/js_codes/gomoku) — the pattern
   weights, the offence + defence + centre-bias move scoring, the alpha-beta search at even depths

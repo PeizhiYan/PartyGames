@@ -15,6 +15,9 @@ import {
 } from '../../types';
 import { NotFoundError, NotSignedInError } from '../../services/errors';
 import type { Backend, RoomRepo, Unsubscribe } from '../../services/types';
+import { compareScores, LEADERBOARD_LIMIT, type HanoiScore } from '../../games/hanoi/leaderboard';
+import { validateRun } from '../../games/hanoi/rules';
+import { PermissionDeniedError } from '../../services/errors';
 
 /** See the `dev` object in `createMemoryBackend`. */
 export interface MemoryDevTools {
@@ -34,6 +37,7 @@ const IDENTITY_KEY = 'partygames:memory:me';
 const CHANNEL = 'partygames:memory';
 
 interface Store {
+  hanoiScores: Record<string, HanoiScore>;
   rooms: Record<string, Room>;
   /** Every identity this browser has invented, so one tab can act as any of them. */
   people: AppUser[];
@@ -44,7 +48,7 @@ interface Store {
   identities: number;
 }
 
-const emptyStore = (): Store => ({ rooms: {}, people: [], members: {}, allowlist: [], openSignup: true, identities: 0 });
+const emptyStore = (): Store => ({ rooms: {}, people: [], members: {}, allowlist: [], openSignup: true, identities: 0, hanoiScores: {} });
 
 /** localStorage holds JSON, so Dates come back as strings and have to be revived. */
 function reviveDates<T>(value: T): T {
@@ -164,6 +168,7 @@ export function createMemoryBackend(): Backend & { dev: MemoryDevTools } {
     async create(game: GameId, name: string) {
       const owner = requireUser();
       const definition = getGame(game);
+      if (!definition.multiplayer) throw new GameRuleError('This game is played solo.');
       const id = `room-${Math.random().toString(36).slice(2, 10)}`;
       const player = asPlayer(owner);
       update((store) => {
@@ -318,6 +323,38 @@ export function createMemoryBackend(): Backend & { dev: MemoryDevTools } {
   return {
     name: 'memory',
     dev,
+    hanoiLeaderboard: {
+      watch(cb, onError) {
+        return subscribe(() => {
+          try {
+            const u = requireUser();
+            const st = read();
+            if (u.email !== adminEmail && (st.members[u.uid]?.disabled || (!st.openSignup && !st.allowlist.includes(u.email)))) {
+              throw new PermissionDeniedError();
+            }
+            cb(Object.values(st.hanoiScores).sort((a, b) => compareScores(a, b) || a.uid.localeCompare(b.uid)).slice(0, LEADERBOARD_LIMIT));
+          } catch (e) { onError?.(e as Error); }
+        });
+      },
+      async submit(run) {
+        const u = requireUser();
+        const result = validateRun(run);
+        let saved = false;
+        update(st => {
+          if (u.email !== adminEmail && (st.members[u.uid]?.disabled || (!st.openSignup && !st.allowlist.includes(u.email)))) {
+            throw new PermissionDeniedError();
+          }
+          const previous = st.hanoiScores[u.uid];
+          if (previous && compareScores(result, previous) >= 0) return;
+          st.hanoiScores[u.uid] = {
+            uid: u.uid, displayName: u.displayName.trim().slice(0, 100) || 'Player',
+            ...result, achievedAt: new Date(),
+          };
+          saved = true;
+        });
+        return saved ? 'saved' : 'kept';
+      },
+    },
     auth: {
       onChange(cb) {
         authListeners.add(cb);

@@ -63,7 +63,8 @@ src/
 │  ├─ screens.tsx    id → { Room, Solo?, Art }. React: only the UI imports this
 │  ├─ art.ts         the 640x200 canvas every cover is drawn on
 │  ├─ gomoku/        rules board ai (+tests) · Room BoardCanvas Solo Art
-│  └─ monopoly/      rules (+tests) · Room Dice BalanceChart Art
+│  ├─ monopoly/      rules (+tests) · Room Dice BalanceChart Art
+│  └─ hanoi/         rules (+tests) · Solo Board Leaderboard Art
 ├─ rooms/          the multiplayer layer games plug into: rules, useRooms, RoomList
 ├─ services/       the backend contract
 ├─ adapters/       firebase/ and memory/ — the only places that know a backend exists
@@ -190,11 +191,15 @@ names the ones you forget:
 
 1. Add the id to the `GameId` union in `src/types.ts`. Both registries are `Record<GameId, …>`,
    so this alone makes the build fail until the game is fully wired — that is deliberate.
-2. Create `src/games/<id>/` with `rules.ts` (a `GameDefinition`), `Room.tsx` (taking
-   `{ room, uid }`), `Art.tsx`, and `Solo.tsx` if it plays alone. Tests go in the same folder.
+2. Create `src/games/<id>/` with `rules.ts` (a `GameDefinition`) and `Art.tsx`. Multiplayer games
+   need `Room.tsx` (taking `{ room, uid }`); solo games need `Solo.tsx`. `multiplayer: false`
+   identifies a solo-only puzzle, so the lobby and room list never offer it as a room game.
+   `soloTitle` and `soloDescription` label the solo entry point. Tests go in the same folder.
 3. Register it in `games/registry.ts` (rules) and `games/screens.tsx` (screens).
 
-Then one thing outside the code: add the id to `d.game in [...]` in `firestore.rules`.
+For multiplayer games only, add the id to `d.game in [...]` in `firestore.rules`. Both room
+adapters also reject `multiplayer: false`. A game's optional `LobbyExtra` screen supplies extra
+lobby content without adding game-specific branches to the page.
 
 Nothing else. The home grid, the lobby, the room page, the solo route and the room list all read
 the registries — there are no per-game branches left anywhere else in the app.
@@ -219,6 +224,35 @@ Three things that were real bugs in the original or in this port, and have tests
 - **Defence must be scored**, or a cell that has to be blocked gets pruned before the search sees it.
 - `candidates()` falls back to the centre **only on an empty board**. A full board also has no
   candidates, and offering the centre there hands the search an occupied cell to play on.
+
+## Hanoi Tower and its leaderboard
+
+Ported from `../PeizhiYan.github.io/js_codes/hanoi_tower`. This is the original **seven-disk**
+solo challenge, finishing on the **rightmost peg**. Do not mix difficulties on one leaderboard.
+`rules.ts` owns legal moves, completion and replay validation; `Board.tsx` redraws the original
+shaded rainbow disks and wooden stand as SVG with keyboard-accessible peg buttons. Selecting
+the same peg cancels instead of counting a move, and only a successful move advances the count.
+
+- `backend.hanoiLeaderboard` is the backend seam. The Firebase adapter stores one best per uid
+  at `/apps/partygames/leaderboards/hanoi/scores/{uid}`; the memory adapter broadcasts local bests.
+- Records hold `uid`, `displayName`, `durationMs`, `moves`, and server-stamped `achievedAt`.
+  They contain no email. Results sort by **durationMs ascending, then moves ascending**. Equal
+  results keep the earlier record. A Firestore transaction prevents concurrent submissions from
+  replacing a better score. The two-field top-50 query needs the index in `firestore.indexes.json`.
+- `validateRun()` replays the submitted moves before either adapter saves anything. Only a legal
+  completed seven-disk run is accepted, with 127–10,000 moves and a positive time up to 24 hours.
+  The move trace is not stored in the public leaderboard.
+- **This follows the existing trusted-client model.** Firestore rules enforce access, ownership,
+  score bounds, server timestamps and improvement. They do not prove that the client played the
+  game or timed it honestly. An adversarial/competitive leaderboard would need server-authoritative
+  play or server verification; a client replay check is not that.
+- `useScore.ts` retains the best pending completion in localStorage, scoped to the uid. It retries
+  on reconnect or when the solo screen is reopened, with an explicit retry after a write failure.
+  Resetting the puzzle does not discard a pending completion. In-progress games are not persisted;
+  navigating away starts a fresh puzzle, while merely backgrounding a tab keeps the clock running.
+- Deploy **both Firestore rules and indexes** along with hosting for this feature. Otherwise the
+  game can play locally, but leaderboard reads/writes cannot work in production. CoffeeGlass's
+  existing rules block is unchanged. Emulator tests exercise the real adapter's concurrent writes.
 
 ## Gotchas
 
@@ -295,6 +329,7 @@ The service worker precaches the whole shell, so the app opens with no connectio
 |---|---|
 | Opening the app, signing in *again* | Yes — Firebase Auth persists the user, and `useAuth` falls back to the last access answer it cached in localStorage |
 | Gomoku vs the computer | Yes, entirely. `games/gomoku/Solo.tsx` imports nothing from `src/services` |
+| Hanoi Tower | Yes. Completed scores wait per user on the device; the leaderboard needs a connection |
 | Room lists | Stale. Firestore serves its cache and does *not* raise an error, so what is on screen may be gone |
 | Anything in a room | No. Every move is a transaction against the server |
 | First ever sign-in | No. Google sign-in needs the network |

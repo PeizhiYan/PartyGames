@@ -1,1 +1,13 @@
-{ "indexes": [], "fieldOverrides": [] }
+{
+  "indexes": [
+    {
+      "collectionGroup": "scores",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "durationMs", "order": "ASCENDING" },
+        { "fieldPath": "moves", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

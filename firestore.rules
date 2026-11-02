@@ -204,6 +204,29 @@ service cloud.firestore {
         allow delete: if isSelf(uid) || isAdmin();
       }
 
+      // One personal best per player. As with room games, the client validates the game itself;
+      // these rules enforce ownership, score bounds and improvement, not an anti-cheat protocol.
+      match /leaderboards/hanoi/scores/{uid} {
+        function validScore(d) {
+          return d.keys().hasAll(['uid', 'displayName', 'durationMs', 'moves', 'achievedAt'])
+            && d.keys().hasOnly(['uid', 'displayName', 'durationMs', 'moves', 'achievedAt'])
+            && d.uid == uid && d.uid == request.auth.uid
+            && d.displayName is string && d.displayName.size() > 0 && d.displayName.size() <= 100
+            && d.durationMs is int && d.durationMs > 0 && d.durationMs <= 86400000
+            && d.moves is int && d.moves >= 127 && d.moves <= 10000
+            && d.achievedAt == request.time;
+        }
+        function improved(d) {
+          return d.durationMs < resource.data.durationMs
+            || (d.durationMs == resource.data.durationMs && d.moves < resource.data.moves);
+        }
+        allow read: if isAllowed();
+        allow create: if isAllowed() && isSelf(uid) && validScore(request.resource.data);
+        allow update: if isAllowed() && isSelf(uid) && validScore(request.resource.data)
+          && improved(request.resource.data);
+        allow delete: if isAdmin();
+      }
+
       match /rooms/{roomId} {
         function inRoom() {
           return signedIn() && request.auth.uid in resource.data.playerUids;

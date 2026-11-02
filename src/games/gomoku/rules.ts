@@ -219,6 +219,9 @@ export const gomoku: GameDefinition<GomokuState, GomokuAction> = {
   minPlayers: 1,
   maxPlayers: 2,
   solo: true,
+  multiplayer: true,
+  soloTitle: 'Play the computer',
+  soloDescription: 'No room needed. Three difficulties.',
   newState: initial,
   onPlayersChanged: reseat,
   reduce(state, action, ctx) {

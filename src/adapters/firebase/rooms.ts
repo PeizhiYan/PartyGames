@@ -118,6 +118,7 @@ export function createRoomRepo({ auth, db }: FirebaseContext): RoomRepo {
 
     create: (game, name) => wrap(async () => {
       const definition = getGame(game);
+      if (!definition.multiplayer) throw new GameRuleError('This game is played solo.');
       const owner = me();
       const ref = doc(rooms); // the id is generated locally, so this needs no round trip
       const ctx: GameContext = { actorUid: owner.uid, ownerUid: owner.uid, players: [owner], now: Date.now() };

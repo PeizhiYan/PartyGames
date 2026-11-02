@@ -14,10 +14,15 @@ import GomokuRoom from './gomoku/Room';
 import GomokuSolo from './gomoku/Solo';
 import MonopolyArt from './monopoly/Art';
 import MonopolyRoom from './monopoly/Room';
+import HanoiArt from './hanoi/Art';
+import HanoiSolo from './hanoi/Solo';
+import HanoiLeaderboard from './hanoi/Leaderboard';
 
 export interface GameScreens {
   /** The game itself, inside a room. */
-  Room: ComponentType<{ room: Room; uid: string }>;
+  Room?: ComponentType<{ room: Room; uid: string }>;
+  /** Optional game-specific content below the lobby's play choices. */
+  LobbyExtra?: ComponentType;
   /** The one-player screen, for games whose definition sets `solo`. */
   Solo?: ComponentType;
   /** Cover art, drawn on the canvas described in `./art`. */
@@ -30,6 +35,7 @@ export interface GameScreens {
 }
 
 export const SCREENS: Record<GameId, GameScreens> = {
+  hanoi: { Solo: HanoiSolo, Art: HanoiArt, LobbyExtra: HanoiLeaderboard },
   gomoku: { Room: GomokuRoom, Solo: GomokuSolo, Art: GomokuArt },
   monopoly: {
     Room: MonopolyRoom,

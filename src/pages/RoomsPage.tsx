@@ -5,7 +5,7 @@ import type { GameId } from '../types';
 import { useCurrentUser } from '../hooks/useAuth';
 import { useAllRooms } from '../rooms/useRooms';
 
-const ALL_GAMES = GAMES.map((g) => g.id) as GameId[];
+const ALL_GAMES = GAMES.filter(g => g.multiplayer).map((g) => g.id) as GameId[];
 
 /** Every room that's open right now, whatever the game. */
 export default function RoomsPage() {

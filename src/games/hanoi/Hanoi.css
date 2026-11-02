@@ -1,0 +1,27 @@
+.hanoi-screen { max-width: 780px; }
+.hanoi-stats { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 8px; margin: 20px 0 16px; text-align: center; }
+.hanoi-stats span { display: block; font-size: .75rem; }
+.hanoi-stats strong { display: block; margin-top: 4px; font-size: clamp(1.1rem, 4vw, 1.7rem); font-variant-numeric: tabular-nums; color: var(--accent); }
+.hanoi-board { position: relative; overflow: hidden; border-radius: var(--radius); border: 1px solid var(--border); background: radial-gradient(ellipse at 50% 10%, #2c4057, #101925 85%); color: #c2d0e1; }
+.hanoi-scene { display: block; width: 100%; height: 100%; }
+.hanoi-peg-controls { display: grid; grid-template-columns: repeat(3, 1fr); position: absolute; inset: 0; }
+.hanoi-peg-controls button { background: transparent; border: 2px solid transparent; border-radius: 12px; box-shadow: none; padding: 0; min-width: 0; touch-action: manipulation; }
+.hanoi-peg-controls button:hover:not(:disabled) { background: rgb(255 255 255 / .04); }
+.hanoi-peg-controls button[aria-pressed='true'] { border-color: rgb(255 255 255 / .3); }
+.hanoi-peg-controls button:focus-visible { outline: 3px solid #fff; outline-offset: -5px; }
+.hanoi-disk { transition: transform .16s ease-out; }
+.hanoi-disk.lifted { transform: translateY(-18px); }
+.hanoi-message { min-height: 3em; font-size: .9rem; text-align: center; margin: 12px 0; }
+.hanoi-result { text-align: center; color: var(--accent); }
+.hanoi-result h2 { margin: 8px 0; }
+.hanoi-result p { color: var(--text); margin-bottom: 0; }
+.hanoi-score-status { margin: 12px 0; font-size: .9rem; text-align: center; }
+.hanoi-leaderboard p { font-size: .85rem; }
+.hanoi-table-scroll { overflow-x: auto; }
+.hanoi-leaderboard table { width: 100%; border-collapse: collapse; font-size: .85rem; }
+.hanoi-leaderboard th, .hanoi-leaderboard td { text-align: left; padding: 10px 6px; border-bottom: 1px solid var(--border); }
+.hanoi-leaderboard thead th { color: var(--text-muted); font-size: .75rem; font-weight: 500; }
+.hanoi-leaderboard td:nth-last-child(-n+2) { white-space: nowrap; font-variant-numeric: tabular-nums; }
+.hanoi-player-name { overflow-wrap: anywhere; }
+.hanoi-leaderboard .is-you { background: var(--accent-soft); }
+@media (prefers-reduced-motion: reduce) { .hanoi-disk { transition: none; } }

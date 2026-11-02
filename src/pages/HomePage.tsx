@@ -33,10 +33,10 @@ export default function HomePage() {
               <span className="game-card-meta">
                 <span className="badge badge-accent">
                   {game.minPlayers === game.maxPlayers
-                    ? `${game.maxPlayers} players`
+                    ? `${game.maxPlayers} ${game.maxPlayers === 1 ? 'player' : 'players'}`
                     : `${game.solo ? 1 : game.minPlayers}–${game.maxPlayers} players`}
                 </span>
-                {game.solo && <span className="badge">vs computer</span>}
+                {game.solo && <span className="badge">{game.multiplayer ? 'vs computer' : 'Solo puzzle'}</span>}
                 <span className="game-card-go" aria-hidden><Icon name="right" size={18} /></span>
               </span>
             </span>
