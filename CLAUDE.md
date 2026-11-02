@@ -239,6 +239,12 @@ the same peg cancels instead of counting a move, and only a successful move adva
   They contain no email. Results sort by **durationMs ascending, then moves ascending**. Equal
   results keep the earlier record. A Firestore transaction prevents concurrent submissions from
   replacing a better score. The two-field top-50 query needs the index in `firestore.indexes.json`.
+  If the index is still building or missing, the adapter watches the whole personal-best collection
+  for that visit and sorts before taking 50. This preserves ties at the cutoff and keeps the small
+  friends leaderboard usable during deployment. It costs reads for every player in that fallback;
+  keep the composite index deployed. A new subscription tries the indexed query again. Permission
+  errors never trigger the fallback. The production index error has a dedicated mocked-listener
+  regression test because the emulator does not enforce composite indexes.
 - `validateRun()` replays the submitted moves before either adapter saves anything. Only a legal
   completed seven-disk run is accepted, with 127–10,000 moves and a positive time up to 24 hours.
   The move trace is not stored in the public leaderboard.

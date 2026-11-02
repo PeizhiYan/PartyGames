@@ -255,6 +255,9 @@ describe('Hanoi leaderboard', () => {
     const scores = collection(as('u2', 'b@b.com'), ROOT, 'leaderboards', 'hanoi', 'scores');
     const result = await assertSucceeds(getDocs(query(scores, orderBy('durationMs'), orderBy('moves'), limit(50))));
     expect(result.docs).toHaveLength(1);
+    // The index-building fallback reads the same records without orderBy/limit.
+    const fallback = await assertSucceeds(getDocs(scores));
+    expect(fallback.docs).toHaveLength(1);
   });
   it('prevents writing another player’s score, uid spoofing and non-admin deletion', async () => {
     const db = as('u1', 'a@b.com');
