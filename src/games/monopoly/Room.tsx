@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 import BalanceChart from './BalanceChart';
 import Dice from './Dice';
 import Avatar from '../../ui/Avatar';
-import Icon from '../../ui/Icon';
+import Icon, { type IconName } from '../../ui/Icon';
 import Segmented from '../../ui/Segmented';
 import Sheet from '../../ui/Sheet';
 import Board from './Board';
+import { Token } from './Icons';
 import SpaceSheet from './SpaceSheet';
 import {
   BOARDS, COLORS, DEFAULT_BALANCE, PAY_REASONS, TOKENS, boardOf, canBuild, isBoardMode, newSeed,
@@ -203,7 +204,7 @@ function Pick({ state, uid, me, act, busy }: PhaseProps) {
     return (
       <section className="card">
         <div className="row center col" style={{ gap: 4, marginBottom: 14 }}>
-          <span style={{ fontSize: '2.6rem' }} aria-hidden>{me.token}</span>
+          <Token token={me.token} color={me.color} size={58} />
           <strong>You're ready</strong>
           <small className="muted">Waiting for {waiting.map((s) => firstName(s.name)).join(', ')}…</small>
         </div>
@@ -211,7 +212,7 @@ function Pick({ state, uid, me, act, busy }: PhaseProps) {
           {state.seats.map((s) => (
             <li key={s.uid}>
               <span className="row" style={{ gap: 8 }}>
-                <span style={{ fontSize: '1.2rem' }} aria-hidden>{s.ready ? s.token : '•'}</span>
+                {s.ready ? <Token token={s.token} color={s.color} size={24} /> : <span aria-hidden>•</span>}
                 <span>{firstName(s.name)}</span>
               </span>
               <span className={`badge${s.ready ? ' badge-live' : ''}`}>{s.ready ? 'Ready' : 'Choosing'}</span>
@@ -230,7 +231,7 @@ function Pick({ state, uid, me, act, busy }: PhaseProps) {
           {TOKENS.map((t) => (
             <button key={t} type="button" className={token === t ? 'selected' : ''}
               disabled={takenTokens.includes(t)} onClick={() => setToken(t)} aria-label={`Token ${t}`}>
-              {t}
+              <Token token={t} color={color || 'var(--text-muted)'} size={36} />
             </button>
           ))}
         </div>
@@ -279,7 +280,7 @@ function RollForOrder({ state, me, act, busy }: PhaseProps) {
         {state.seats.map((s) => (
           <li key={s.uid}>
             <span className="row" style={{ gap: 8 }}>
-              <span style={{ fontSize: '1.1rem' }} aria-hidden>{s.token}</span>
+              <Token token={s.token} color={s.color} size={24} />
               <span>{firstName(s.name)}</span>
             </span>
             <span className={`badge${s.dice ? ' badge-live' : ''}`}>
@@ -302,8 +303,10 @@ function Order({ state, uid, act, busy }: PhaseProps) {
         <h3>Play order</h3>
         {ordered.map((s, i) => (
           <div key={s.uid} className={`rank-row${i === 0 ? ' winner' : ''}`}>
-            <span className="rank-medal" aria-hidden>{i === 0 ? '🥇' : i + 1}</span>
-            <span style={{ fontSize: '1.3rem' }} aria-hidden>{s.token}</span>
+            <span className="rank-medal" aria-hidden>
+              {i === 0 ? <Icon name="trophy" size={22} /> : i + 1}
+            </span>
+            <Token token={s.token} color={s.color} size={30} />
             <span className="grow truncate"><strong>{s.uid === uid ? 'You' : firstName(s.name)}</strong></span>
             <span className="badge tabular">{s.dice ? s.dice[0] + s.dice[1] : '—'}</span>
           </div>
@@ -390,9 +393,7 @@ function Playing({ state, uid, me, act, busy }: PhaseProps) {
       <div className="row between" style={{ margin: '12px 0 0' }}>
         <span className="row" style={{ gap: 8 }}>
           <span className="player-chip" style={{ background: 'transparent', padding: 0 }}>
-            <span className="token" style={{ borderColor: me?.color ?? 'var(--border)', background: `${me?.color ?? '#000'}22` }}>
-              {me?.token}
-            </span>
+            <Token token={me?.token ?? null} color={me?.color} size={30} />
             <span className="col" style={{ gap: 0 }}>
               <strong style={{ fontSize: '0.92rem' }}>You</strong>
               <small className="muted">
@@ -419,16 +420,16 @@ function Playing({ state, uid, me, act, busy }: PhaseProps) {
 
       <div className="action-grid action-grid-4">
         <button type="button" onClick={() => setDialog('buy')}>
-          <span aria-hidden>🏘️</span><span>Buy</span>
+          <Icon name="tag" size={24} /><span>Buy</span>
         </button>
         <button type="button" onClick={() => setDialog('send')}>
-          <span aria-hidden>💸</span><span>Send</span>
+          <Icon name="send" size={24} /><span>Send</span>
         </button>
         <button type="button" onClick={() => setDialog('pay')}>
-          <span aria-hidden>🏦</span><span>Pay bank</span>
+          <Icon name="bank" size={24} /><span>Pay bank</span>
         </button>
         <button type="button" onClick={() => setDialog('request')}>
-          <span aria-hidden>🤑</span><span>Request</span>
+          <Icon name="cash" size={24} /><span>Request</span>
         </button>
       </div>
 
@@ -437,9 +438,7 @@ function Playing({ state, uid, me, act, busy }: PhaseProps) {
         <div className="player-grid">
           {others.map((s) => (
             <div key={s.uid} className="player-chip">
-              <span className="token" style={{ borderColor: s.color ?? 'var(--border)', background: `${s.color ?? '#000'}22` }}>
-                {s.token}
-              </span>
+              <Token token={s.token} color={s.color} size={30} />
               <span className="grow" style={{ minWidth: 0 }}>
                 <small className="truncate">{firstName(s.name)}</small>
                 <b>{state.settings.showBalances ? money(s.balance) : '•••'}</b>
@@ -498,9 +497,7 @@ function Playing({ state, uid, me, act, busy }: PhaseProps) {
               <button key={s.uid} type="button" className={`player-chip${target === s.uid ? ' selected' : ''}`}
                 style={{ borderColor: target === s.uid ? s.color ?? undefined : 'transparent', borderWidth: 2, borderStyle: 'solid' }}
                 onClick={() => setTarget(s.uid)}>
-                <span className="token" style={{ borderColor: s.color ?? 'var(--border)', background: `${s.color ?? '#000'}22` }}>
-                  {s.token}
-                </span>
+                <Token token={s.token} color={s.color} size={30} />
                 <span className="grow" style={{ minWidth: 0 }}>
                   <small className="truncate">{firstName(s.name)}</small>
                   {state.settings.showBalances && <b>{money(s.balance)}</b>}
@@ -573,9 +570,7 @@ function Playing({ state, uid, me, act, busy }: PhaseProps) {
         {request && requester && (
           <div className="col">
             <div className="col" style={{ alignItems: 'center', gap: 6 }}>
-              <span className="token" style={{ width: 56, height: 56, fontSize: '1.8rem', borderColor: requester.color ?? 'var(--border)', background: `${requester.color ?? '#000'}22` }}>
-                {requester.token}
-              </span>
+              <Token token={requester.token} color={requester.color} size={56} />
               <strong>{firstName(requester.name)} wants {money(request.amount)}</strong>
               {request.reason && <small className="muted">{request.reason}</small>}
             </div>
@@ -668,13 +663,13 @@ function Playing({ state, uid, me, act, busy }: PhaseProps) {
 
 function LogRow({ entry, uid, seats }: { entry: Entry; uid: string; seats: Seat[] }) {
   const name = (u: string) => firstName(seats.find((s) => s.uid === u)?.name ?? 'someone');
-  let icon = '🏦';
+  let icon: IconName = 'bank';
   let label = '';
   let out = true;
 
   if (entry.kind === 'transfer') {
     out = entry.from === uid;
-    icon = out ? '↗' : '↘';
+    icon = out ? 'out' : 'in';
     label = out ? `To ${name(entry.to)}` : `From ${name(entry.from)}`;
     if (entry.note) label += ` · ${entry.note}`;
   } else if (entry.kind === 'payBank') {
@@ -686,7 +681,7 @@ function LogRow({ entry, uid, seats }: { entry: Entry; uid: string; seats: Seat[
 
   return (
     <li>
-      <span className="entry-kind" aria-hidden>{icon}</span>
+      <span className="entry-kind" aria-hidden><Icon name={icon} size={16} /></span>
       <span className="grow col" style={{ gap: 0, minWidth: 0 }}>
         <span className="truncate" style={{ fontSize: '0.9rem' }}>{label}</span>
         <small className="muted">{timeAgo(entry.at)}</small>
@@ -740,22 +735,27 @@ function BoardPlay({ state, uid, me, act, busy }: PhaseProps) {
   }
 
   return (
-    <>
+    <div className="board-play">
+      {/*
+        Two columns once there is room: the board on the left, everything you do on the right.
+        Below the breakpoint they stack, board first.
+      */}
+      <div className="board-play-board">
+        <Board state={state} board={board} uid={uid} onSelect={setLooking} />
+      </div>
+
+      <div className="board-play-side">
       {state.card && (
         <div className="room-banner" role="status">
-          <span aria-hidden>🎴</span>
+          <Icon name="card" size={20} />
           <span className="grow">{state.card.text}</span>
         </div>
       )}
 
-      <Board state={state} board={board} uid={uid} onSelect={setLooking} />
-
       {/* Where you are, spelled out — the one space you always need to be able to read. */}
       {me && !me.bankrupt && (
         <button type="button" className="here-card" onClick={() => setLooking(me.position)}>
-          <span className="token" style={{ borderColor: me.color ?? 'var(--border)', background: `${me.color ?? '#000'}22` }}>
-            {me.token}
-          </span>
+          <Token token={me.token} color={me.color} size={30} />
           <span className="grow col" style={{ gap: 0, minWidth: 0 }}>
             <small className="muted">{me.jailTurns > 0 ? 'In jail' : 'You are on'}</small>
             <strong className="truncate">{spaceLabel(board, me.position)}</strong>
@@ -771,8 +771,9 @@ function BoardPlay({ state, uid, me, act, busy }: PhaseProps) {
         <strong className="tabular">{board.currency}{(me?.balance ?? 0).toLocaleString()}</strong>
       </div>
 
+      {/* Flat dice, for the layout that has no board middle to throw them into. */}
       {state.lastRoll && (
-        <div className="row center" style={{ marginBottom: 12 }}>
+        <div className="row center dice-aside" style={{ marginBottom: 12 }}>
           <Dice dice={state.lastRoll.dice} rolling={rolling} />
         </div>
       )}
@@ -780,14 +781,14 @@ function BoardPlay({ state, uid, me, act, busy }: PhaseProps) {
       {myTurn && (
         <div className="action-grid">
           <button type="button" disabled={busy || rolling || state.rolled || !!pending} onClick={roll}>
-            <span aria-hidden>🎲</span><span>Roll</span>
+            <Icon name="dice" size={24} /><span>Roll</span>
           </button>
           <button type="button" disabled={busy || buildable.length === 0} onClick={() => setBuilding(true)}>
-            <span aria-hidden>🏠</span><span>Build</span>
+            <Icon name="home" size={24} /><span>Build</span>
           </button>
           <button type="button" disabled={busy || !state.rolled || !!pending || rollsAgain(state, uid)}
             onClick={() => act({ type: 'endTurn' })}>
-            <span aria-hidden>✓</span><span>End turn</span>
+            <Icon name="check" size={24} /><span>End turn</span>
           </button>
         </div>
       )}
@@ -797,9 +798,7 @@ function BoardPlay({ state, uid, me, act, busy }: PhaseProps) {
         <div className="player-grid">
           {state.seats.map((s) => (
             <div key={s.uid} className="player-chip" style={{ opacity: s.bankrupt ? 0.5 : 1 }}>
-              <span className="token" style={{ borderColor: s.color ?? 'var(--border)', background: `${s.color ?? '#000'}22` }}>
-                {s.token}
-              </span>
+              <Token token={s.token} color={s.color} size={30} />
               <span className="grow" style={{ minWidth: 0 }}>
                 <small className="truncate">
                   {s.uid === uid ? 'You' : firstName(s.name)}
@@ -837,6 +836,8 @@ function BoardPlay({ state, uid, me, act, busy }: PhaseProps) {
         )}
       </Sheet>
 
+      </div>
+
       <SpaceSheet state={state} board={board} index={looking} onClose={() => setLooking(null)} />
 
       <Sheet open={building} title="Build a house" onClose={() => setBuilding(false)}>
@@ -850,33 +851,47 @@ function BoardPlay({ state, uid, me, act, busy }: PhaseProps) {
             return (
               <button key={index} type="button" className="row between" disabled={busy}
                 onClick={async () => { if (await act({ type: 'build', space: index })) setBuilding(false); }}>
-                <span>{space.name} · {'🏠'.repeat(state.houses[index] ?? 0) || 'no houses'}</span>
+                <span className="row" style={{ gap: 6 }}>
+                  {space.name} ·
+                  {state.houses[index]
+                    ? <Houses count={state.houses[index]} />
+                    : <span className="muted">no houses</span>}
+                </span>
                 <strong>{board.currency}{cost.toLocaleString()}</strong>
               </button>
             );
           })}
         </div>
       </Sheet>
-    </>
+    </div>
   );
 }
 
-const MEDALS = ['🏆', '🥈', '🥉'];
+/** A drawn cup for the win, then plain numbers — medal emoji are three different pictures. */
+function Houses({ count }: { count: number }) {
+  return (
+    <span className="row" style={{ gap: 1 }} title={`${count} house${count === 1 ? '' : 's'}`}>
+      {Array.from({ length: count }, (_, i) => <Icon key={i} name="home" size={14} />)}
+    </span>
+  );
+}
 
 function Results({ state, uid, owner, act, busy }: PhaseProps) {
   const ranked = ranking(state);
   return (
     <>
       <div className="col" style={{ alignItems: 'center', gap: 2, margin: '8px 0 18px' }}>
-        <span style={{ fontSize: '2.6rem' }} aria-hidden>🏆</span>
+        <span className="trophy-mark" aria-hidden><Icon name="trophy" size={44} /></span>
         <h1>Final standings</h1>
         <p className="muted" style={{ margin: 0 }}>Cash plus everything you bought — added up for you.</p>
       </div>
 
       {ranked.map((s, i) => (
         <div key={s.uid} className={`rank-row${i === 0 ? ' winner' : ''}`}>
-          <span className="rank-medal" aria-hidden>{MEDALS[i] ?? `#${i + 1}`}</span>
-          <span style={{ fontSize: '1.3rem' }} aria-hidden>{s.token}</span>
+          <span className="rank-medal" aria-hidden>
+            {i === 0 ? <Icon name="trophy" size={22} /> : i + 1}
+          </span>
+          <Token token={s.token} color={s.color} size={30} />
           <span className="grow col" style={{ gap: 0, minWidth: 0 }}>
             <strong className="truncate">{s.uid === uid ? 'You' : firstName(s.name)}</strong>
             <small className="muted tabular">

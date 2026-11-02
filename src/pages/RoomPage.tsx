@@ -87,11 +87,13 @@ export default function RoomPage() {
     );
   }
 
-  const Game = screensFor(game.id)?.Room;
+  const screens = screensFor(game.id);
+  const Game = screens?.Room;
+  const wide = screens?.wide?.(room) === true;
   if (!Game) return <Gone message="That game has no screen yet." game={game.id} />;
 
   return (
-    <div className="room-screen">
+    <div className={`room-screen${wide ? ' wide' : ''}`}>
       <RoomHeader room={room} uid={user.uid} onLeave={() => navigate(`/g/${game.id}`)} />
       <OfflineNotice suggestSolo={false} />
       <Game room={room} uid={user.uid} />

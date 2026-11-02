@@ -22,11 +22,21 @@ export interface GameScreens {
   Solo?: ComponentType;
   /** Cover art, drawn on the canvas described in `./art`. */
   Art: ComponentType;
+  /**
+   * Whether this room wants the full window rather than the usual reading-width column. Asked per
+   * room, not per game, because Monopoly only needs it when it is actually showing a board.
+   */
+  wide?: (room: Room) => boolean;
 }
 
 export const SCREENS: Record<GameId, GameScreens> = {
   gomoku: { Room: GomokuRoom, Solo: GomokuSolo, Art: GomokuArt },
-  monopoly: { Room: MonopolyRoom, Art: MonopolyArt },
+  monopoly: {
+    Room: MonopolyRoom,
+    Art: MonopolyArt,
+    // Bank mode is a column of cards and reads better narrow; the board wants the room.
+    wide: (room) => (room.state as { settings?: { mode?: string } })?.settings?.mode === 'board',
+  },
 };
 
 export const screensFor = (id: string): GameScreens | undefined =>

@@ -1,5 +1,6 @@
 import { isOwnable, rentLadder, type BoardDef } from './boards';
 import { hasMonopoly, rentFor, seatOf, type MonopolyState } from './rules';
+import { Token } from './Icons';
 import Sheet from '../../ui/Sheet';
 import { firstName } from '../../lib/format';
 
@@ -52,7 +53,7 @@ export default function SpaceSheet({ state, board, index, onClose }: {
                 <strong>
                   {ownerSeat
                     ? <span className="row" style={{ gap: 6 }}>
-                        <span aria-hidden>{ownerSeat.token}</span>{firstName(ownerSeat.name)}
+                        <Token token={ownerSeat.token} color={ownerSeat.color} size={20} />{firstName(ownerSeat.name)}
                       </span>
                     : 'Unowned'}
                 </strong>

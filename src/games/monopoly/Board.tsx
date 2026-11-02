@@ -1,6 +1,9 @@
 import type { CSSProperties } from 'react';
 import { isOwnable, type BoardDef, type Space } from './boards';
-import { boardLayout, gridPosition } from './layout';
+import { ThrownDice } from './Dice';
+import { SpaceIcon, Token } from './Icons';
+import Skyline from './Skyline';
+import { boardLayout, ringPosition, ringSide, spiralPosition } from './layout';
 import { seatOf, type MonopolyState } from './rules';
 import './Board.css';
 
@@ -10,20 +13,27 @@ const SHORT: Partial<Record<Space['kind'], string>> = {
   chance: 'Chance', chest: 'Chest',
 };
 
-/** A picture for the spaces a colour band cannot describe. */
-const GLYPH: Partial<Record<Space['kind'], string>> = {
-  go: '→', jail: '🔒', parking: '🅿️', gotojail: '🚨',
-  chance: '❓', chest: '🎁', tax: '💸', rail: '🚆', utility: '💡',
-};
-
 const label = (space: Space): string => ('name' in space ? space.name : SHORT[space.kind] ?? space.kind);
 
+/** Which side of the ring a tile is on, so its colour band can face inwards. */
+function ringEdge({ row, col }: { row: number; col: number }, side: number): string {
+  const vertical = row === 1 || row === side;
+  const horizontal = col === 1 || col === side;
+  if (vertical && horizontal) return 'corner';
+  if (row === 1) return 'top';
+  if (row === side) return 'bottom';
+  return col === 1 ? 'left' : 'right';
+}
+
 /**
- * The board: every space, filling the whole rectangle.
+ * The board, laid out two ways.
  *
- * Laid out in rows that alternate direction rather than as a hollow ring — see `./layout` for
- * why. The upshot is tiles three to four times the area, which is the difference between a name
- * you can read and "Main C…". Tapping one opens its full detail.
+ * Wide screens get **the ring**, the way a board is printed, because there is room for it.
+ * Narrow screens get **a spiral**, because a ring on a phone spends most of its area on a hole
+ * and squeezes the spaces too small to read — see `./layout`.
+ *
+ * Both positions are written onto every tile as custom properties and the switch is a media
+ * query, so there is no resize listener and no flash of the wrong layout.
  */
 export default function Board({ state, board, uid, onSelect }: {
   state: MonopolyState;
@@ -31,39 +41,52 @@ export default function Board({ state, board, uid, onSelect }: {
   uid: string;
   onSelect?: (index: number) => void;
 }) {
-  const { cols } = boardLayout(board.spaces.length);
+  const count = board.spaces.length;
+  const { cols, rows } = boardLayout(count);
+  const side = ringSide(count);
 
   return (
-    <div className="mono-board" style={{ '--cols': cols } as CSSProperties}>
+    <div className="mono-board" style={{ '--cols': cols, '--ring': side } as CSSProperties}>
       {board.spaces.map((space, index) => {
-        const { row, col } = gridPosition(index, cols);
+        const grid = spiralPosition(index, cols, rows);
+        const ring = ringPosition(index, count);
         const owner = state.owned[index];
         const ownerSeat = owner ? seatOf(state, owner) : undefined;
         const houses = state.houses[index] ?? 0;
         const here = state.seats.filter((s) => !s.bankrupt && s.position === index);
         const band = space.kind === 'property' ? board.groups[space.group]?.color : undefined;
+        // Which edge of the ring this tile sits on, so its colour band can face the middle the
+        // way a printed board's does. Meaningless in the spiral, where the CSS ignores it.
+        const edge = ringEdge(ring, side);
 
         return (
           <button
             type="button"
             key={index}
-            className={`mono-space${isOwnable(space) ? '' : ' special'}${owner ? ' owned' : ''}`}
-            style={{ gridRow: row, gridColumn: col, borderColor: ownerSeat?.color ?? undefined }}
+            className={`mono-space${isOwnable(space) ? '' : ' special'}${owner ? ' owned' : ''}`
+              + `${here.length > 0 ? ' has-tokens' : ''}`}
+            data-edge={edge}
+            style={{
+              '--g-row': grid.row, '--g-col': grid.col,
+              '--r-row': ring.row, '--r-col': ring.col,
+              borderColor: ownerSeat?.color ?? undefined,
+            } as CSSProperties}
             onClick={() => onSelect?.(index)}
             aria-label={isOwnable(space) ? `${space.name}, ${board.currency}${space.price}` : label(space)}
           >
             {band && <span className="mono-band" style={{ background: band }} aria-hidden />}
-            {/* Rows run alternately left-to-right and right-to-left, which is not something you
-                can see. The number says which way, and doubles as something to count moves on. */}
+            {/* A spiral is only obvious once you have found the end of it. The number says where
+                you are in the order, and doubles as something to count moves on. */}
             <span className="mono-index" aria-hidden>{index}</span>
             <span className="mono-body">
-              {!band && <span className="mono-glyph" aria-hidden>{GLYPH[space.kind]}</span>}
+              {!band && <SpaceIcon kind={space.kind} />}
               <span className="mono-name">{label(space)}</span>
               {isOwnable(space) && (
                 <span className="mono-price">
                   {ownerSeat
-                    ? <span className="mono-owner" style={{ color: ownerSeat.color ?? undefined }}>
-                        {ownerSeat.token} {houses > 0 && (houses >= 5 ? '🏨' : '🏠'.repeat(houses))}
+                    ? <span className="mono-owner">
+                        <Token token={ownerSeat.token} color={ownerSeat.color} size={13} />
+                        {houses > 0 && <b>{houses >= 5 ? 'H' : houses}</b>}
                       </span>
                     : `${board.currency}${space.price.toLocaleString()}`}
                 </span>
@@ -75,16 +98,24 @@ export default function Board({ state, board, uid, onSelect }: {
             {here.length > 0 && (
               <span className="mono-tokens">
                 {here.map((s) => (
-                  <span key={s.uid} className={`mono-token${s.uid === uid ? ' mine' : ''}`}
-                    style={{ borderColor: s.color ?? undefined }}>
-                    {s.token}
-                  </span>
+                  <Token key={s.uid} token={s.token} color={s.color} size={22} ring={s.uid === uid} />
                 ))}
               </span>
             )}
           </button>
         );
       })}
+
+      {/*
+        The middle of the ring: the city it is, and where the dice land. Not rendered at all in
+        the narrow layout, which has no middle. The dice are keyed on the roll's timestamp
+        because the throw is a CSS animation and only a fresh element replays it.
+      */}
+      <span className="mono-centre" aria-hidden>
+        <Skyline id={board.id} />
+        <span className="mono-centre-name">{board.name}</span>
+        {state.lastRoll && <ThrownDice key={state.lastRoll.at} dice={state.lastRoll.dice} />}
+      </span>
     </div>
   );
 }

@@ -101,22 +101,61 @@ Split across four files because the game got big:
   order is `seed` mixed with the number of draws so far.
 - **Deliberately missing**: auctions, trading and mortgages. Each needs a negotiation flow, and a
   game between friends works without them. A declined property stays with the bank.
-- **The board is not a ring.** A real one is hollow because the cards, money and tokens sit in
-  the middle; on screen that hole was about sixty percent of the area doing nothing while the
-  spaces were squeezed to ~32px. `layout.ts` lays all the spaces out filling the rectangle, in
-  boustrophedon order — rows alternate direction, so consecutive spaces stay adjacent, which is
-  the one property the ring had that a plain grid would lose. Tiles are three to four times the
-  area, which is the difference between a readable name and "Main C…". The faint number on each
-  tile is what tells you which way a row runs.
-- `boardLayout()` picks the factor pair closest to "a bit taller than wide", so the grid is
-  always exactly full — 40 → 5×8, 36 → 6×6, 32 → 4×8. A board whose space count is prime still
-  works, it just looks odd.
-- Tapping a space opens `SpaceSheet` with everything about it; a "You are on …" card under the
-  board always spells out the current space.
-- **Do not try to shrink text back into the tiles.** That was the ring's problem: at ~32px a cell
-  cannot hold a name and a price, and the first attempt to fix it dropped the words entirely. The
-  grid exists so they fit again. The board is still edge to edge below 620px, where the room's
-  padding is worth more as board.
+- **The board has two layouts, chosen by a media query.** Wide screens get the ring, the way a
+  board is printed. Narrow screens get a **spiral** filling the whole grid, because a ring on a
+  phone spends about sixty percent of its area on a hole it does not need — the cards and money
+  that hole exists for are not physical here — and squeezes the spaces to ~32px, too small for a
+  name. `layout.ts` computes *both* positions for every space and `Board.tsx` writes them on each
+  tile as `--g-row/--g-col` and `--r-row/--r-col`; the CSS picks. No resize listener, no flash of
+  the wrong shape.
+- **The narrow layout was rows alternating direction (boustrophedon) first, and that failed.**
+  Which way a row ran was invisible, and bordered lanes with turn markers only made it busier.
+  A spiral is a shape you recognise before you read anything, so it needs no scaffolding — just
+  the index on each tile. The jump from the last space back to `GO` is the price: in the ring
+  they are neighbours, in the spiral the end is in the middle. That is why every tile is
+  numbered on the narrow layout and not on the ring.
+- `boardLayout()` picks the factor pair closest to "a bit taller than wide" so the grid is always
+  exactly full — 40 → 5×8, 36 → 6×6, 32 → 4×8; `spiralOrder()` then walks it inwards from the
+  top-left. `ringPosition()` is the other one. The tests assert, for both, that every space has a
+  cell of its own and that consecutive spaces touch — for the ring including the wrap.
+- **A room can ask for the whole window.** `GameScreens.wide(room)` is asked per *room*, not per
+  game, because Monopoly only wants it in board mode — bank mode is a column of cards and reads
+  better narrow. On a wide screen `BoardPlay` puts the board left and everything you do right.
+- **The board grows with the window, capped by height.** It is square, so a width-only cap makes
+  it taller than the screen on a wide monitor; `max-width: min(100%, calc(100dvh - 150px))` lets
+  whichever dimension runs out first decide. Tile text tracks `min(vw, vh)` for the same reason.
+- **Nothing on a tile is an emoji.** Emoji are a different typeface on every platform, carry a
+  colour nobody chose, and turn to mush at tile size. `Icons.tsx` holds filled 24×24 paths:
+  `SpaceIcon` for the spaces with no name of their own, and `Token` for the eight player pieces —
+  the player's colour as a disc with their mark knocked out of it in white, because colour is
+  what tells two players apart before the shape does. Token ids are names (`hat`, `car`, …), so
+  a piece can be redrawn without touching stored state. Redraw one only if it survives 13px: the
+  dog and the cat were the same picture until the dog got ears that hang down.
+- **A tile with someone on it gives up its price and its second line of name.** Tokens are
+  absolutely positioned so an empty tile reserves no gap, but `.has-tokens` hides the price and
+  clamps the name to one line, because a token dropped on top of the words made both unreadable
+  and who is standing here matters more than what it costs. The side panel and `SpaceSheet`
+  still spell the space out in full.
+- **On the ring, the colour band faces the middle**, as it does on a printed board — it is the
+  clearest sign of which side you are looking at. `ringEdge()` puts `data-edge` on every tile and
+  the CSS flips the tile's flex direction; the spiral ignores it and keeps the band on top.
+- **The middle of the ring is the city and the dice tray.** `Skyline.tsx` draws one silhouette
+  per board in `currentColor` at low opacity — a backdrop, not the picture on the box, so it
+  works in either theme without a second asset. Two things learned the hard way: symmetrical
+  points in a row read as fir trees whatever you do to them (Canada Place's sails had to become
+  asymmetric with masts, and the Temple of Heaven's roofs had to go shallow), and the Great Wall's
+  battlements are generated from the wall's top polyline, because thirty hand-placed merlons on a
+  slope means thirty chances to leave one in mid-air.
+- **The dice are real cubes.** `ThrownDice` builds six rotated faces per die and tumbles them in
+  with one keyframe set whose landing angle comes in as `--rx`/`--ry` — six values times two dice
+  would otherwise be twelve animations saying the same thing. They are keyed on `lastRoll.at`,
+  because a CSS animation only replays on a fresh element. The flat dice (`.dice-aside`) stay for
+  the narrow layout, which has no middle to throw anything into; `.row` sets `display: flex` at
+  the same specificity and lands later in the bundle, so hiding them needs the ancestor in the
+  selector.
+- Tapping a space opens `SpaceSheet`; a "You are on …" card always spells out the current space.
+- **Do not try to shrink text back into the tiles** on the narrow layout. That was the ring's
+  problem, and the first fix dropped the words entirely instead.
 
 ## Everything in a room is public
 
