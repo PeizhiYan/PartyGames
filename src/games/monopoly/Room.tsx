@@ -771,8 +771,9 @@ function BoardPlay({ state, uid, me, act, busy }: PhaseProps) {
         <strong className="tabular">{board.currency}{(me?.balance ?? 0).toLocaleString()}</strong>
       </div>
 
+      {/* Flat dice, for the layout that has no board middle to throw them into. */}
       {state.lastRoll && (
-        <div className="row center" style={{ marginBottom: 12 }}>
+        <div className="row center dice-aside" style={{ marginBottom: 12 }}>
           <Dice dice={state.lastRoll.dice} rolling={rolling} />
         </div>
       )}

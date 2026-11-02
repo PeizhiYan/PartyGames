@@ -1,6 +1,8 @@
 import type { CSSProperties } from 'react';
 import { isOwnable, type BoardDef, type Space } from './boards';
+import { ThrownDice } from './Dice';
 import { SpaceIcon, Token } from './Icons';
+import Skyline from './Skyline';
 import { boardLayout, ringPosition, ringSide, spiralPosition } from './layout';
 import { seatOf, type MonopolyState } from './rules';
 import './Board.css';
@@ -104,8 +106,16 @@ export default function Board({ state, board, uid, onSelect }: {
         );
       })}
 
-      {/* The middle of the ring. Not rendered at all in the narrow layout, which has no middle. */}
-      <span className="mono-centre" aria-hidden>{board.name}</span>
+      {/*
+        The middle of the ring: the city it is, and where the dice land. Not rendered at all in
+        the narrow layout, which has no middle. The dice are keyed on the roll's timestamp
+        because the throw is a CSS animation and only a fresh element replays it.
+      */}
+      <span className="mono-centre" aria-hidden>
+        <Skyline id={board.id} />
+        <span className="mono-centre-name">{board.name}</span>
+        {state.lastRoll && <ThrownDice key={state.lastRoll.at} dice={state.lastRoll.dice} />}
+      </span>
     </div>
   );
 }

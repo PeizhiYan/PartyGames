@@ -131,6 +131,8 @@
   }
   /* The ring runs in an obvious circle, so the order needs no numbering. */
   .mono-index { display: none; }
+  /* The dice are thrown into the middle of the board instead. */
+  .board-play .dice-aside { display: none; }
   /* Tiles are larger here, so the thing you most need to find can be larger too. */
   .mono-tokens .token-mark { --tk: 30px; }
   .mono-space.has-tokens .mono-body { padding-bottom: 15px; }
@@ -155,18 +157,146 @@
   }
 
   .mono-centre {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: grid;
+    position: relative;
     grid-row: 2 / var(--ring);
     grid-column: 2 / var(--ring);
+    overflow: hidden;
     border-radius: 10px;
     background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+    color: var(--text-muted);
+  }
+  .mono-centre-name {
+    position: absolute;
+    inset: 12% 0 auto;
+    text-align: center;
     font-size: clamp(1rem, min(3vw, 3.6vh), 2.2rem);
     font-weight: 700;
     letter-spacing: 0.05em;
-    color: var(--text-muted);
   }
+}
+
+/* ── The city in the middle ───────────────────────────────────────────────── */
+
+/*
+ * The silhouette sits on the floor of the ring and the name floats above it. Both are faint on
+ * purpose: this is the backdrop to a board people are reading, not the picture on the box.
+ */
+.sky {
+  position: absolute;
+  inset: auto 0 0;
+  width: 100%;
+  height: 62%;
+  display: block;
+  fill: currentColor;
+  opacity: 0.3;
+}
+.sky-back { opacity: 0.45; }
+.sky-line { fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; }
+
+/* ── Dice thrown onto the board ───────────────────────────────────────────── */
+
+/*
+ * Real cubes, not pictures of dice: six faces rotated into a box, tumbled in by one animation
+ * whose landing angle is a custom property (see `Dice.tsx`). The scene is tilted a little so
+ * you are looking down at the table rather than straight at a square.
+ */
+.dice-throw {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(14px, 2.5vw, 34px);
+  perspective: 900px;
+  perspective-origin: 50% 30%;
+  pointer-events: none;
+  --die: clamp(32px, min(5vw, 6.4vh), 72px);
+}
+.die-slot {
+  position: relative;
+  width: var(--die);
+  height: var(--die);
+  transform: rotateX(18deg);
+  transform-style: preserve-3d;
+}
+.die3d {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  animation: die-throw 1.05s cubic-bezier(0.22, 0.7, 0.3, 1) var(--delay) both;
+}
+.die3d-face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+  gap: 4%;
+  padding: 13%;
+  border-radius: 14%;
+  background: #fff;
+  border: 1px solid #ddd8e8;
+  backface-visibility: hidden;
+}
+.die3d-face i {
+  border-radius: 50%;
+  background: #1a1030;
+  width: 100%;
+  aspect-ratio: 1;
+  align-self: center;
+  justify-self: center;
+}
+/* Opposite faces sum to seven, which shows while the cube is mid-tumble. */
+.die3d-face.f1 { transform: translateZ(calc(var(--die) / 2)); }
+.die3d-face.f6 { transform: rotateY(180deg) translateZ(calc(var(--die) / 2)); }
+.die3d-face.f2 { transform: rotateY(90deg) translateZ(calc(var(--die) / 2)); }
+.die3d-face.f5 { transform: rotateY(-90deg) translateZ(calc(var(--die) / 2)); }
+.die3d-face.f3 { transform: rotateX(90deg) translateZ(calc(var(--die) / 2)); }
+.die3d-face.f4 { transform: rotateX(-90deg) translateZ(calc(var(--die) / 2)); }
+
+/* The shadow is what makes it a throw rather than a spin: it tracks the height of the bounce. */
+.die-shadow {
+  position: absolute;
+  left: 50%;
+  bottom: -14%;
+  width: 90%;
+  height: 22%;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: rgb(20 10 40 / 0.26);
+  filter: blur(3px);
+  animation: die-shadow 1.05s cubic-bezier(0.22, 0.7, 0.3, 1) var(--delay) both;
+}
+
+@keyframes die-throw {
+  0% {
+    transform:
+      translate3d(calc(var(--from-x) * 230%), -260%, 260px)
+      rotateX(calc(var(--spin) * -360deg)) rotateY(calc(var(--spin) * -270deg));
+  }
+  60% {
+    transform:
+      translate3d(0, 0, 0)
+      rotateX(calc(var(--rx) + 360deg)) rotateY(calc(var(--ry) + 180deg));
+  }
+  76% { transform: translate3d(0, -62%, 0) rotateX(var(--rx)) rotateY(var(--ry)); }
+  88% { transform: translate3d(0, 0, 0) rotateX(var(--rx)) rotateY(var(--ry)); }
+  94% { transform: translate3d(0, -18%, 0) rotateX(var(--rx)) rotateY(var(--ry)); }
+  100% { transform: translate3d(0, 0, 0) rotateX(var(--rx)) rotateY(var(--ry)); }
+}
+@keyframes die-shadow {
+  0% { opacity: 0; scale: 0.3 0.5; }
+  58% { opacity: 0.9; scale: 1 1; }
+  76% { opacity: 0.4; scale: 0.7 0.7; }
+  88%, 100% { opacity: 0.9; scale: 1 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .die3d {
+    animation: none;
+    transform: rotateX(var(--rx)) rotateY(var(--ry));
+  }
+  .die-shadow { animation: none; }
 }
 
 /* ── Drawn marks ──────────────────────────────────────────────────────────── */

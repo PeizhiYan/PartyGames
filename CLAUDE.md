@@ -139,6 +139,20 @@ Split across four files because the game got big:
 - **On the ring, the colour band faces the middle**, as it does on a printed board — it is the
   clearest sign of which side you are looking at. `ringEdge()` puts `data-edge` on every tile and
   the CSS flips the tile's flex direction; the spiral ignores it and keeps the band on top.
+- **The middle of the ring is the city and the dice tray.** `Skyline.tsx` draws one silhouette
+  per board in `currentColor` at low opacity — a backdrop, not the picture on the box, so it
+  works in either theme without a second asset. Two things learned the hard way: symmetrical
+  points in a row read as fir trees whatever you do to them (Canada Place's sails had to become
+  asymmetric with masts, and the Temple of Heaven's roofs had to go shallow), and the Great Wall's
+  battlements are generated from the wall's top polyline, because thirty hand-placed merlons on a
+  slope means thirty chances to leave one in mid-air.
+- **The dice are real cubes.** `ThrownDice` builds six rotated faces per die and tumbles them in
+  with one keyframe set whose landing angle comes in as `--rx`/`--ry` — six values times two dice
+  would otherwise be twelve animations saying the same thing. They are keyed on `lastRoll.at`,
+  because a CSS animation only replays on a fresh element. The flat dice (`.dice-aside`) stay for
+  the narrow layout, which has no middle to throw anything into; `.row` sets `display: flex` at
+  the same specificity and lands later in the bundle, so hiding them needs the ancestor in the
+  selector.
 - Tapping a space opens `SpaceSheet`; a "You are on …" card always spells out the current space.
 - **Do not try to shrink text back into the tiles** on the narrow layout. That was the ring's
   problem, and the first fix dropped the words entirely instead.

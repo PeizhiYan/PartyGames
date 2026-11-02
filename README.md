@@ -59,7 +59,8 @@ on the game's own screen.
     what lets the final standings **add themselves up**; nobody types what their property is
     worth any more.
   - On a wide screen the board is drawn as a ring, the way it is printed, colour bands facing
-    the middle, with the controls beside it on the right. On a phone a ring would spend most of
+    the middle, with the controls beside it on the right. The middle holds the city you are
+    playing — a drawn skyline of its landmarks — and the dice tumble into it and settle there. On a phone a ring would spend most of
     its area on a hole it does not need, so the spaces spiral inwards and fill the whole width.
     Either way a tile is big enough for its name and price; tap one for its owner, rent and the
     full rent ladder. Every mark on the board is drawn, not an emoji — including the eight
