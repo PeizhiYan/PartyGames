@@ -86,9 +86,11 @@ on the game's own screen.
   iOS Safari, which has no install dialog of its own (`src/hooks/useInstall.ts`).
 - **Themes** – six highlight colours (Sunset, Rose, Violet, Ocean, Forest, Graphite) and
   light / dark / follow-the-system, picked in Settings and remembered per device. The default is a
-  white background with an orange highlight. The page is tinted with the chosen colour and a band
-  of slow waves drifts along the bottom of every screen, so picking a colour changes the whole app
-  rather than just its buttons.
+  white background with an orange highlight. The page is tinted with the chosen colour, so picking
+  one changes the whole app rather than just its buttons.
+- **A live backdrop**, also in Settings: a band of slow **waves**, drifting **smoke**, or rising
+  **particles** along the bottom of every screen. All three take the highlight colour, and all
+  three hold still for anyone whose device asks for less motion.
 
 ## Roadmap
 
@@ -173,7 +175,7 @@ src/
 │  ├─ firebase/    Firebase Auth + Firestore. The ONLY place allowed to import `firebase`.
 │  └─ memory/      In-browser backend (localStorage + BroadcastChannel), for dev and demos.
 ├─ ui/             Design-system primitives: Icon, Sheet, Toast, Segmented, Avatar.
-├─ shell/          App chrome: AppShell, Waves, ThemePicker, InstallCard, OfflineNotice.
+├─ shell/          App chrome: AppShell, Backdrop, ThemePicker, InstallCard, OfflineNotice.
 ├─ pages/          Screens that are not a game: Home, lobby, Rooms, Settings, Users, Login.
 ├─ hooks/          useAuth, useInstall, useOnline.
 └─ lib/ styles/    Formatting, theme, version · global CSS and theme tokens.
