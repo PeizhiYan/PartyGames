@@ -272,6 +272,31 @@ work. `navigator.onLine` only says the device has *a* network, never that Firest
 so it is used to explain and disable — never to decide whether something succeeded. The operations
 that need the server still report their own errors.
 
+## Playtesting without deploying
+
+```bash
+npm run dev:memory
+```
+
+The in-browser backend. **Two browser tabs are two players** — each tab gets its own identity
+from `sessionStorage` (the first is the admin), and they see each other's moves through a
+`BroadcastChannel`. No Firebase, no deploy.
+
+That still means a lot of clicking for a four-player Monopoly, so `DevBar` (bottom-left, dev
+builds only) short-circuits it from a single tab:
+
+- **Acting as** — switch this tab's identity, so one screen can take every turn.
+- **Invent another player** — a new identity without opening a tab.
+- **Seat someone in this room** — drops them straight in, skipping ask-and-approve.
+
+It is gated on `import.meta.env.DEV` *and* the backend exposing `dev`, so it cannot appear in
+production. Its styles are a string inside the component rather than a `.css` import, because a
+static CSS import ships whether or not the component renders — check with
+`grep dev-bar dist/assets/*` after a build if you touch it.
+
+`MemoryDevTools` is deliberately **not** on the `Backend` interface: no real backend could offer
+"become another user", and `DevBar` is the only caller.
+
 ## Testing
 
 ```bash

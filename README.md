@@ -18,6 +18,11 @@ Open a **second browser window** on the same URL and it signs in as a different 
 whole multiplayer flow — open a room, ask to join, get let in, play — works with no Firebase
 project at all.
 
+For anything needing more than two players, the **playtest bar** in the bottom-left corner of dev
+builds invents extra players, seats them in the room you are looking at, and lets the one tab act
+as each of them in turn. A four-player Monopoly is then testable on one screen. It is stripped
+from production builds entirely.
+
 ## How a game works
 
 Every game lives in a **room**:
