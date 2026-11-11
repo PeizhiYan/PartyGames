@@ -1,6 +1,9 @@
 /*
  * The band along the bottom of the page. One container, three forms inside it; `data-backdrop`
  * on <html> picks which one is shown, so the Appearance setting changes it without React.
+ *
+ * All three are the same three wave layers in different materials — water, smoke, spray — so
+ * switching changes the texture of the band, not what the band is.
  */
 .app-backdrop {
   position: fixed;
@@ -28,18 +31,18 @@
 /* No attribute yet (a theme saved before this setting existed): waves, as it always was. */
 :root:not([data-backdrop]) .backdrop-waves { display: block; }
 
-/* ── Waves ────────────────────────────────────────────────────────────────── */
-
-.wave {
+/*
+ * Every form's layer drifts the same way: two viewports wide holding two periods, so translating
+ * by half the element is exactly one period and the loop has no seam.
+ */
+.wave,
+.smoke,
+.spray {
   position: absolute;
   bottom: 0;
   left: 0;
-  /* Two viewports wide, holding two periods: translating by half the element is exactly one
-     period, so the loop has no seam. */
   width: 200%;
   height: 100%;
-  fill: var(--accent);
-  opacity: calc(var(--wave-opacity) * var(--wave-strength, 1));
   animation: wave-drift var(--wave-duration) linear infinite;
   animation-direction: var(--wave-direction);
   will-change: transform;
@@ -49,58 +52,84 @@
   to { transform: translateX(-50%); }
 }
 
-/* ── Smoke ────────────────────────────────────────────────────────────────── */
+/* ── Waves: the swell as water ────────────────────────────────────────────── */
+
+.wave {
+  fill: var(--accent);
+  opacity: calc(var(--wave-opacity) * var(--wave-strength, 1));
+}
+
+/* ── Smoke: the same swell, blurred until the crests dissolve ─────────────── */
 
 /*
- * Each cloud is a soft radial blob that drifts sideways and swells. The blur is what sells it;
- * without it they are just pale ellipses sliding about.
+ * Hangs below the band so the blur never softens the bottom edge into a gap — the fill has to
+ * run off the bottom of the screen, not fade out just above it.
  */
-.cloud {
-  position: absolute;
-  bottom: -30%;
-  left: var(--left);
-  width: var(--w);
-  aspect-ratio: 1.7;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, var(--accent), transparent 72%);
-  opacity: calc(var(--o) * var(--wave-strength, 1));
-  filter: blur(18px);
-  animation: cloud-drift var(--d) ease-in-out var(--delay) infinite alternate;
-  will-change: transform;
+.smoke {
+  bottom: -36px;
+  height: calc(100% + 36px);
+  opacity: calc(var(--wave-opacity) * var(--wave-strength, 1));
+  filter: blur(22px);
 }
-@keyframes cloud-drift {
-  from { transform: translate3d(0, 0, 0) scale(1); }
-  to { transform: translate3d(var(--drift), -14%, 0) scale(1.22); }
+/*
+ * The breathe is on the inner element because the outer one is already using `transform` for the
+ * drift, and one element cannot run two transforms. Anchored at the bottom so the crests rise
+ * and fall while the waterline stays put.
+ */
+.smoke-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: var(--accent);
+  transform-origin: 50% 100%;
+  animation: smoke-breathe var(--breathe) ease-in-out infinite alternate;
+}
+@keyframes smoke-breathe {
+  from { transform: scaleY(0.88); }
+  to { transform: scaleY(1.14); }
 }
 
-/* ── Particles ────────────────────────────────────────────────────────────── */
+/* ── Particles: the same swell as spray ───────────────────────────────────── */
 
+/*
+ * A mote sits where it was put and wanders a little around that spot; the sideways travel is its
+ * layer's job. Only `transform` and `opacity` are animated, so this stays on the compositor —
+ * animating `left`/`top` on this many elements would lay the page out on every frame.
+ *
+ * No `will-change`: it would promote every mote to its own layer, and there are a few hundred.
+ */
 .mote {
   position: absolute;
-  bottom: -12px;
-  left: var(--left);
-  width: var(--s);
-  height: var(--s);
   border-radius: 50%;
   background: var(--accent);
-  opacity: 0;
-  animation: mote-rise var(--d) linear var(--delay) infinite;
-  will-change: transform, opacity;
+  opacity: calc(var(--o) * var(--wave-strength, 1));
+  animation: mote-wander var(--wd) ease-in-out var(--wdelay) infinite;
 }
 /*
- * Fading in and out at both ends is what hides the loop: a mote that is already invisible when
- * it jumps back to the bottom never appears to jump.
+ * Three waypoints and back, so each one traces a little loop instead of sliding up and down the
+ * same line. The fade is part of the same animation rather than a second one — a mote is one
+ * composited element either way, and two animations on it would be two.
  */
-@keyframes mote-rise {
-  0% { transform: translate3d(0, 0, 0); opacity: 0; }
-  14% { opacity: calc(var(--o) * var(--wave-strength, 1)); }
-  78% { opacity: calc(var(--o) * var(--wave-strength, 1)); }
-  100% { transform: translate3d(var(--sway), calc(-1 * var(--rise)), 0); opacity: 0; }
+@keyframes mote-wander {
+  0%, 100% {
+    transform: translate3d(0, 0, 0);
+    opacity: calc(var(--o) * var(--wave-strength, 1));
+  }
+  28% {
+    transform: translate3d(var(--wx1), var(--wy1), 0);
+    opacity: calc(var(--o) * var(--wave-strength, 1) * 0.55);
+  }
+  54% {
+    transform: translate3d(var(--wx2), var(--wy2), 0);
+    opacity: calc(var(--o) * var(--wave-strength, 1) * 1.15);
+  }
+  79% {
+    transform: translate3d(var(--wx3), var(--wy3), 0);
+    opacity: calc(var(--o) * var(--wave-strength, 1) * 0.7);
+  }
 }
 
 /* Motion is the whole point, but it must never be the thing that makes someone ill. */
 @media (prefers-reduced-motion: reduce) {
-  .wave, .cloud, .mote { animation: none; }
-  /* Without the animation a mote never fades in, so give it its resting opacity directly. */
-  .mote { opacity: calc(var(--o) * var(--wave-strength, 1)); }
+  .wave, .smoke, .spray, .smoke-art, .mote { animation: none; }
 }
