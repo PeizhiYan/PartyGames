@@ -100,9 +100,9 @@ and opens the puzzle directly.
   light / dark / follow-the-system, picked in Settings and remembered per device. The default is a
   white background with an orange highlight. The page is tinted with the chosen colour, so picking
   one changes the whole app rather than just its buttons.
-- **A live backdrop**, also in Settings: a band of slow **waves**, drifting **smoke**, or rising
-  **particles** along the bottom of every screen. All three take the highlight colour, and all
-  three hold still for anyone whose device asks for less motion.
+- **A live backdrop**, also in Settings: the same slow swell along the bottom of every screen,
+  drawn as **waves**, as **smoke** or as **particles**. All three take the highlight colour, and
+  all three hold still for anyone whose device asks for less motion.
 
 ## Roadmap
 

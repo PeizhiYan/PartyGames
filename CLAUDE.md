@@ -299,18 +299,39 @@ the same peg cancels instead of counting a move, and only a successful move adva
   the same trick `data-accent` and `data-mode` use, so switching needs no React state. A hidden
   form is `display: none`, which stops its animations rather than leaving two unseen ones running
   down the battery.
-  - **The waves loop by translating exactly one period.** Each layer is two viewports wide and
-    holds two periods of the same wave, so `translateX(-50%)` is seamless. Change the period and
-    the animation has to change with it.
-  - **The smoke drifts on `alternate`**, not a loop back to the start: a cloud that teleports
-    home is the one thing that gives it away as a short animation on repeat.
-  - **A particle's rise is in pixels, not percent.** A percentage in `translate` resolves against
-    the element's own box, and a mote is 4px across — asking for 60% moved them three pixels.
-  - The particle scatter comes from `Math.sin()` on each mote's index, not `Math.random()`, so the
-    arrangement is the same on every load instead of rearranging itself on every navigation.
-    Negative delays start them part-way up, so the band is full on the first frame.
-  - All three honour `prefers-reduced-motion`, and a mote needs its resting opacity set directly
-    there, because without the animation it would never fade in.
+  - **All three draw the same three wave layers**, from one `LAYERS` array. Smoke is those waves
+    blurred until the crests dissolve; particles are motes scattered along the same curves. They
+    were three unrelated decorations first — drifting cloud blobs and motes rising from nowhere —
+    and the band stopped looking like the same app when you switched. Keep them one swell in
+    three materials.
+  - **The period is 720 of the viewBox's 1440.** Each layer is two viewports wide and holds two
+    periods, so `translateX(-50%)` is exactly one period and the loop has no seam. **Anything
+    positioned along a layer has to repeat on that same period**: the motes seed every random
+    number off `c % COLUMNS` rather than the absolute column for exactly this reason, or the
+    scatter reshuffles halfway along and the loop visibly jumps.
+  - `LAYERS` carries `base` and `amp` beside each path, describing the same curve the path draws
+    (`y = base - amp·sin(2πx / 720)`), so the motes can sit on it without anyone parsing an SVG
+    path. Change a path and change those too.
+  - **The smoke's breathe is on an inner element.** The outer one is already using `transform`
+    for the drift and one element cannot run two. It hangs 36px below the band so the blur never
+    softens the bottom edge into a gap, and carries about twice the waves' opacity — blur spreads
+    the ink thin, but at three times the three layers piled up into a solid orange band.
+  - **The spray drifts `SPRAY_SLOWDOWN` times slower than the water.** At the waves' own pace a
+    few hundred dots look like they are being dragged sideways rather than hanging in the air.
+  - **Each mote also wanders**, around three waypoints and back so it traces a loop rather than
+    retracing a line, fading as it goes. The sideways travel is still the layer's; the wander
+    only unsticks the motes from moving as one sheet. Its reach is deliberately larger vertically
+    than horizontally, for the same reason.
+  - **Only `transform` and `opacity` are animated, and the fade shares the wander's keyframes.**
+    Animating `left`/`top` on this many elements lays the page out every frame, and a second
+    animation would double the per-mote cost for no gain. There is no `will-change` on a mote:
+    it would promote all 432 to their own compositing layers. The count came down from 576 when
+    they started moving — motion does the work density was doing before.
+  - **The wander has to repeat on the period too.** A mote and its counterpart one period away
+    share a seed, so they share a path, a duration and a delay, and are at the same point of the
+    same wander when the layer jumps home. Check it arithmetically rather than by eye; the error
+    should be at floating-point noise.
+  - All three honour `prefers-reduced-motion`.
 - **An optimistic stone has to outlive the write that replaces it.** `games/gomoku/Room.tsx`
   draws the stone locally the instant it is tapped and keeps drawing it until the shared state
   actually contains it — identically to a real one, so the handover is invisible. Dropping the
