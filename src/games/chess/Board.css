@@ -1,0 +1,44 @@
+.chess { display: flex; justify-content: center; width: 100%; }
+.chess-board {
+  width: 100%;
+  max-width: min(100%, calc(100dvh - 230px));
+  height: auto;
+  display: block;
+  border-radius: 12px;
+  box-shadow: 0 6px 20px rgb(40 20 10 / 0.28);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.chess-frame { fill: var(--board-wood-2); }
+.chess-sq rect.light { fill: #f0d9b5; }
+.chess-sq rect.dark { fill: #b58863; }
+.chess-sq.live { cursor: pointer; }
+.chess-coords text {
+  fill: #f6ead3;
+  font-size: 12px;
+  font-weight: 600;
+  text-anchor: middle;
+  dominant-baseline: central;
+  font-family: system-ui, sans-serif;
+  opacity: 0.85;
+}
+
+/* Pieces: ivory with a dark outline, charcoal with a light one, so each reads on both shades. */
+.chess-piece.white path { fill: #f7f3ea; stroke: #2b2118; stroke-width: 18; stroke-linejoin: round; paint-order: stroke; }
+.chess-piece.black path { fill: #2b2b2b; stroke: #f2e8d6; stroke-width: 14; stroke-linejoin: round; paint-order: stroke; }
+
+.chess-last { fill: color-mix(in srgb, var(--accent) 32%, transparent); }
+.chess-selected { fill: color-mix(in srgb, var(--accent) 55%, transparent); }
+.chess-check { fill: rgb(225 29 72 / 0.55); }
+.chess-dot { fill: rgb(0 0 0 / 0.28); }
+.chess-capture { fill: none; stroke: rgb(0 0 0 / 0.32); stroke-width: 5; }
+
+.chess-promote { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.chess-promote button { min-height: 68px; border-radius: 14px; padding: 6px; }
+.chess-promote .chess-piece.white path { stroke-width: 22; }
+
+/* The side markers in the score strip and turn pill. */
+.chess-side-dot { width: 14px; height: 14px; border-radius: 50%; flex: none; box-shadow: inset 0 -1px 2px rgb(0 0 0 / 0.3); }
+.chess-side-dot.white { background: linear-gradient(145deg, #fff, #c9c0b0); }
+.chess-side-dot.black { background: linear-gradient(145deg, #6a6a6a, #111); }

@@ -66,6 +66,7 @@ src/
 │  ├─ monopoly/      rules (+tests) · Room Dice BalanceChart Art
 │  ├─ hanoi/         rules (+tests) · Solo Board Leaderboard Art
 │  ├─ xiangqi/       engine rules ai (+tests) · Room Board Solo Art
+│  ├─ chess/         engine rules ai (+tests) · Room Board Pieces Solo Art
 │  └─ local.ts       useLocalGame: any GameDefinition, played on-device with computer seats
 ├─ rooms/          the multiplayer layer games plug into: rules, useRooms, RoomList
 ├─ services/       the backend contract
@@ -263,6 +264,31 @@ transposition table, killers, history, null-move and quiescence. The opening boo
   never rotated — it faces whoever is looking. A rim is a stroke and a character a fill: giving
   the rim a fill paints over the disc and hides the character, which is how the first render
   came out solid.
+
+## Chess
+
+`games/chess/engine.ts` is our own: an 8x8 mailbox (`Int8Array(64)`, signed pieces, a1 = 0),
+moves as `from | (to << 6) | (promotion << 12)`. Legality is decided the plain way — make the
+move, see whether the mover's king is attacked, unmake — which is slower than pin detection but
+gets castling-through-check and en-passant pins right with no special cases.
+
+- **`engine.test.ts` is perft.** Node counts from the Chess Programming Wiki for the start
+  position, Kiwipete, and positions 3 and 4 to depth 3. If a rule is wrong, a count is wrong;
+  do not change the generator without running it.
+- **A promotion is part of the move**, so a pawn reaching the last rank with no promotion type
+  is simply not a legal move. `Board.tsx` opens a sheet to ask which piece, then plays the full
+  code. The reducer never has to guess.
+- Draws the reducer settles (`settle()`): stalemate, insufficient material (bare kings, one
+  minor, or same-shade bishops), fifty moves on the halfmove clock, and threefold repetition —
+  `replay()` returns the list of position keys alongside the board for the last one.
+- The computer (`ai.ts`) is alpha-beta with piece-square tables, captures searched to quiet,
+  and iterative deepening against a time budget. A result from an iteration that ran out of
+  time is partial and is thrown away in favour of the last complete one. `random` is injected
+  so the tests are deterministic.
+- **The pieces are Font Awesome Free 5's chess glyphs** (`Pieces.tsx`, CC BY 4.0, credited in
+  README) rather than Unicode's ♔♕♖, which are a different drawing in every font and render as
+  emoji on some phones. White pieces are ivory with a dark outline and black ones charcoal with
+  a light one (`paint-order: stroke`), so each reads on both shades of square.
 
 ## Hanoi Tower and its leaderboard
 

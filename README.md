@@ -69,6 +69,8 @@ and opens the puzzle directly.
 - **Chinese Chess** (象棋) – the engine from Peizhi's original site, ported whole: play a friend in
   a room, or the engine at three strengths. Tap a piece to see every square it may go to; the
   board turns to face whichever side you play. Takebacks need the opponent's say-so.
+- **Chess** – full rules (castling, en passant, promotion, every draw), play a friend in a room or
+  the computer at three strengths. Tap a piece to see where it may go.
 - **Monopoly** – two ways to play, chosen by the host.
   - **Play the board** — the whole game happens here. Tokens move, rent is charged, Chance and
     Community Chest are drawn, jail works three ways in and three ways out, houses build evenly on
@@ -113,7 +115,6 @@ and opens the puzzle directly.
 
 | Game | Players | Notes |
 |---|---|---|
-| **Chess** | 2 | As above, plus castling, en passant and promotion — the awkward corners are all in the rules, not the plumbing. |
 | **Yahtzee** | 2–6 | Dice and a scorecard. `throwDice()` and the `Dice` component already exist; the interesting part is the scoring table and keeping it honest about which categories are still open. |
 | **UNO** | 2–10 | Needs hidden hands — see below. |
 | **Mahjong** (麻将) | 4 | Hidden hands too, and by far the most rules. Worth deciding up front which variant, since 国标 / 广东 / 日麻 score completely differently. |
@@ -402,6 +403,8 @@ Their `disabled` member record is what keeps them out in the meantime, so this s
 - **Chinese Chess** runs the XiangQi Wizard Light engine (position, evaluation and search) as
   used by [`../PeizhiYan.github.io/js_codes/chinese_chess`](../PeizhiYan.github.io/js_codes/chinese_chess),
   ported to TypeScript without its opening book.
+- **Chess pieces** are the chess glyphs from [Font Awesome Free 5.15](https://fontawesome.com),
+  used under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) (`src/games/chess/Pieces.tsx`).
 - **Gomoku** is ported from the original JavaScript version in
   [`PeizhiYan.github.io/js_codes/gomoku`](../PeizhiYan.github.io/js_codes/gomoku) — the pattern
   weights, the offence + defence + centre-bias move scoring, the alpha-beta search at even depths
