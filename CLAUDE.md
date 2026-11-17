@@ -362,6 +362,13 @@ gets castling-through-check and en-passant pins right with no special cases.
 - The solo driver gives the computers human flaws on purpose: they call UNO 85% of the time (so
   you can catch them) and catch you 60% of the time, after 2.5 s of grace. That catch effect
   depends only on whether you are catchable — re-arming it on every move meant it never fired.
+- **The round table** (`Table.tsx`): seats sit round an oval with the viewer at the bottom and play
+  running clockwise, so turn order is what you see. The table is a CSS **size container**, so a
+  card can fly from a seat to the pile with `translate(Xcqw, Ycqh)` — percentages of the table —
+  with no measuring in JavaScript. The pile keeps its last four cards at tilts derived from their
+  ids, so it looks thrown-down and never reshuffles on a re-render. The felt's rim glows in the
+  active colour; dashed arrows circle the table in the direction of play. On a phone a seat's fan
+  of card backs is capped at five, or the side seats run off the screen.
 - `Card.tsx` draws every card in SVG. A `clipPath` is resolved in the coordinates of the element
   using it, so it has to sit on an untransformed group: on the translated one it clipped the
   middle of every card down to its bottom-right corner, which is how the first render came out.
@@ -570,6 +577,12 @@ npm run test:rules     # firestore.rules against the emulator (needs Java instal
 
 `src/adapters/memory/rooms.test.ts` drives the room layer the way two phones would — create, ask,
 approve, play out of turn, leave, hand over, reap. Point it at a new adapter to check it.
+
+**Animations need a real browser.** A static render (`renderToStaticMarkup`) never runs effects,
+so moments — and everything they animate — are absent from it. To check one, bundle a small entry
+that mounts the real table with `react-dom/client` and switches state on a timer, then screenshot
+it partway through with headless Chrome's `--virtual-time-budget=<ms>`, which runs timers and
+animations deterministically up to that point.
 
 To confirm the rules registry has not picked up React (rule 2 above):
 

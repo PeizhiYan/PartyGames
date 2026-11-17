@@ -1,46 +1,117 @@
 .uno-card { display: block; flex: none; filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.25)); }
-
-/* Everyone else at the table, in turn order after you. */
-.uno-opponents { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-bottom: 14px; }
-.uno-opp {
-  display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px;
-  background: var(--inset); border: 1.5px solid transparent; min-width: 0;
-}
-.uno-opp.turn { border-color: var(--accent); background: var(--accent-soft); }
-.uno-opp.absent { opacity: 0.45; }
-.uno-opp small { display: block; color: var(--text-muted); font-size: 0.75rem; }
-.uno-opp .uno-count { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; font-variant-numeric: tabular-nums; }
 .uno-badge {
   display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 0.7rem; font-weight: 800;
   letter-spacing: 0.04em; background: #e0393e; color: #fff; font-style: italic;
 }
-.uno-opp button.small { padding: 2px 10px; min-height: 28px; font-size: 0.8rem; }
+.uno-last { text-align: center; color: var(--text-muted); font-size: 0.9rem; min-height: 1.4em; margin: 8px 0 6px; }
 
-/* The middle of the table: the deck and the pile. */
-.uno-centre { display: flex; justify-content: center; align-items: center; gap: 28px; margin: 6px 0 10px; }
-.uno-deck { padding: 0; border: none; background: none; border-radius: 10px; position: relative; }
-.uno-deck:disabled { opacity: 1; cursor: default; }
-.uno-deck:not(:disabled) { cursor: pointer; }
-.uno-deck:not(:disabled) .uno-card { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 8px; }
-.uno-deck-count { position: absolute; bottom: -20px; left: 0; right: 0; text-align: center; font-size: 0.75rem; color: var(--text-muted); }
-.uno-pile { position: relative; border-radius: 12px; padding: 5px; }
-.uno-pile-label { text-align: center; font-size: 0.78rem; margin-top: 6px; font-weight: 600; text-transform: capitalize; }
-.uno-pending {
-  position: absolute; top: -10px; right: -14px; padding: 2px 8px; border-radius: 999px;
-  background: #1e1e22; color: #fff; font-weight: 800; font-size: 0.85rem;
+/* ── The round table ─────────────────────────────────────────────────────── */
+.ut { max-width: 760px; margin: 0 auto; }
+/*
+ * A size container, so flying cards can be placed in `cqw`/`cqh` — percentages of the table —
+ * from a seat's position to the pile without measuring anything in JavaScript.
+ */
+/* Room above and below for the seats that sit on the rim, which would otherwise be clipped. */
+.ut-table { position: relative; width: 100%; aspect-ratio: 1.1; container-type: size; margin: 44px 0 46px; }
+.ut-felt {
+  position: absolute; inset: 15% 13%; border-radius: 50%;
+  background: radial-gradient(70% 70% at 50% 40%, #2e8a4c, #18542d 80%);
+  border: 10px solid #6b4423;
+  box-shadow: 0 0 0 3px #4a2e16, 0 0 34px 6px color-mix(in srgb, var(--rim) 70%, transparent), 0 14px 30px rgb(0 0 0 / 0.35), inset 0 0 40px rgb(0 0 0 / 0.35);
+  transition: box-shadow 0.5s ease;
 }
-.uno-last { text-align: center; color: var(--text-muted); font-size: 0.9rem; min-height: 1.4em; margin: 0 0 10px; }
+.ut-direction { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; animation: ut-spin 18s linear infinite; }
+.ut-direction.ccw { animation-direction: reverse; transform: scaleX(-1); }
+.ut-direction ellipse { fill: none; stroke: rgb(255 255 255 / 0.13); stroke-width: 0.7; stroke-dasharray: 2 3; }
+.ut-direction path { fill: rgb(255 255 255 / 0.35); }
+@keyframes ut-spin { to { rotate: 360deg; } }
 
-/* Your hand. Everything wraps so no card is hidden behind another. */
-.uno-hand { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 10px 0 4px; }
-.uno-hand button { padding: 0; border: none; background: none; border-radius: 8px; min-height: 0; transition: transform 0.15s ease, opacity 0.15s; }
+.ut-centre { position: absolute; left: 50%; top: 48%; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 22px; z-index: 2; }
+.ut-lobby-centre { flex-direction: column; gap: 10px; color: #eaf6ec; text-align: center; }
+.ut-deck { position: relative; padding: 0; border: none; background: none; min-height: 0; border-radius: 9px; }
+.ut-deck:disabled { opacity: 1; cursor: default; }
+.ut-deck-stack { position: absolute; inset: 0; }
+.ut-deck-stack .uno-card { position: absolute; left: 0; top: 0; }
+.ut-deck-stack .uno-card:nth-child(1) { transform: translate(-4px, 4px) rotate(-6deg); }
+.ut-deck-stack .uno-card:nth-child(2) { transform: translate(-2px, 2px) rotate(-3deg); }
+.ut-deck > .uno-card { position: relative; }
+.ut-deck:not(:disabled) > .uno-card { animation: ut-beckon 1.4s ease-in-out infinite; }
+.ut-deck-count {
+  position: absolute; right: -8px; bottom: -8px; z-index: 2; min-width: 22px; padding: 1px 5px; border-radius: 999px;
+  background: #1e1e22; color: #fff; font-size: 0.7rem; font-weight: 800; text-align: center;
+}
+@keyframes ut-beckon { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+
+.ut-pile { position: relative; width: 58px; height: 87px; }
+.ut-pile-card { position: absolute; inset: 0; transform: rotate(var(--tilt)); }
+.ut-pile-card.landing { animation: ut-land 0.55s cubic-bezier(.2, .9, .3, 1.1) both; }
+@keyframes ut-land {
+  0% { transform: translate(var(--fx), var(--fy)) rotate(calc(var(--tilt) - 160deg)) scale(0.7); }
+  100% { transform: translate(0, 0) rotate(var(--tilt)) scale(1); }
+}
+.ut-pending {
+  position: absolute; top: -12px; right: -18px; z-index: 9; padding: 3px 9px; border-radius: 999px;
+  background: #1e1e22; color: #fff; font-weight: 900; animation: ut-throb 0.9s ease-in-out infinite;
+}
+@keyframes ut-throb { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.15); } }
+
+.ut-flying { position: absolute; left: 44%; top: 50%; z-index: 4; pointer-events: none; animation: ut-fly 0.6s cubic-bezier(.3, .7, .3, 1) both; }
+@keyframes ut-fly {
+  0% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--tx)), calc(-50% + var(--ty))) scale(0.5) rotate(25deg); opacity: 0; }
+}
+
+.ut-seat { position: absolute; transform: translate(-50%, -50%); z-index: 3; }
+.ut-seat.me { z-index: 2; }
+.ut-backs { position: relative; display: flex; align-items: center; justify-content: center; height: 24px; margin-top: 1px; }
+.ut-backs > span { margin-left: -9px; transform: rotate(calc(var(--k) * 7deg)); transform-origin: 50% 120%; }
+.ut-backs > span:first-child { margin-left: 0; }
+.ut-backs b { margin-left: 5px; font-size: 0.78rem; font-variant-numeric: tabular-nums; }
+/* On a phone a fan of seven runs off the screen at the side seats: five, and the count says the rest. */
+@media (max-width: 699px) { .ut-backs > span:nth-child(n + 6) { display: none; } }
+.ut-uno { position: absolute; top: -8px; right: -14px; transform: rotate(12deg); animation: ut-throb 1s ease-in-out infinite; }
+.ut-catch {
+  min-height: 24px; padding: 1px 9px; border-radius: 999px; font-size: 0.75rem; font-weight: 800;
+  background: #e0393e; color: #fff; border-color: #e0393e; animation: ut-throb 0.7s ease-in-out infinite;
+}
+.ut-table.crowded .seat-name { font-size: 0.7rem; max-width: 64px; }
+
+/* ── Your hand ────────────────────────────────────────────────────────────── */
+.ut-me { padding: 10px 10px 4px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border); }
+.ut-me.turn { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.ut-me-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.ut-color { display: inline-flex; align-items: center; gap: 6px; font-weight: 800; text-transform: capitalize; font-size: 0.85rem; }
+.ut-color i { width: 12px; height: 12px; border-radius: 50%; }
+
+.uno-hand { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 12px 0 4px; }
+.uno-hand button { padding: 0; border: none; background: none; border-radius: 8px; min-height: 0; transition: transform 0.18s cubic-bezier(.2, 1.3, .4, 1), opacity 0.15s; }
 .uno-hand button.playable { transform: translateY(-8px); }
+.uno-hand button.playable:hover { transform: translateY(-14px) rotate(-2deg); }
 .uno-hand button.playable .uno-card { outline: 2.5px solid var(--accent); outline-offset: 2px; border-radius: 7px; }
 .uno-hand.mine-to-play button:not(.playable) { opacity: 0.45; }
 .uno-hand button:disabled { cursor: default; }
-.uno-actions { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
-.uno-call { background: #e0393e; color: #fff; border-color: #e0393e; font-weight: 900; font-style: italic; letter-spacing: 0.04em; }
+.uno-hand button.dealt { animation: ut-deal 0.45s cubic-bezier(.2, 1.2, .4, 1) both; animation-delay: calc(var(--i) * 0ms); }
+@keyframes ut-deal { from { transform: translateY(-60px) rotate(-14deg) scale(0.6); opacity: 0; } to { opacity: 1; } }
+.uno-actions { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+.uno-call { background: #e0393e; color: #fff; border-color: #e0393e; font-weight: 900; font-style: italic; letter-spacing: 0.04em; animation: ut-throb 1s ease-in-out infinite; }
 
-/* Naming a colour for a wild. */
 .uno-colors { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .uno-colors button { min-height: 64px; border-radius: 14px; color: #fff; font-weight: 800; text-transform: capitalize; border: none; }
+
+.ut-results { display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center; padding: 14px; border-radius: 18px; background: var(--accent-soft); }
+.ut-scores { list-style: none; padding: 0; margin: 0; width: 100%; max-width: 320px; }
+.ut-scores li { display: flex; justify-content: space-between; padding: 5px 4px; border-bottom: 1px solid var(--border); }
+.ut-scores li:first-child { font-weight: 800; }
+
+/* Wider screens: a flatter, bigger table with bigger cards in the middle. */
+@media (min-width: 700px) {
+  .ut-table { aspect-ratio: 1.55; margin: 40px 0 44px; }
+  .ut-felt { inset: 13% 11%; }
+  .ut-centre { gap: 34px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ut-direction, .ut-pile-card.landing, .ut-flying, .ut-pending, .ut-uno, .ut-catch, .uno-call, .ut-deck > .uno-card, .uno-hand button.dealt { animation: none !important; }
+  .ut-flying { display: none; }
+}
