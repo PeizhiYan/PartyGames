@@ -12,17 +12,44 @@
  */
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { GameRuleError, type GameContext, type GameDefinition, type RoomPlayer } from '../types';
+import { COMPUTER_UID, computerUid, isComputer } from '../rooms/computers';
 
-/** The first computer seat's uid; further ones are `computer-2`, `computer-3`, … */
-export const COMPUTER_UID = 'computer';
+export { COMPUTER_UID, computerUid, isComputer };
 
-export const isComputer = (uid: string): boolean => uid.startsWith(COMPUTER_UID);
+/**
+ * Somebody else playing on this device — passed the phone, or sitting across the table from
+ * it. They have no account, so they get a made-up uid: `guest`, `guest-2`, …
+ */
+export const GUEST_UID = 'guest';
+export const isGuest = (uid: string): boolean => uid.startsWith(GUEST_UID);
+export const guestUid = (i: number): string => (i === 0 ? GUEST_UID : `${GUEST_UID}-${i + 1}`);
+
+/** One seat after yours at a game on this device: the computer, or a person sharing it. */
+export interface LocalSeat {
+  kind: 'computer' | 'person';
+  name: string;
+}
 
 /** A fake room's roster: you first, then the computer players in seat order. */
 export function localPlayers(you: { uid: string; name: string; photoURL?: string }, computers: string[]): RoomPlayer[] {
+  return localRoster(you, computers.map((name) => ({ kind: 'computer', name })));
+}
+
+/**
+ * A fake room's roster with people and computers mixed: you first, then the others in the order
+ * given. Computers are numbered among themselves (so the first is always Dot, wherever it sits),
+ * and so are guests.
+ */
+export function localRoster(you: { uid: string; name: string; photoURL?: string }, others: LocalSeat[]): RoomPlayer[] {
+  let computers = 0;
+  let guests = 0;
   return [
     { uid: you.uid, name: you.name, photoURL: you.photoURL, joinedAt: 1 },
-    ...computers.map((name, i) => ({ uid: i === 0 ? COMPUTER_UID : `${COMPUTER_UID}-${i + 1}`, name, joinedAt: 2 + i })),
+    ...others.map((seat, i) => ({
+      uid: seat.kind === 'computer' ? computerUid(computers++) : guestUid(guests++),
+      name: seat.name,
+      joinedAt: 2 + i,
+    })),
   ];
 }
 

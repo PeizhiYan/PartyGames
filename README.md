@@ -65,20 +65,26 @@ and opens the puzzle directly.
   agreeing unplays the stone (and their reply, if they have already made one). The last stone is
   marked, the winning five
   is struck through, colours swap each rematch, and the room keeps the score. Against the computer
-  there's also **Insight**: the board shaded by what each point is worth.
+  there's also **Insight**: the board shaded by what each point is worth. Two people can also play
+  **on one device**, taking turns on the same board.
 - **Chinese Chess** (象棋) – the engine from Peizhi's original site, ported whole: play a friend in
-  a room, or the engine at three strengths. Tap a piece to see every square it may go to; the
-  board turns to face whichever side you play. Takebacks need the opponent's say-so.
-- **Chess** – full rules (castling, en passant, promotion, every draw), play a friend in a room or
-  the computer at three strengths. Tap a piece to see where it may go.
-- **Yahtzee** – up to six players in a room, or alone or against up to five computer players.
+  a room, a friend on the same device, or the engine at three strengths. Tap a piece to see every
+  square it may go to; the board turns to face whichever side you play — on a shared device, to
+  whoever is to move. Takebacks need the opponent's say-so.
+- **Chess** – full rules (castling, en passant, promotion, every draw), play a friend in a room, a
+  friend on the same device (the board turns for each move, or stays put on a table), or the
+  computer at three strengths. Tap a piece to see where it may go.
+- **Yahtzee** – up to six players in a room, computer players among them if the host likes. On one
+  device: alone, against computers, friends passing the phone round, or any mix.
   Dice tumble in a felt tray beside a paper scorecard (docked at the bottom of a phone, so a turn
   needs no scrolling); every box explains itself, and every open box shows what it would score.
-- **UNO** – 2-10 players in a room, or up to five computer players, seated round a felt table.
+- **UNO** – 2-8 players in a room, with computer players in any free seats, or up to five computer
+  players on your own, seated round a felt table.
   Cards fly from each player to the pile, the rim glows in the colour to match, and the table
   reacts in speech bubbles. Stack draw-twos, call UNO — and catch anyone who forgets. First to
   500 takes the match.
-- **Mahjong** (麻将) – four round a square table, with friends or three computer players, everyone's
+- **Mahjong** (麻将) – four round a square table: friends, computer players, or both — two friends
+  and two computers fill a table. Everyone's
   discards in front of them and a compass lighting whose turn it is. 136 tiles,
   simplified Guangdong-style scoring: four sets and a pair, seven pairs or thirteen orphans; chow
   from the player before you, pong or kong on anyone. The fan for every win is itemised.
@@ -86,6 +92,9 @@ and opens the puzzle directly.
   frog, a fox, a panda… — that thinks on its turn, beams at a good move and looks crestfallen at a
   bad one. Computer players always look the same, so you learn who you are up against. Solo games
   ask how many players first.
+- **Computer players in rooms.** In Yahtzee, UNO and Mahjong the host can seat computer players in
+  the lobby and take them out again. The host's device plays their turns (or, if the host's phone
+  goes quiet, the next person's), through the same rules as everyone else.
 - **Monopoly** – two ways to play, chosen by the host.
   - **Play the board** — the whole game happens here. Tokens move, rent is charged, Chance and
     Community Chest are drawn, jail works three ways in and three ways out, houses build evenly on

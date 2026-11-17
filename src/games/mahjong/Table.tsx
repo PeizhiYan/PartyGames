@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Icon from '../../ui/Icon';
 import Seat from '../cast/Seat';
+import { AddComputer, RemoveComputer, type Seating } from '../cast/Seating';
 import Character from '../cast/Character';
 import Confetti from '../cast/Confetti';
 import { assignSpecies } from '../cast/cast';
@@ -24,6 +25,8 @@ export interface TableProps {
   busy: boolean;
   error: string;
   owner: boolean;
+  /** The host's controls for computer players, in a room's lobby. */
+  seating?: Seating;
 }
 
 type Side = 'bottom' | 'right' | 'top' | 'left';
@@ -82,7 +85,7 @@ const claimLabel = (c: Claim): string => (c.kind === 'win' ? '胡 Mahjong!' : CA
  *
  * Reads only the viewer's own hand; for everyone else, `.length` and nothing more (CLAUDE.md).
  */
-export default function MahjongTable({ state, uid, act, busy, error, owner }: TableProps) {
+export default function MahjongTable({ state, uid, act, busy, error, owner, seating }: TableProps) {
   const [selected, setSelected] = useState<number | null>(null);
   const detect = useMemo(() => detector(uid), [uid]);
   const moments = useMoments(state, detect);
@@ -112,7 +115,10 @@ export default function MahjongTable({ state, uid, act, busy, error, owner }: Ta
     if (!seat) {
       return (
         <div className={`mt-side mt-${side}`}>
-          <div className="mt-empty-seat"><Icon name="users" size={18} /><span>Empty seat</span></div>
+          {/* Seats fill in turn order, so only the next one can take a computer. */}
+          {seating?.add && i === state.seats.length
+            ? <AddComputer onAdd={seating.add} size={side === 'bottom' ? 40 : 44} />
+            : <div className="mt-empty-seat"><Icon name="users" size={18} /><span>Empty seat</span></div>}
         </div>
       );
     }
@@ -125,6 +131,7 @@ export default function MahjongTable({ state, uid, act, busy, error, owner }: Ta
           size={side === 'bottom' ? 40 : 44} expression={face(seat.uid)} away={seat.absent}
           turn={state.phase === 'playing' && ((state.stage === 'discard' && current?.uid === seat.uid) || thinking)}
           bubble={bubbleFor(moments, seat.uid)}
+          corner={seating && state.phase === 'lobby' && isComputer(seat.uid) ? <RemoveComputer name={seat.name} onRemove={() => seating.remove(seat.uid)} /> : undefined}
           meta={<><b className={`mt-wind${windOf(state, i) === 'East' ? ' east' : ''}`}>{windOf(state, i)[0]}</b> {seat.score} pts</>} />
         {state.phase !== 'lobby' && !isMe && (
           <div className="mt-backs" aria-label={`${count} tiles`}>
@@ -192,12 +199,13 @@ export default function MahjongTable({ state, uid, act, busy, error, owner }: Ta
       {error && <p className="error row center">{error}</p>}
 
       {state.phase === 'lobby' && (
-        <div className="row center" style={{ marginBottom: 12 }}>
+        <div className="col" style={{ alignItems: 'center', gap: 6, marginBottom: 12 }}>
           {owner
             ? <button type="button" className="primary" disabled={busy || state.seats.length !== SEATS} onClick={() => act({ type: 'start', seed: newSeed() })}>
                 {state.seats.length === SEATS ? 'Deal' : `Waiting for ${SEATS - state.seats.length} more…`}
               </button>
             : <span className="empty">Waiting for the host to deal…</span>}
+          {seating?.add && <small className="muted">Or tap “Add computer” to fill a seat with a computer player.</small>}
         </div>
       )}
 

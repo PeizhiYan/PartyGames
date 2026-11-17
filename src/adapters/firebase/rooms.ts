@@ -5,6 +5,8 @@ import {
 } from 'firebase/firestore';
 import { applyGameAction, getGame, syncGamePlayers } from '../../games/registry';
 import { defaultRoomName, isStale, newRoomCode, normalizeCode } from '../../rooms/rules';
+import { actingAs, afterLeaving, seatComputer, unseatComputer } from '../../rooms/computers';
+import { computerName } from '../../games/cast/cast';
 import {
   GameRuleError, type GameContext, type GameId, type JoinRequest, type Room, type RoomPlayer,
   type RoomSummary,
@@ -191,12 +193,9 @@ export function createRoomRepo({ auth, db }: FirebaseContext): RoomRepo {
         const snap = await tx.get(roomRef(roomId));
         const room = toRoom(snap);
         if (!room) return;
-        const players = room.players.filter((p) => p.uid !== actor);
-        if (players.length === 0) { empty = true; return; }
-        // The owner handing over: the next-longest-standing player takes the room.
-        const ownerUid = room.ownerUid === actor
-          ? [...players].sort((a, b) => a.joinedAt - b.joinedAt)[0].uid
-          : room.ownerUid;
+        const next = afterLeaving(room, actor);
+        if (!next) { empty = true; return; }
+        const { players, ownerUid } = next;
         tx.update(roomRef(roomId), {
           ...withPlayers({ ...room, ownerUid }, players, actor),
           ownerUid,
@@ -217,9 +216,18 @@ export function createRoomRepo({ auth, db }: FirebaseContext): RoomRepo {
       await deleteDoc(roomRef(roomId));
     }),
 
-    act: (roomId, action) => edit(roomId, (room) => {
-      const actor = uid();
-      if (!room.playerUids.includes(actor)) throw new GameRuleError('You are not in this room.');
+    addComputer: (roomId) => edit(roomId, (room) => {
+      const computer = seatComputer(room, uid(), getGame(room.game), computerName, Date.now());
+      return withPlayers(room, [...room.players, computer], room.ownerUid);
+    }),
+
+    removeComputer: (roomId, who) => edit(roomId, (room) => {
+      if (!room.playerUids.includes(who)) return null;
+      return withPlayers(room, unseatComputer(room, uid(), who), room.ownerUid);
+    }),
+
+    act: (roomId, action, as) => edit(roomId, (room) => {
+      const actor = actingAs(room, uid(), as);
       const state = applyGameAction(room.game, room.state, action, contextOf(room, actor));
       // `clean` strips the `undefined`s an optional field leaves behind; wrapping keeps a
       // top-level primitive (should a game ever use one) from being lost.

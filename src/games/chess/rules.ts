@@ -181,8 +181,8 @@ export const chess: GameDefinition<ChessState, ChessAction> = {
   maxPlayers: 2,
   solo: true,
   multiplayer: true,
-  soloTitle: 'Play the computer',
-  soloDescription: 'No room needed. Three strengths.',
+  soloTitle: 'Play on this device',
+  soloDescription: 'The computer at three strengths, or a friend on the same screen.',
   newState: initial,
   onPlayersChanged: reseat,
   reduce(state, action, ctx) {

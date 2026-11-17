@@ -43,11 +43,21 @@ export interface RoomRepo {
   /** Owner only: closes the room for everyone. */
   close(roomId: string): Promise<void>;
   /**
-   * Runs one game action against the room's state. The reducer lives in src/domain, so every
+   * Owner only, and only for a game with `computerPlayers`: seats the next computer player from
+   * the cast. It takes a place like a person does, so it counts towards a full room.
+   */
+  addComputer(roomId: string): Promise<void>;
+  /** Owner only: takes a computer player out of the room. */
+  removeComputer(roomId: string, uid: string): Promise<void>;
+  /**
+   * Runs one game action against the room's state. The reducer lives in src/games, so every
    * adapter applies the same rules; this method's job is to do it without losing a simultaneous
    * move (a transaction, a compare-and-set, a server-side handler...).
+   *
+   * `as` plays the action for a computer player in the room instead of for the signed-in user;
+   * any person in the room may do that (see `computerDriver` for which device does).
    */
-  act(roomId: string, action: unknown): Promise<void>;
+  act(roomId: string, action: unknown, as?: string): Promise<void>;
   /** Says this player's device is still on the room's screen, so the room isn't reaped. */
   heartbeat(roomId: string): Promise<void>;
   /** Deletes rooms everybody has left. Safe to call from any client, and a no-op if none are. */

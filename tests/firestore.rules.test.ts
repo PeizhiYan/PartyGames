@@ -203,6 +203,21 @@ describe('rooms', () => {
     }));
   });
 
+  it('lets a player seat a computer, but not an outsider, and never past eight', async () => {
+    await seed(['rooms', 'room1'], newRoom('u1', { game: 'uno' }));
+    const withComputer = {
+      players: [{ uid: 'u1', name: 'Owner', joinedAt: 1 }, { uid: 'computer', name: 'Dot', joinedAt: 2 }],
+      playerUids: ['u1', 'computer'],
+      updatedAt: serverTimestamp(),
+    };
+    await assertFails(updateDoc(roomDoc(as('u2', 'b@b.com')), withComputer));
+    await assertSucceeds(updateDoc(roomDoc(as('u1', 'a@b.com')), withComputer));
+    const nine = Array.from({ length: 9 }, (_, i) => (i === 0 ? 'u1' : `computer-${i}`));
+    await assertFails(updateDoc(roomDoc(as('u1', 'a@b.com')), {
+      players: nine.map((uid, i) => ({ uid, name: uid, joinedAt: i })), playerUids: nine, updatedAt: serverTimestamp(),
+    }));
+  });
+
   it('lets an outsider ask to join, but not walk in', async () => {
     await seed(['rooms', 'room1'], newRoom('u1'));
     const outsider = as('u2', 'b@b.com');

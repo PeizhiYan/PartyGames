@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import OfflineNotice from '../shell/OfflineNotice';
 import Avatar from '../ui/Avatar';
+import Character from '../games/cast/Character';
+import { isComputer } from '../rooms/computers';
 import Icon from '../ui/Icon';
 import Sheet from '../ui/Sheet';
 import { useToast } from '../ui/Toast';
@@ -168,7 +170,9 @@ function RoomHeader({ room, uid, onLeave }: { room: Room; uid: string; onLeave: 
           </button>
         </div>
         <span className="faces" aria-label={`${room.players.length} in the room`}>
-          {room.players.map((p) => <Avatar key={p.uid} name={p.name} photoURL={p.photoURL} size={30} />)}
+          {room.players.map((p) => (isComputer(p.uid)
+            ? <span key={p.uid} className="avatar-computer" title={`${p.name} (computer)`}><Character uid={p.uid} size={30} /></span>
+            : <Avatar key={p.uid} name={p.name} photoURL={p.photoURL} size={30} />))}
         </span>
       </header>
 

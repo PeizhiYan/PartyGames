@@ -1,33 +1,56 @@
 import { useState } from 'react';
+import Character from './Character';
 import Seat from './Seat';
-import { COMPUTER_CAST, assignSpecies } from './cast';
-import { COMPUTER_UID } from '../local';
+import { assignSpecies, computerNames } from './cast';
+import { localRoster, type LocalSeat } from '../local';
+
+/** The seats after yours, as they would be played: computers named from the cast, people as typed. */
+export function finishSeats(seats: LocalSeat[]): LocalSeat[] {
+  const names = computerNames(seats.length);
+  let computers = 0;
+  return seats.map((s, i) => (s.kind === 'computer'
+    ? { kind: 'computer', name: names[computers++] }
+    : { kind: 'person', name: s.name.trim() || `Player ${i + 2}` }));
+}
 
 /**
- * Before a solo game: how many players? Shows the cast you would be playing as you choose, so
- * the number means faces, not a digit.
+ * Before a game on this device: how many players, and — where the game allows it — which of
+ * them are people sharing the device rather than the computer. Shows the faces you would be
+ * playing, so the number means people, not a digit.
  *
  * `fixed` is for games with one right answer (mahjong is always four): the counts are not
  * offered, only the table and a start button.
  */
-export default function Setup({ title, blurb, min, max, initial, you, fixed, startLabel = 'Start', onStart, labelFor }: {
+export default function Setup({ title, blurb, min, max, initial, initialSeats, you, fixed, people, startLabel = 'Start', onStart, labelFor }: {
   title: string;
   blurb?: string;
   /** Total players including you. */
   min: number;
   max: number;
   initial: number;
+  /** Who sat in the other seats last time. */
+  initialSeats?: LocalSeat[];
   you: { uid: string; name: string };
   fixed?: boolean;
+  /** Each other seat may be a person on this device as well as a computer. */
+  people?: boolean;
   startLabel?: string;
-  onStart: (players: number) => void;
+  onStart: (players: number, seats: LocalSeat[]) => void;
   /** Words under a count, like "just me". */
   labelFor?: (players: number) => string | undefined;
 }) {
   const [count, setCount] = useState(Math.min(max, Math.max(min, initial)));
+  const [seats, setSeats] = useState<LocalSeat[]>(() => Array.from({ length: max - 1 }, (_, i) => {
+    const before = people ? initialSeats?.[i] : undefined;
+    return before ?? { kind: 'computer', name: '' };
+  }));
   const options = Array.from({ length: max - min + 1 }, (_, i) => min + i);
-  const computerUids = COMPUTER_CAST.slice(0, count - 1).map((_, i) => (i === 0 ? COMPUTER_UID : `${COMPUTER_UID}-${i + 1}`));
-  const looks = assignSpecies([you.uid, ...computerUids]);
+  const chosen = finishSeats(seats.slice(0, count - 1));
+  const roster = localRoster(you, chosen);
+  const looks = assignSpecies(roster.map((p) => p.uid));
+  const others = roster.slice(1);
+  const change = (i: number, seat: Partial<LocalSeat>) => setSeats((all) => all.map((s, k) => (k === i ? { ...s, ...seat } : s)));
+
   return (
     <div className="setup">
       <div>
@@ -48,14 +71,45 @@ export default function Setup({ title, blurb, min, max, initial, you, fixed, sta
           </div>
         </>
       )}
-      <div className="setup-cast">
-        <Seat key={`you-${count}`} uid={you.uid} species={looks[you.uid]} name="You" expression="happy" size={56} />
-        {COMPUTER_CAST.slice(0, count - 1).map((c, i) => (
-          <Seat key={`${c.name}-${count}`} uid={computerUids[i]} species={looks[computerUids[i]]} name={c.name} size={56}
-            style={{ animationDelay: `${(i + 1) * 0.06}s` }} />
-        ))}
-      </div>
-      <button type="button" className="primary" style={{ minWidth: 200 }} onClick={() => onStart(count)}>{startLabel}</button>
+      {people ? (
+        <ul className="setup-seats">
+          <li>
+            <Character uid={you.uid} species={looks[you.uid]} size={44} expression="happy" />
+            <span className="setup-seat-name"><strong>You</strong></span>
+          </li>
+          {others.map((p, i) => (
+            <li key={i} style={{ animationDelay: `${i * 0.05}s` }}>
+              <Character uid={p.uid} species={looks[p.uid]} size={44} />
+              <span className="setup-seat-name">
+                {chosen[i].kind === 'computer'
+                  ? <strong>{p.name}</strong>
+                  : <input type="text" value={seats[i].name} placeholder={`Player ${i + 2}`} maxLength={20}
+                      aria-label={`Name for player ${i + 2}`} onChange={(e) => change(i, { name: e.target.value })} />}
+              </span>
+              <div className="setup-kind" role="radiogroup" aria-label={`Who plays seat ${i + 2}`}>
+                {(['computer', 'person'] as const).map((kind) => (
+                  <button key={kind} type="button" role="radio" aria-checked={seats[i].kind === kind}
+                    className={seats[i].kind === kind ? 'selected' : ''} onClick={() => change(i, { kind })}>
+                    {kind === 'computer' ? 'Computer' : 'Person'}
+                  </button>
+                ))}
+              </div>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="setup-cast">
+          <Seat key={`you-${count}`} uid={you.uid} species={looks[you.uid]} name="You" expression="happy" size={56} />
+          {others.map((p, i) => (
+            <Seat key={`${p.uid}-${count}`} uid={p.uid} species={looks[p.uid]} name={p.name} size={56}
+              style={{ animationDelay: `${(i + 1) * 0.06}s` }} />
+          ))}
+        </div>
+      )}
+      {people && chosen.some((s) => s.kind === 'person') && (
+        <p className="muted setup-note">Everyone plays on this device: pass it to whoever's turn it is.</p>
+      )}
+      <button type="button" className="primary" style={{ minWidth: 200 }} onClick={() => onStart(count, chosen)}>{startLabel}</button>
     </div>
   );
 }

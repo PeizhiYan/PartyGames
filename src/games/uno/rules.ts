@@ -348,8 +348,9 @@ export const uno: GameDefinition<UnoState, UnoAction> = {
   maxPlayers: MAX_PLAYERS,
   solo: true,
   multiplayer: true,
+  computerPlayers: true,
   soloTitle: 'Play the computer',
-  soloDescription: 'No room needed. One to three computer players.',
+  soloDescription: 'No room needed. One to five computer players.',
   newState: initial,
   onPlayersChanged: syncSeats,
   reduce(state, action, ctx) {
