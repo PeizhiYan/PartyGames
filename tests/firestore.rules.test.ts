@@ -178,8 +178,19 @@ describe('rooms', () => {
 
   it('refuses a game it has never heard of, and a nameless room', async () => {
     const db = as('u1', 'a@b.com');
-    await assertFails(setDoc(roomDoc(db), newRoom('u1', { game: 'chess' })));
+    // Not a real game id, and never will be. (This used 'chess' until chess was added, at which
+    // point the rules rightly accepted it and the test failed the deploy.)
+    await assertFails(setDoc(roomDoc(db), newRoom('u1', { game: 'not-a-game' })));
     await assertFails(setDoc(roomDoc(db), newRoom('u1', { name: '' })));
+  });
+
+  it('accepts a room for every multiplayer game', async () => {
+    // Keep in step with `d.game in [...]` in firestore.rules and the multiplayer games in
+    // src/games/registry.ts: a game missing here was forgotten in the rules.
+    for (const game of ['gomoku', 'monopoly', 'xiangqi', 'chess', 'yahtzee', 'uno', 'mahjong']) {
+      const db = as('u1', 'a@b.com');
+      await assertSucceeds(setDoc(roomDoc(db, `room-${game}`), newRoom('u1', { game })));
+    }
   });
 
   it('lets a player change the game state, and an outsider not', async () => {
