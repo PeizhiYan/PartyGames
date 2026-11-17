@@ -1,31 +1,136 @@
-.yz-dice { display: flex; justify-content: center; gap: 10px; margin: 14px 0; }
-.yz-dice .die { cursor: default; }
-.yz-dice button.die { cursor: pointer; transition: transform 0.15s var(--spring, ease), box-shadow 0.15s; }
-.die.held { box-shadow: 0 0 0 3px var(--accent), 0 3px 8px rgb(20 10 40 / 0.2); transform: translateY(-6px); }
-.yz-dice .die.idle { opacity: 0.35; }
+/*
+ * Yahtzee: a paper scorecard and a felt dice tray.
+ *
+ * Phone first: the card fills the screen and the tray docks to the bottom (sticky), so a whole
+ * turn happens without scrolling. From 880px the tray moves to the left and the card to the right.
+ */
+.yz { display: flex; flex-direction: column; gap: 12px; max-width: 1080px; margin: 0 auto; }
 
-/* The scorecard: categories down, players across, the current player's column lit. */
-.yz-card-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -14px; padding: 0 14px; }
-.yz-card { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 100%; font-size: 0.9rem; }
-.yz-card th, .yz-card td { padding: 6px 8px; text-align: center; white-space: nowrap; border-bottom: 1px solid var(--border); }
-.yz-card th:first-child, .yz-card td:first-child { text-align: left; position: sticky; left: 0; background: var(--surface); z-index: 1; }
-.yz-card thead th { font-size: 0.78rem; color: var(--text-muted); font-weight: 600; }
-.yz-card thead th.turn { color: var(--accent); }
-.yz-card td.turn { background: color-mix(in srgb, var(--accent) 10%, transparent); }
-.yz-card tr.section td, .yz-card tr.section th { font-weight: 700; background: var(--inset); }
-.yz-card tr.total td { font-weight: 800; font-size: 1rem; }
-.yz-card .filled { font-variant-numeric: tabular-nums; }
-.yz-card .zero { color: var(--text-muted); }
-.yz-card button.pick {
-  min-height: 32px;
-  padding: 2px 10px;
-  border-radius: 8px;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  border: 1px dashed var(--accent);
-  background: var(--accent-soft);
-  color: var(--text);
+/* ── The scorecard: cream paper, ruled lines ─────────────────────────────── */
+.yz-sheet {
+  background: #fbf7ec; color: #2c2416; border-radius: 14px;
+  box-shadow: 0 1px 0 rgb(0 0 0 / 0.04), 0 8px 24px rgb(60 40 10 / 0.14);
+  padding: 4px 4px 6px; position: relative;
 }
-.yz-card button.pick.zero { border-style: dotted; color: var(--text-muted); background: transparent; }
-.yz-card button.pick:disabled { opacity: 0.5; }
-.yz-seat { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
+:root[data-mode='dark'] .yz-sheet { background: #2f2a22; color: #f1e8d4; }
+@media (prefers-color-scheme: dark) { :root:not([data-mode='light']) .yz-sheet { background: #2f2a22; color: #f1e8d4; } }
+.yz-card-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.yz-card { border-collapse: collapse; width: 100%; font-size: 0.86rem; }
+.yz-card th, .yz-card td { padding: 3px 4px; text-align: center; border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent); height: 30px; }
+.yz-card tbody th { text-align: left; font-weight: 600; white-space: nowrap; padding-left: 8px; }
+.yz-card td { min-width: 44px; font-variant-numeric: tabular-nums; }
+.yz-card td.turn { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+.yz-card th.turn .yz-head-name { color: var(--accent); }
+.yz-corner { text-align: left !important; vertical-align: bottom; padding-left: 8px !important; }
+.yz-corner .link-button { font-size: 0.75rem; }
+.yz-head { display: inline-flex; flex-direction: column; align-items: center; gap: 1px; }
+.yz-head-face { position: relative; }
+.yz-head-face .bubble { font-size: 0.72rem; padding: 2px 7px; }
+.yz-head-name { font-size: 0.72rem; font-weight: 700; max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.yz-head-total { font-size: 0.95rem; }
+
+.yz-name {
+  all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; font-weight: 600;
+  border-radius: 4px;
+}
+.yz-name .icon { opacity: 0.4; }
+.yz-name:hover .icon, .yz-name:focus-visible .icon { opacity: 0.9; }
+.yz-name:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.yz-name.static { cursor: default; }
+/* Plain-words description under each box name: only where there is room for it. */
+.yz-desc { display: none; font-weight: 400; font-size: 0.72rem; opacity: 0.6; }
+
+.yz-filled { font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif; font-size: 1.05rem; font-weight: 700; font-style: italic; }
+.yz-filled.zero { opacity: 0.4; }
+.yz-empty { display: inline-block; width: 18px; border-bottom: 1px dotted color-mix(in srgb, currentColor 25%, transparent); }
+.yz-pick {
+  min-height: 26px; min-width: 38px; padding: 0 8px; border-radius: 8px; font-weight: 800; font-variant-numeric: tabular-nums;
+  border: 1.5px dashed var(--accent); background: var(--accent-soft); color: inherit;
+}
+.yz-pick.zero { border-style: dotted; opacity: 0.55; background: transparent; }
+.yz-pick.best { border-style: solid; background: var(--accent); color: var(--on-accent, #fff); box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 45%, transparent); }
+.yz-card td.fresh { animation: yz-fresh 1.6s ease-out; }
+@keyframes yz-fresh { 0% { background: color-mix(in srgb, #f2b400 55%, transparent); } 100% { background: transparent; } }
+
+.yz-sub th, .yz-sub td { background: color-mix(in srgb, currentColor 4%, transparent); }
+.yz-total th, .yz-total td { font-weight: 800; font-size: 1.05rem; border-bottom: none; height: 38px; }
+.yz-meter { position: relative; display: inline-block; width: 40px; height: 14px; border-radius: 999px; background: color-mix(in srgb, currentColor 10%, transparent); overflow: hidden; vertical-align: middle; }
+.yz-meter > span { position: absolute; inset: 0 auto 0 0; background: color-mix(in srgb, var(--accent) 55%, transparent); border-radius: inherit; }
+.yz-meter > small { position: relative; display: block; font-size: 0.6rem; line-height: 14px; font-weight: 700; }
+.yz-bonus-won { color: #2e9e4f; }
+
+/* ── The tray: green felt, docked to the bottom on a phone ───────────────── */
+.yz-tray {
+  position: sticky; bottom: calc(6px + env(safe-area-inset-bottom)); z-index: 3;
+  background: radial-gradient(120% 140% at 50% 0%, #2f8f4e, #17522c); color: #f3fbf3;
+  border-radius: 18px; padding: 10px 12px 12px;
+  box-shadow: inset 0 0 0 3px #0f3a1f, 0 10px 28px rgb(0 0 0 / 0.28);
+}
+.yz-tray-head { display: flex; align-items: center; gap: 10px; }
+.yz-tray-head .muted { color: #cfe8d4; }
+.yz-pips { display: flex; gap: 5px; }
+.yz-pips i { width: 10px; height: 10px; border-radius: 50%; background: rgb(255 255 255 / 0.18); }
+.yz-pips i.left { background: #f2d36b; box-shadow: 0 0 6px #f2d36b; }
+
+.yz-dice { display: flex; justify-content: center; gap: 8px; margin: 10px 0 2px; }
+.yz-die-slot { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.yz-die-slot .die { width: 50px; height: 50px; box-shadow: 0 4px 0 #cfc5b3, 0 6px 12px rgb(0 0 0 / 0.35); }
+.yz-die-slot.idle .die { opacity: 0.55; }
+.yz-die-slot .die.held { transform: translateY(4px); box-shadow: 0 0 0 3px #f2d36b, 0 2px 0 #cfc5b3; }
+.yz-die-slot.tumble .die { animation: yz-tumble 0.62s cubic-bezier(.25, .9, .35, 1) both; animation-delay: inherit; }
+.yz-held-tag { margin-top: 4px; font-size: 0.62rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: #f2d36b; height: 12px; }
+/* Starts spun and in the air, lands upright: ending on the spin would leave dice crooked. */
+@keyframes yz-tumble {
+  0% { transform: translateY(var(--hop)) rotate(var(--spin)) scale(0.85); }
+  55% { transform: translateY(2px) rotate(0) scale(1.05); }
+  75% { transform: translateY(-4px) rotate(0) scale(1); }
+  100% { transform: translateY(0) rotate(0) scale(1); }
+}
+
+.yz-tray-foot { display: flex; align-items: center; gap: 12px; margin-top: 6px; }
+.yz-roll { min-width: 150px; min-height: 46px; font-size: 1rem; }
+.yz-roll:disabled { opacity: 0.6; }
+.yz-hint { font-size: 0.84rem; color: #e3f3e6; flex: 1; min-width: 0; }
+
+.yz-celebrate { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; }
+.yz-celebrate span {
+  font-size: 2.6rem; font-weight: 900; font-style: italic; color: #f2d36b; letter-spacing: 0.04em;
+  text-shadow: 0 3px 0 #8a6a12, 0 8px 24px rgb(0 0 0 / 0.5);
+  animation: yz-shout 2.6s cubic-bezier(.2, 1.4, .4, 1) both;
+}
+@keyframes yz-shout { 0% { transform: scale(0.2) rotate(-8deg); opacity: 0; } 15% { transform: scale(1.15) rotate(3deg); opacity: 1; } 25% { transform: scale(1) rotate(0); } 85% { opacity: 1; } 100% { opacity: 0; transform: scale(1.05); } }
+
+.yz-example { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.yz-example .die { width: 40px; height: 40px; }
+.yz-example-score { font-size: 1.3rem; font-weight: 800; margin-left: 6px; }
+
+.yz-results { position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; padding: 14px; border-radius: 18px; background: var(--accent-soft); }
+.yz-results h2 { margin: 0; }
+
+.yz-lobby { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; padding: 8px 0 20px; }
+.yz-lobby h2 { margin: 0; }
+.yz-lobby-seats { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; }
+.yz-lobby p { max-width: 420px; margin: 0; }
+
+/* ── Wide screens: tray left, card right ─────────────────────────────────── */
+@media (min-width: 880px) {
+  .yz { display: grid; grid-template-columns: minmax(330px, 400px) minmax(0, 1fr); grid-template-areas: 'results results' 'tray sheet' 'error error'; align-items: start; gap: 24px; }
+  .yz-results { grid-area: results; }
+  .yz-sheet { grid-area: sheet; padding: 10px 12px 12px; }
+  .yz-tray { grid-area: tray; position: sticky; top: 76px; bottom: auto; padding: 18px 18px 20px; }
+  .yz > .error { grid-area: error; }
+  /* With the game over there is no tray: the card takes the middle instead of half the room. */
+  .yz.done { grid-template-columns: minmax(0, 760px); grid-template-areas: 'results' 'sheet' 'error'; justify-content: center; }
+  .yz-dice { gap: 12px; margin: 22px 0 10px; flex-wrap: wrap; }
+  .yz-die-slot .die { width: 58px; height: 58px; }
+  .yz-tray-foot { flex-direction: column; align-items: stretch; text-align: center; gap: 10px; }
+  .yz-desc { display: block; }
+  .yz-card { font-size: 0.92rem; }
+  .yz-card th, .yz-card td { height: 40px; padding: 4px 8px; }
+  .yz-card td { min-width: 64px; }
+  .yz-head-name { max-width: 90px; font-size: 0.8rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .yz-die-slot.tumble .die, .yz-celebrate span, .yz-card td.fresh { animation: none; }
+}

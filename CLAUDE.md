@@ -71,6 +71,7 @@ src/
 │  ├─ uno/           cards rules ai (+tests) · Card Table Room Solo Art
 │  ├─ mahjong/       tiles hand scoring rules ai (+tests) · Tile Table Room Solo Art
 │  ├─ shuffle.ts     seeded rng + shuffle + newSeed, for any game that deals
+│  ├─ cast/          Character faces, Seat, moments, Setup (player count), Confetti — every table
 │  └─ local.ts       useLocalGame: any GameDefinition, played on-device with computer seats
 ├─ rooms/          the multiplayer layer games plug into: rules, useRooms, RoomList
 ├─ services/       the backend contract
@@ -309,11 +310,38 @@ gets castling-through-check and en-passant pins right with no special cases.
   `choices()` is the single answer to "where may these dice go", used by the reducer, the
   scorecard's buttons and the AI alike, so the three cannot disagree.
 - `Table.tsx` is the whole screen and is shared by `Room` and `Solo`; they differ only in where
-  `act` goes. On your turn each open box in your column is a button showing what it would score.
+  `act` goes. On your turn each open box in your column is a button showing what it would score,
+  and the best one is filled in.
+- **Layout:** on a phone the paper scorecard comes first and the felt dice tray is
+  `position: sticky` at the bottom, so a whole turn needs no scrolling. From 880px the tray moves
+  left and the card right (`wide: () => true`). Every box's name opens a sheet explaining it with
+  an example roll (`help.ts`); on a wide screen a one-line version sits under the name.
+- **The tumble lands upright:** the keyframes start spun and in the air and end at `rotate(0)`.
+  Ending on the spin left dice crooked. The dice row is keyed on turn and roll count, because a CSS
+  animation only replays on a fresh element.
+- A tie is announced as a tie.
 - The computer (`ai.ts`) is a list of rules, not a search: keep the largest group, chase four to
   a straight, take the big boxes when they appear, zero the cheapest box when nothing fits. The
   solo driver plays it one beat (650 ms) at a time so a turn can be followed.
 - Dice faces live in `src/ui/Die.tsx` for any game; with `onToggle` a die is a hold button.
+
+## The cast: faces, moments and setup
+
+`games/cast/` is shared by every table game, so a table reads as people rather than names.
+
+- **Characters** (`Character.tsx`): eight cartoon species drawn in SVG, five expressions (idle,
+  thinking, happy, sad, surprised). Computer players are a fixed cast — Dot is always the robot —
+  so you learn who you are playing. People get a character from their uid, and
+  **`assignSpecies(uids)` makes them distinct per table**: picking by uid alone sat a person next
+  to a computer of the same species. Pass its result as `species` wherever a face is drawn.
+- **Moments** (`moments.ts`): reducers know nothing about animation, and must not — the same
+  state arrives from a friend's device. A table derives what *just happened* by comparing the
+  previous state with the new one (`useMoments(state, detect)`), and each moment lives a second or
+  two to drive a bubble, an expression or a flying card. `bubbleFor` / `expressionFor` read them.
+- **Setup** asks how many players before a solo game, showing the faces you would be playing.
+  Mahjong passes `fixed` (always four).
+- Everything animates on `transform`/`opacity` only and stops under `prefers-reduced-motion`.
+  Faces blink on their own clocks (`jitter`) so a table never blinks in unison.
 
 ## UNO
 
