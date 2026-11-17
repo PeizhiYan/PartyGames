@@ -54,8 +54,10 @@ export const SCREENS: Record<GameId, GameScreens> = {
   gomoku: { Room: GomokuRoom, Solo: GomokuSolo, Art: GomokuArt },
   xiangqi: { Room: XiangqiRoom, Solo: XiangqiSolo, Art: XiangqiArt },
   chess: { Room: ChessRoom, Solo: ChessSolo, Art: ChessArt },
-  yahtzee: { Room: YahtzeeRoom, Solo: YahtzeeSolo, Art: YahtzeeArt },
-  uno: { Room: UnoRoom, Solo: UnoSolo, Art: UnoArt },
+  // The dice tray and the card sit side by side on a desktop.
+  yahtzee: { Room: YahtzeeRoom, Solo: YahtzeeSolo, Art: YahtzeeArt, wide: () => true },
+  // The round table wants the room on a desktop.
+  uno: { Room: UnoRoom, Solo: UnoSolo, Art: UnoArt, wide: () => true },
   // Four players' melds and discards need the room a phone does not have; on a desktop, use it.
   mahjong: { Room: MahjongRoom, Solo: MahjongSolo, Art: MahjongArt, wide: () => true },
   monopoly: {

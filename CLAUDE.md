@@ -71,6 +71,7 @@ src/
 │  ├─ uno/           cards rules ai (+tests) · Card Table Room Solo Art
 │  ├─ mahjong/       tiles hand scoring rules ai (+tests) · Tile Table Room Solo Art
 │  ├─ shuffle.ts     seeded rng + shuffle + newSeed, for any game that deals
+│  ├─ cast/          Character faces, Seat, moments, Setup (player count), Confetti — every table
 │  └─ local.ts       useLocalGame: any GameDefinition, played on-device with computer seats
 ├─ rooms/          the multiplayer layer games plug into: rules, useRooms, RoomList
 ├─ services/       the backend contract
@@ -309,11 +310,38 @@ gets castling-through-check and en-passant pins right with no special cases.
   `choices()` is the single answer to "where may these dice go", used by the reducer, the
   scorecard's buttons and the AI alike, so the three cannot disagree.
 - `Table.tsx` is the whole screen and is shared by `Room` and `Solo`; they differ only in where
-  `act` goes. On your turn each open box in your column is a button showing what it would score.
+  `act` goes. On your turn each open box in your column is a button showing what it would score,
+  and the best one is filled in.
+- **Layout:** on a phone the paper scorecard comes first and the felt dice tray is
+  `position: sticky` at the bottom, so a whole turn needs no scrolling. From 880px the tray moves
+  left and the card right (`wide: () => true`). Every box's name opens a sheet explaining it with
+  an example roll (`help.ts`); on a wide screen a one-line version sits under the name.
+- **The tumble lands upright:** the keyframes start spun and in the air and end at `rotate(0)`.
+  Ending on the spin left dice crooked. The dice row is keyed on turn and roll count, because a CSS
+  animation only replays on a fresh element.
+- A tie is announced as a tie.
 - The computer (`ai.ts`) is a list of rules, not a search: keep the largest group, chase four to
   a straight, take the big boxes when they appear, zero the cheapest box when nothing fits. The
   solo driver plays it one beat (650 ms) at a time so a turn can be followed.
 - Dice faces live in `src/ui/Die.tsx` for any game; with `onToggle` a die is a hold button.
+
+## The cast: faces, moments and setup
+
+`games/cast/` is shared by every table game, so a table reads as people rather than names.
+
+- **Characters** (`Character.tsx`): eight cartoon species drawn in SVG, five expressions (idle,
+  thinking, happy, sad, surprised). Computer players are a fixed cast — Dot is always the robot —
+  so you learn who you are playing. People get a character from their uid, and
+  **`assignSpecies(uids)` makes them distinct per table**: picking by uid alone sat a person next
+  to a computer of the same species. Pass its result as `species` wherever a face is drawn.
+- **Moments** (`moments.ts`): reducers know nothing about animation, and must not — the same
+  state arrives from a friend's device. A table derives what *just happened* by comparing the
+  previous state with the new one (`useMoments(state, detect)`), and each moment lives a second or
+  two to drive a bubble, an expression or a flying card. `bubbleFor` / `expressionFor` read them.
+- **Setup** asks how many players before a solo game, showing the faces you would be playing.
+  Mahjong passes `fixed` (always four).
+- Everything animates on `transform`/`opacity` only and stops under `prefers-reduced-motion`.
+  Faces blink on their own clocks (`jitter`) so a table never blinks in unison.
 
 ## UNO
 
@@ -334,6 +362,13 @@ gets castling-through-check and en-passant pins right with no special cases.
 - The solo driver gives the computers human flaws on purpose: they call UNO 85% of the time (so
   you can catch them) and catch you 60% of the time, after 2.5 s of grace. That catch effect
   depends only on whether you are catchable — re-arming it on every move meant it never fired.
+- **The round table** (`Table.tsx`): seats sit round an oval with the viewer at the bottom and play
+  running clockwise, so turn order is what you see. The table is a CSS **size container**, so a
+  card can fly from a seat to the pile with `translate(Xcqw, Ycqh)` — percentages of the table —
+  with no measuring in JavaScript. The pile keeps its last four cards at tilts derived from their
+  ids, so it looks thrown-down and never reshuffles on a re-render. The felt's rim glows in the
+  active colour; dashed arrows circle the table in the direction of play. On a phone a seat's fan
+  of card backs is capped at five, or the side seats run off the screen.
 - `Card.tsx` draws every card in SVG. A `clipPath` is resolved in the coordinates of the element
   using it, so it has to sit on an untransformed group: on the translated one it clipped the
   middle of every card down to its bottom-right corner, which is how the first render came out.
@@ -359,6 +394,13 @@ scoring**. The rule choices are at the top of `mahjong/rules.ts`; the fan table 
   self-drawn win.
 - **A player who leaves mid-hand** has their claims passed for them, and the host gets a button
   (`cover`) to play their turn by discarding the tile they just drew.
+- **The square table** (`Table.tsx`) seats players as at a real table: the next player on your
+  right (play runs that way), the one opposite on top, the previous one — the only one you may
+  chow from — on your left. Each player's discards lie in a pond in front of them, the four ponds
+  in a pinwheel round a compass whose arrow lights towards whoever is to move. Your own tiles are
+  in a wooden rack below the table, at full size. Tile sizes are custom properties (`--pt`,
+  `--mt`, `--bt`) set per breakpoint, and the table is capped by the screen's height so the table
+  and your rack fit on one screen. Calls pop up as bubbles (碰 Pong, 吃 Chow, 槓 Kong, 胡 Mahjong).
 - The computer (`ai.ts`) plays tile efficiency: keep tiles with partners, discard the loneliest,
   prefer tiles already seen discarded. The most valuable test in the folder is fifty seeded hands
   played out by four computers, checking after every action that all 136 tiles are in exactly one
@@ -542,6 +584,12 @@ npm run test:rules     # firestore.rules against the emulator (needs Java instal
 
 `src/adapters/memory/rooms.test.ts` drives the room layer the way two phones would — create, ask,
 approve, play out of turn, leave, hand over, reap. Point it at a new adapter to check it.
+
+**Animations need a real browser.** A static render (`renderToStaticMarkup`) never runs effects,
+so moments — and everything they animate — are absent from it. To check one, bundle a small entry
+that mounts the real table with `react-dom/client` and switches state on a timer, then screenshot
+it partway through with headless Chrome's `--virtual-time-budget=<ms>`, which runs timers and
+animations deterministically up to that point.
 
 To confirm the rules registry has not picked up React (rule 2 above):
 

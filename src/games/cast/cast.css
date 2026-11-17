@@ -1,0 +1,84 @@
+/* The characters. Everything moves on transform/opacity only, so a table of them stays cheap. */
+.cast { display: block; flex: none; overflow: visible; }
+.cast-body { transform-origin: 50% 90%; animation: cast-bob 3.2s ease-in-out infinite; animation-delay: var(--blink-delay); }
+.cast-eyes { transform-box: fill-box; transform-origin: center; animation: cast-blink 5s step-end infinite; animation-delay: var(--blink-delay); }
+.cast-antenna { animation: cast-glow 1.6s ease-in-out infinite; }
+.cast-thinking .cast-body { animation: cast-ponder 1.4s ease-in-out infinite; }
+.cast-happy .cast-body { animation: cast-hop 0.55s ease-in-out 3; }
+.cast-surprised .cast-body { animation: cast-jolt 0.4s ease-out 1; }
+.cast-sad .cast-body { transform: translateY(2px); animation: none; }
+.cast-tear { animation: cast-tear 1.4s ease-in infinite; }
+.cast-dots circle { fill: var(--text-muted); animation: cast-dot 1.2s ease-in-out infinite; }
+.cast-dots circle:nth-child(2) { animation-delay: 0.15s; }
+.cast-dots circle:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes cast-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.5px); } }
+@keyframes cast-blink { 0%, 94%, 100% { transform: scaleY(1); } 96% { transform: scaleY(0.1); } }
+@keyframes cast-glow { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@keyframes cast-ponder { 0%, 100% { transform: rotate(-4deg); } 50% { transform: rotate(4deg); } }
+@keyframes cast-hop { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-7px) scale(1.04); } }
+@keyframes cast-jolt { 0% { transform: scale(1); } 30% { transform: scale(1.14) translateY(-3px); } 100% { transform: scale(1); } }
+@keyframes cast-tear { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: 1; } 100% { transform: translateY(8px); opacity: 0; } }
+@keyframes cast-dot { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+
+/* A seat: the face in a ring that lights up on its turn. */
+.seat { display: flex; flex-direction: column; align-items: center; gap: 2px; position: relative; min-width: 0; }
+.seat-face { position: relative; border-radius: 50%; padding: 3px; background: var(--surface); box-shadow: 0 2px 8px rgb(0 0 0 / 0.18); transition: box-shadow 0.25s; }
+.seat.turn .seat-face { box-shadow: 0 0 0 3px var(--accent), 0 0 18px color-mix(in srgb, var(--accent) 60%, transparent); animation: seat-pulse 1.6s ease-in-out infinite; }
+.seat.away .seat-face { opacity: 0.4; filter: grayscale(1); }
+.seat-name { font-size: 0.78rem; font-weight: 700; max-width: 92px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.seat-meta { font-size: 0.7rem; color: var(--text-muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+@keyframes seat-pulse { 0%, 100% { box-shadow: 0 0 0 3px var(--accent), 0 0 10px color-mix(in srgb, var(--accent) 40%, transparent); } 50% { box-shadow: 0 0 0 3px var(--accent), 0 0 22px color-mix(in srgb, var(--accent) 70%, transparent); } }
+
+/* A speech bubble that pops up from a seat and fades. */
+.bubble {
+  position: absolute; left: 50%; bottom: calc(100% + 4px); z-index: 5; pointer-events: none;
+  padding: 3px 10px; border-radius: 999px; white-space: nowrap; font-weight: 900; font-size: 0.85rem;
+  background: var(--surface); color: var(--text); box-shadow: 0 4px 14px rgb(0 0 0 / 0.25);
+  transform: translateX(-50%); transform-origin: 50% 100%; animation: bubble-pop 1.8s cubic-bezier(.2, 1.4, .4, 1) forwards;
+}
+.bubble::after {
+  content: ''; position: absolute; left: 50%; top: 100%; border: 6px solid transparent; border-top-color: var(--surface); transform: translateX(-50%);
+}
+.bubble.hot { background: #e0393e; color: #fff; }
+.bubble.hot::after { border-top-color: #e0393e; }
+.bubble.gold { background: #f2b400; color: #1e1e22; }
+.bubble.gold::after { border-top-color: #f2b400; }
+@keyframes bubble-pop {
+  0% { transform: translateX(-50%) scale(0.2); opacity: 0; }
+  12% { transform: translateX(-50%) scale(1.12); opacity: 1; }
+  22% { transform: translateX(-50%) scale(1); }
+  80% { opacity: 1; }
+  100% { transform: translateX(-50%) translateY(-8px) scale(0.96); opacity: 0; }
+}
+
+/* A burst of confetti for a win. Pieces are spans with their own direction set inline. */
+.confetti { position: absolute; inset: 0; pointer-events: none; overflow: visible; z-index: 6; }
+.confetti i {
+  position: absolute; left: 50%; top: 45%; width: 8px; height: 12px; border-radius: 2px;
+  animation: confetti-fly 1.6s cubic-bezier(.15, .7, .3, 1) forwards;
+}
+@keyframes confetti-fly {
+  0% { transform: translate(-50%, -50%) rotate(0) scale(0.4); opacity: 1; }
+  100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(var(--rot)) scale(1); opacity: 0; }
+}
+
+/* Choosing how many players. */
+.setup { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 10px 0 24px; text-align: center; }
+.setup h2 { margin: 0; }
+.setup-counts { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.setup-counts button {
+  width: 64px; height: 64px; border-radius: 18px; font-size: 1.5rem; font-weight: 800; padding: 0;
+  transition: transform 0.15s;
+}
+.setup-counts button.selected { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 2px var(--accent); transform: translateY(-2px); }
+.setup-counts small { display: block; font-size: 0.62rem; font-weight: 600; color: var(--text-muted); margin-top: -2px; }
+.setup-cast { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; min-height: 92px; }
+.setup-cast .seat { animation: setup-in 0.35s cubic-bezier(.2, 1.3, .4, 1) both; }
+@keyframes setup-in { from { transform: translateY(14px) scale(0.6); opacity: 0; } to { transform: none; opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .cast-body, .cast-eyes, .cast-antenna, .cast-dots circle, .cast-tear, .seat.turn .seat-face, .setup-cast .seat { animation: none !important; }
+  .bubble { animation-duration: 0.01s; animation-delay: 1.6s; }
+  .confetti { display: none; }
+}

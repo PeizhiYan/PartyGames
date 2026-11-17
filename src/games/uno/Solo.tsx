@@ -2,48 +2,56 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import UnoTable from './Table';
 import Icon from '../../ui/Icon';
-import Segmented from '../../ui/Segmented';
-import { COMPUTER_NAMES, chooseAction } from './ai';
+import Setup from '../cast/Setup';
+import { computerNames } from '../cast/cast';
+import { chooseAction } from './ai';
 import { catchable, currentSeat, handOf, uno } from './rules';
 import { isComputer, localPlayers, useLocalGame } from '../local';
 import { newSeed } from '../shuffle';
 import { useCurrentUser } from '../../hooks/useAuth';
 
-const STORED_COUNT = 'partygames:uno:computers';
+const STORED_COUNT = 'partygames:uno:players';
 /** How long a computer takes over its turn, so a turn can be followed. */
-const BEAT_MS = 900;
+const BEAT_MS = 1000;
 /** How long you have to call UNO before a computer may catch you. */
 const GRACE_MS = 2500;
 /** Computers are not perfect: sometimes they forget UNO, and they do not always catch you. */
 const COMPUTER_CALLS_UNO = 0.85;
 const COMPUTER_CATCHES = 0.6;
 
-/** UNO against one to three computer players, on this device. */
+/** UNO on this device, against one to five computer players. */
 export default function UnoSoloPage() {
-  const [count, setCount] = useState(() => Number(localStorage.getItem(STORED_COUNT)) || 2);
-  useEffect(() => { localStorage.setItem(STORED_COUNT, String(count)); }, [count]);
+  const { user } = useCurrentUser();
+  // Asked first, every time: how many players. Null until chosen.
+  const [players, setPlayers] = useState<number | null>(null);
+  const remembered = Number(localStorage.getItem(STORED_COUNT)) || 4;
   return (
-    <div className="room-screen">
+    <div className="room-screen wide">
       <header className="room-bar">
         <Link to="/g/uno" className="icon-button" aria-label="Back to the lobby"><Icon name="left" /></Link>
-        <strong className="grow">UNO vs the computer</strong>
-        <Segmented label="Computer players" size="small" value={String(count)}
-          onChange={(v) => setCount(Number(v))}
-          options={[{ id: '1', label: '1' }, { id: '2', label: '2' }, { id: '3', label: '3' }]} />
+        <strong className="grow">UNO</strong>
+        {players !== null && (
+          <button type="button" className="small" onClick={() => setPlayers(null)}>
+            <Icon name="users" size={16} /> Players
+          </button>
+        )}
       </header>
-      {/* Keyed so changing the number of opponents starts a fresh game with new seats. */}
-      <SoloGame key={count} computers={count} />
+      {players === null
+        ? <Setup title="UNO" blurb="Match the colour or the face. Don't forget to call it." min={2} max={6} initial={remembered}
+            you={{ uid: user.uid, name: user.displayName }} startLabel="Deal the cards"
+            onStart={(n) => { localStorage.setItem(STORED_COUNT, String(n)); setPlayers(n); }} />
+        : <SoloGame key={players} computers={players - 1} />}
     </div>
   );
 }
 
 function SoloGame({ computers }: { computers: number }) {
   const { user } = useCurrentUser();
-  const players = useMemo(
-    () => localPlayers({ uid: user.uid, name: user.displayName, photoURL: user.photoURL }, COMPUTER_NAMES.slice(0, computers)),
+  const roster = useMemo(
+    () => localPlayers({ uid: user.uid, name: user.displayName, photoURL: user.photoURL }, computerNames(computers)),
     [user, computers],
   );
-  const { state, act, error, generation } = useLocalGame(uno, players, user.uid);
+  const { state, act, error, generation } = useLocalGame(uno, roster, user.uid);
 
   // You host this made-up room, so the first round deals itself.
   useEffect(() => {
