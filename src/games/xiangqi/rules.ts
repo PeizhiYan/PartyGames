@@ -199,7 +199,7 @@ export const xiangqi: GameDefinition<XiangqiState, XiangqiAction> = {
   id: 'xiangqi',
   name: 'Chinese Chess',
   tagline: '象棋. Generals, cannons and the river. Play a friend, or the engine.',
-  emoji: '🀄',
+  emoji: '帥',
   minPlayers: 1,
   maxPlayers: 2,
   solo: true,

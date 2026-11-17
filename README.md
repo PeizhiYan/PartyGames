@@ -77,6 +77,9 @@ and opens the puzzle directly.
 - **UNO** – 2-10 players in a room, or one to three computer players. Stack draw-twos, name the
   colour on a wild, call UNO on your last card — and catch anyone who forgets. Scores carry over
   between rounds; first to 500 takes the match.
+- **Mahjong** (麻将) – four at a table, with friends or three computer players. 136 tiles,
+  simplified Guangdong-style scoring: four sets and a pair, seven pairs or thirteen orphans; chow
+  from the player before you, pong or kong on anyone. The fan for every win is itemised.
 - **Monopoly** – two ways to play, chosen by the host.
   - **Play the board** — the whole game happens here. Tokens move, rent is charged, Chance and
     Community Chest are drawn, jail works three ways in and three ways out, houses build evenly on
@@ -119,14 +122,12 @@ and opens the puzzle directly.
 
 ### More games
 
-| Game | Players | Notes |
-|---|---|---|
-| **Mahjong** (麻将) | 4 | Hidden hands too, and by far the most rules. Worth deciding up front which variant, since 国标 / 广东 / 日麻 score completely differently. |
+Every game on the original list is in. Adding another is three edits — see "Adding a game".
 
 ### How hidden hands work
 
 A room is one document and every player in it can read all of it, so a card game has nowhere to
-keep a secret. UNO (and Mahjong, next) run on the **trusted-client model** anyway — the same one
+keep a secret. UNO and Mahjong run on the **trusted-client model** anyway — the same one
 the Hanoi leaderboard uses. Hands and the deck live in the room document; the UI only ever shows
 you your own hand. Someone who opens the browser's developer tools could peek. Among friends
 that is the right trade.

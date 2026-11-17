@@ -29,6 +29,9 @@ import YahtzeeSolo from './yahtzee/Solo';
 import UnoArt from './uno/Art';
 import UnoRoom from './uno/Room';
 import UnoSolo from './uno/Solo';
+import MahjongArt from './mahjong/Art';
+import MahjongRoom from './mahjong/Room';
+import MahjongSolo from './mahjong/Solo';
 
 export interface GameScreens {
   /** The game itself, inside a room. */
@@ -53,6 +56,8 @@ export const SCREENS: Record<GameId, GameScreens> = {
   chess: { Room: ChessRoom, Solo: ChessSolo, Art: ChessArt },
   yahtzee: { Room: YahtzeeRoom, Solo: YahtzeeSolo, Art: YahtzeeArt },
   uno: { Room: UnoRoom, Solo: UnoSolo, Art: UnoArt },
+  // Four players' melds and discards need the room a phone does not have; on a desktop, use it.
+  mahjong: { Room: MahjongRoom, Solo: MahjongSolo, Art: MahjongArt, wide: () => true },
   monopoly: {
     Room: MonopolyRoom,
     Art: MonopolyArt,

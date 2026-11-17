@@ -191,7 +191,7 @@ Register, docs, `v0.15.0`, commit.
 ## 2. UNO — DONE (v0.16.0)
 
 Shipped largely as planned; the house rules actually chosen are at the top of
-`src/games/uno/rules.ts`. Next: Mahjong.
+`src/games/uno/rules.ts`. 
 
 ### Original plan
 
@@ -270,7 +270,11 @@ thing that blocks UNO and Mahjong" into "How hidden hands work"), `v0.16.0`, com
 
 ---
 
-## 3. Mahjong (Chinese, simplified Guangdong-style scoring)
+## 3. Mahjong — DONE (v0.17.0)
+
+Shipped as planned, with dragon pongs added to the fan table. All five games are in.
+
+### Original plan (Chinese, simplified Guangdong-style scoring)
 
 Pick **one** variant and say so in the docs: 136 tiles (no flowers/seasons), 4 players, chow
 only from the player on your left, pong/kong from anyone, standard hands = 4 sets + 1 pair,

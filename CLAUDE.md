@@ -69,6 +69,7 @@ src/
 │  ├─ chess/         engine rules ai (+tests) · Room Board Pieces Solo Art
 │  ├─ yahtzee/       rules ai (+tests) · Table Room Solo Art
 │  ├─ uno/           cards rules ai (+tests) · Card Table Room Solo Art
+│  ├─ mahjong/       tiles hand scoring rules ai (+tests) · Tile Table Room Solo Art
 │  ├─ shuffle.ts     seeded rng + shuffle + newSeed, for any game that deals
 │  └─ local.ts       useLocalGame: any GameDefinition, played on-device with computer seats
 ├─ rooms/          the multiplayer layer games plug into: rules, useRooms, RoomList
@@ -336,6 +337,35 @@ gets castling-through-check and en-passant pins right with no special cases.
 - `Card.tsx` draws every card in SVG. A `clipPath` is resolved in the coordinates of the element
   using it, so it has to sit on an untransformed group: on the translated one it clipped the
   middle of every card down to its bottom-right corner, which is how the first render came out.
+
+## Mahjong
+
+One variant, chosen and written down: 136 tiles, four players, **simplified Guangdong-style
+scoring**. The rule choices are at the top of `mahjong/rules.ts`; the fan table is at the top of
+`mahjong/scoring.ts`, one test per line.
+
+- **Tiles are 0-135, kinds are `tile >> 2`** (34 of them), the same id trick as UNO's cards.
+  `testTiles.ts` writes hands by name (`b(3)`, `c(5)`, `R()`) and hands out a fresh copy each
+  call — call `fresh()` between hands in one test or it runs out of copies.
+- **`isStandardWin` is complete with only two branches**: the lowest kind left must start either
+  a pong or a chow. Seven pairs and thirteen orphans need all fourteen tiles concealed.
+- **The reducer drives the loop itself.** After a discard it opens a claim window only for players
+  who could use the tile and passes the rest automatically; when every answer is in it resolves
+  (win > kong/pong > chow, nearest to the discarder on a tie), or the next player draws on their
+  own. So a room never taps "pass" thirty times a hand. The cost: the table can see that someone
+  is thinking about a discard.
+- **The newest tile is last in its hand**, so "the tile just drawn" needs no field naming a tile
+  in a hand — which would break the hidden-hands rule. `justDrew` (a boolean) is what enables a
+  self-drawn win.
+- **A player who leaves mid-hand** has their claims passed for them, and the host gets a button
+  (`cover`) to play their turn by discarding the tile they just drew.
+- The computer (`ai.ts`) plays tile efficiency: keep tiles with partners, discard the loneliest,
+  prefer tiles already seen discarded. The most valuable test in the folder is fifty seeded hands
+  played out by four computers, checking after every action that all 136 tiles are in exactly one
+  place, and that every hand's payments sum to zero.
+- Payments: 2^fan; a discarder pays three shares; the dealer's payments double — only when the
+  dealer is the payer or the winner. (The first version doubled a discard whenever the dealer was
+  merely at the table.)
 
 ## Hanoi Tower and its leaderboard
 
