@@ -120,7 +120,7 @@ after `start`. When the deck runs out in UNO, reshuffle the discard pile (minus 
 
 ## 1. Yahtzee — DONE (v0.15.0)
 
-Shipped as described below; kept for reference. Start with UNO.
+Shipped as described below; kept for reference.
 
 ### Original plan
 
@@ -188,7 +188,12 @@ Register, docs, `v0.15.0`, commit.
 
 ---
 
-## 2. UNO
+## 2. UNO — DONE (v0.16.0)
+
+Shipped largely as planned; the house rules actually chosen are at the top of
+`src/games/uno/rules.ts`. Next: Mahjong.
+
+### Original plan
 
 ### Rules (`src/games/uno/rules.ts`)
 

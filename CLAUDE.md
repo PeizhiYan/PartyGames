@@ -68,6 +68,8 @@ src/
 │  ├─ xiangqi/       engine rules ai (+tests) · Room Board Solo Art
 │  ├─ chess/         engine rules ai (+tests) · Room Board Pieces Solo Art
 │  ├─ yahtzee/       rules ai (+tests) · Table Room Solo Art
+│  ├─ uno/           cards rules ai (+tests) · Card Table Room Solo Art
+│  ├─ shuffle.ts     seeded rng + shuffle + newSeed, for any game that deals
 │  └─ local.ts       useLocalGame: any GameDefinition, played on-device with computer seats
 ├─ rooms/          the multiplayer layer games plug into: rules, useRooms, RoomList
 ├─ services/       the backend contract
@@ -311,6 +313,29 @@ gets castling-through-check and en-passant pins right with no special cases.
   a straight, take the big boxes when they appear, zero the cheapest box when nothing fits. The
   solo driver plays it one beat (650 ms) at a time so a turn can be followed.
 - Dice faces live in `src/ui/Die.tsx` for any game; with `onToggle` a die is a hold button.
+
+## UNO
+
+- **Cards are ids** — indices into `DECK` in `cards.ts` — so the room document holds short arrays
+  of numbers, and two copies of the same face are still two different cards. Tests assert after
+  every move of fifty seeded games that each of the 108 ids is in exactly one place.
+- **The deal is a pure function of the seed** on `start`/`again` (`shuffle.ts`). Draws take from
+  the end of `deck`; an empty deck reshuffles the pile under its top card with
+  `seed + reshuffles`, so a round replays exactly from its actions.
+- **House rules are written at the top of `rules.ts`** and nowhere else: the first card is always
+  a number; +2 stacks on +2 and +4 on +4 only; no draw-four challenge; a drawn card that fits may
+  be played at once, one that does not passes the turn; anyone on one or two cards may call UNO,
+  and anyone may catch a player on one who has not. Change a rule there and in its test together.
+- **A player who leaves mid-round is skipped, not removed** (`absent`), so nobody's hand vanishes
+  and turn order stays sane. Seats follow the room again between rounds.
+- `state.last` is a sentence about what just happened. With three computers moving, the table is
+  unreadable without it.
+- The solo driver gives the computers human flaws on purpose: they call UNO 85% of the time (so
+  you can catch them) and catch you 60% of the time, after 2.5 s of grace. That catch effect
+  depends only on whether you are catchable — re-arming it on every move meant it never fired.
+- `Card.tsx` draws every card in SVG. A `clipPath` is resolved in the coordinates of the element
+  using it, so it has to sit on an untransformed group: on the translated one it clipped the
+  middle of every card down to its bottom-right corner, which is how the first render came out.
 
 ## Hanoi Tower and its leaderboard
 

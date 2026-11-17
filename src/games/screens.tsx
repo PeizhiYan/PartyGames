@@ -26,6 +26,9 @@ import ChessSolo from './chess/Solo';
 import YahtzeeArt from './yahtzee/Art';
 import YahtzeeRoom from './yahtzee/Room';
 import YahtzeeSolo from './yahtzee/Solo';
+import UnoArt from './uno/Art';
+import UnoRoom from './uno/Room';
+import UnoSolo from './uno/Solo';
 
 export interface GameScreens {
   /** The game itself, inside a room. */
@@ -49,6 +52,7 @@ export const SCREENS: Record<GameId, GameScreens> = {
   xiangqi: { Room: XiangqiRoom, Solo: XiangqiSolo, Art: XiangqiArt },
   chess: { Room: ChessRoom, Solo: ChessSolo, Art: ChessArt },
   yahtzee: { Room: YahtzeeRoom, Solo: YahtzeeSolo, Art: YahtzeeArt },
+  uno: { Room: UnoRoom, Solo: UnoSolo, Art: UnoArt },
   monopoly: {
     Room: MonopolyRoom,
     Art: MonopolyArt,

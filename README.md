@@ -74,6 +74,9 @@ and opens the puzzle directly.
 - **Yahtzee** – up to six players in a room, or one to three computer players. Tap dice to hold
   them; every open box on your card shows what it would score before you choose. Full rules,
   including the upper bonus and the Yahtzee joker.
+- **UNO** – 2-10 players in a room, or one to three computer players. Stack draw-twos, name the
+  colour on a wild, call UNO on your last card — and catch anyone who forgets. Scores carry over
+  between rounds; first to 500 takes the match.
 - **Monopoly** – two ways to play, chosen by the host.
   - **Play the board** — the whole game happens here. Tokens move, rent is charged, Chance and
     Community Chest are drawn, jail works three ways in and three ways out, houses build evenly on
@@ -118,26 +121,26 @@ and opens the puzzle directly.
 
 | Game | Players | Notes |
 |---|---|---|
-| **UNO** | 2–10 | Needs hidden hands — see below. |
 | **Mahjong** (麻将) | 4 | Hidden hands too, and by far the most rules. Worth deciding up front which variant, since 国标 / 广东 / 日麻 score completely differently. |
 
-### The thing that blocks UNO and Mahjong
+### How hidden hands work
 
-Everything today is **open information**. A room is one document holding the whole game state, and
-every player in the room can read all of it — which is fine for Gomoku (the board is public
-anyway) and for MonopolyBuddy (balances are public, or hidden only as a courtesy).
+A room is one document and every player in it can read all of it, so a card game has nowhere to
+keep a secret. UNO (and Mahjong, next) run on the **trusted-client model** anyway — the same one
+the Hanoi leaderboard uses. Hands and the deck live in the room document; the UI only ever shows
+you your own hand. Someone who opens the browser's developer tools could peek. Among friends
+that is the right trade.
 
-A card game is different: if a hand lives in the room document, anyone can read the document and
-see it. Hiding it in the UI changes nothing, because the data is already on their device. Making
-that genuinely secret needs one of:
+If that ever stops being good enough, there are two ways to make hands genuinely secret, and the
+state is already shaped for either:
 
 - **server-side filtering** — a Cloud Function or a real server that sends each player only their
-  own hand, which means game logic moving off the client; or
+  own hand; or
 - **per-player documents** (`rooms/{id}/hands/{uid}`) with security rules that let only that uid
   read them, and a deck the server deals from.
 
-Either is a real change to the room layer, not just a new reducer. Worth doing once, before the
-first card game rather than during it.
+What keeps that move mechanical: private things live in their own top-level keys (`hands`,
+`deck`), and the UI reads `hands` only for the viewer, or another player's `.length`.
 
 ### Backend portability
 
