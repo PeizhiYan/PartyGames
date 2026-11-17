@@ -71,15 +71,21 @@ and opens the puzzle directly.
   board turns to face whichever side you play. Takebacks need the opponent's say-so.
 - **Chess** – full rules (castling, en passant, promotion, every draw), play a friend in a room or
   the computer at three strengths. Tap a piece to see where it may go.
-- **Yahtzee** – up to six players in a room, or one to three computer players. Tap dice to hold
-  them; every open box on your card shows what it would score before you choose. Full rules,
-  including the upper bonus and the Yahtzee joker.
-- **UNO** – 2-10 players in a room, or one to three computer players. Stack draw-twos, name the
-  colour on a wild, call UNO on your last card — and catch anyone who forgets. Scores carry over
-  between rounds; first to 500 takes the match.
-- **Mahjong** (麻将) – four at a table, with friends or three computer players. 136 tiles,
+- **Yahtzee** – up to six players in a room, or alone or against up to five computer players.
+  Dice tumble in a felt tray beside a paper scorecard (docked at the bottom of a phone, so a turn
+  needs no scrolling); every box explains itself, and every open box shows what it would score.
+- **UNO** – 2-10 players in a room, or up to five computer players, seated round a felt table.
+  Cards fly from each player to the pile, the rim glows in the colour to match, and the table
+  reacts in speech bubbles. Stack draw-twos, call UNO — and catch anyone who forgets. First to
+  500 takes the match.
+- **Mahjong** (麻将) – four round a square table, with friends or three computer players, everyone's
+  discards in front of them and a compass lighting whose turn it is. 136 tiles,
   simplified Guangdong-style scoring: four sets and a pair, seven pairs or thirteen orphans; chow
   from the player before you, pong or kong on anyone. The fan for every win is itemised.
+- **A cast of characters.** In Yahtzee, UNO and Mahjong every player is a cartoon face — a robot, a
+  frog, a fox, a panda… — that thinks on its turn, beams at a good move and looks crestfallen at a
+  bad one. Computer players always look the same, so you learn who you are up against. Solo games
+  ask how many players first.
 - **Monopoly** – two ways to play, chosen by the host.
   - **Play the board** — the whole game happens here. Tokens move, rent is charged, Chance and
     Community Chest are drawn, jail works three ways in and three ways out, houses build evenly on

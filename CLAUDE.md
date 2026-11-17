@@ -394,6 +394,13 @@ scoring**. The rule choices are at the top of `mahjong/rules.ts`; the fan table 
   self-drawn win.
 - **A player who leaves mid-hand** has their claims passed for them, and the host gets a button
   (`cover`) to play their turn by discarding the tile they just drew.
+- **The square table** (`Table.tsx`) seats players as at a real table: the next player on your
+  right (play runs that way), the one opposite on top, the previous one — the only one you may
+  chow from — on your left. Each player's discards lie in a pond in front of them, the four ponds
+  in a pinwheel round a compass whose arrow lights towards whoever is to move. Your own tiles are
+  in a wooden rack below the table, at full size. Tile sizes are custom properties (`--pt`,
+  `--mt`, `--bt`) set per breakpoint, and the table is capped by the screen's height so the table
+  and your rack fit on one screen. Calls pop up as bubbles (碰 Pong, 吃 Chow, 槓 Kong, 胡 Mahjong).
 - The computer (`ai.ts`) plays tile efficiency: keep tiles with partners, discard the loneliest,
   prefer tiles already seen discarded. The most valuable test in the folder is fifty seeded hands
   played out by four computers, checking after every action that all 136 tiles are in exactly one
