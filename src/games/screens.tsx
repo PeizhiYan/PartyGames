@@ -17,6 +17,9 @@ import MonopolyRoom from './monopoly/Room';
 import HanoiArt from './hanoi/Art';
 import HanoiSolo from './hanoi/Solo';
 import HanoiLeaderboard from './hanoi/Leaderboard';
+import XiangqiArt from './xiangqi/Art';
+import XiangqiRoom from './xiangqi/Room';
+import XiangqiSolo from './xiangqi/Solo';
 
 export interface GameScreens {
   /** The game itself, inside a room. */
@@ -37,6 +40,7 @@ export interface GameScreens {
 export const SCREENS: Record<GameId, GameScreens> = {
   hanoi: { Solo: HanoiSolo, Art: HanoiArt, LobbyExtra: HanoiLeaderboard },
   gomoku: { Room: GomokuRoom, Solo: GomokuSolo, Art: GomokuArt },
+  xiangqi: { Room: XiangqiRoom, Solo: XiangqiSolo, Art: XiangqiArt },
   monopoly: {
     Room: MonopolyRoom,
     Art: MonopolyArt,

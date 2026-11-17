@@ -64,7 +64,9 @@ src/
 │  ├─ art.ts         the 640x200 canvas every cover is drawn on
 │  ├─ gomoku/        rules board ai (+tests) · Room BoardCanvas Solo Art
 │  ├─ monopoly/      rules (+tests) · Room Dice BalanceChart Art
-│  └─ hanoi/         rules (+tests) · Solo Board Leaderboard Art
+│  ├─ hanoi/         rules (+tests) · Solo Board Leaderboard Art
+│  ├─ xiangqi/       engine rules ai (+tests) · Room Board Solo Art
+│  └─ local.ts       useLocalGame: any GameDefinition, played on-device with computer seats
 ├─ rooms/          the multiplayer layer games plug into: rules, useRooms, RoomList
 ├─ services/       the backend contract
 ├─ adapters/       firebase/ and memory/ — the only places that know a backend exists
@@ -224,6 +226,43 @@ Three things that were real bugs in the original or in this port, and have tests
 - **Defence must be scored**, or a cell that has to be blocked gets pruned before the search sees it.
 - `candidates()` falls back to the centre **only on an empty board**. A full board also has no
   candidates, and offering the centre there hands the search an occupied cell to play on.
+
+## Solo modes are the room's reducer
+
+Every "vs the computer" screen runs the game's own `GameDefinition` through `games/local.ts`
+(`useLocalGame`), with a made-up room whose other seats are the computer. The AI takes its turn
+through the same `reduce` a friend would, so a game cannot behave one way against a person and
+another against the engine, and a solo undo is just "request the takeback as you, approve it as
+the computer". Gomoku predates this and keeps its own solo loop; everything from Chinese Chess
+on uses the hook. It imports nothing from `src/services`, so solo play works offline.
+
+`act` reduces from a ref of the latest state, not the render's copy: React batches `setState`,
+and the computer acting straight after you must see your move. `generation` is bumped on reset
+so a reply already on its way is thrown away.
+
+## Chinese Chess: the port
+
+`games/xiangqi/engine.ts` is XiangQi Wizard Light (`position.js` + `search.js` from
+`../PeizhiYan.github.io/js_codes/chinese_chess`) in TypeScript, kept line-for-line where the
+language allows so its strength carries over: a 16x16 board with the 9x10 playing area at files
+3-11 / ranks 3-12, moves as `src + (dst << 8)`, piece-square evaluation, alpha-beta with a
+transposition table, killers, history, null-move and quiescence. The opening book is left out —
+300KB for a few more varied first moves.
+
+- **The reducer stores only the move list** and replays it from the start position whenever it
+  needs the board (`positionOf`). A hundred moves replay in well under a millisecond; a stored
+  board would have to be kept in step with the engine's zobrist keys and repetition history.
+- **End conditions are the engine's verdict** (`settle()`): mate (which includes stalemate —
+  no legal move loses in xiangqi), repetition with the perpetual-check rule deciding who loses,
+  no attacking material left after a capture, and fifty moves without one. The bare-board draw
+  counts *both* sides' pieces: a rook that stays on the board is still attacking material.
+- `MoveSort.next` is a ladder of ifs rather than the original's fall-through switch, because the
+  project forbids fall-through. Same order, same early returns.
+- `Search` takes an injectable random source, so the engine test can prove it deterministic.
+- The board flips for black (`viewer`) by remapping piece positions only; the river's writing is
+  never rotated — it faces whoever is looking. A rim is a stroke and a character a fill: giving
+  the rim a fill paints over the disc and hides the character, which is how the first render
+  came out solid.
 
 ## Hanoi Tower and its leaderboard
 

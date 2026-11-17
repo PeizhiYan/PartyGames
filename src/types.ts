@@ -8,7 +8,7 @@ export interface AppUser {
 }
 
 /** Every game in the app. Used as the room's `game` field and in URLs. */
-export type GameId = 'gomoku' | 'monopoly' | 'hanoi';
+export type GameId = 'gomoku' | 'monopoly' | 'hanoi' | 'xiangqi';
 
 export interface RoomPlayer {
   uid: string;

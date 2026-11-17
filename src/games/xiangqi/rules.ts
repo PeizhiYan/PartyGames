@@ -6,7 +6,7 @@
  * state stores the move list only; the position is replayed from the start whenever it is
  * needed, which keeps the document small and the rules a pure function of it.
  */
-import { GameRuleError, type GameContext, type GameDefinition, type GameId } from '../../types';
+import { GameRuleError, type GameContext, type GameDefinition } from '../../types';
 import { Position, STARTUP_FEN, WIN_VALUE } from './engine';
 
 /** 1 red, 2 black. Red moves first, as in the original. */
@@ -196,10 +196,7 @@ function respondTakeback(state: XiangqiState, approve: boolean, ctx: GameContext
 }
 
 export const xiangqi: GameDefinition<XiangqiState, XiangqiAction> = {
-  // TODO(xiangqi): becomes a plain literal once 'xiangqi' joins the GameId union, which happens
-  // when the screens land — adding it earlier would break the registries' Record<GameId> checks
-  // for a game that cannot be shown yet.
-  id: 'xiangqi' as GameId,
+  id: 'xiangqi',
   name: 'Chinese Chess',
   tagline: '象棋. Generals, cannons and the river. Play a friend, or the engine.',
   emoji: '🀄',
