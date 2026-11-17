@@ -385,10 +385,9 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 /*
  * auto-FILL, not auto-fit: with only two games, auto-fit collapses the empty tracks and stretches
  * the cards to half the page each. auto-fill keeps the tracks, so a card stays card-sized however
- * few games there are. ~230px gives three or four across a desktop and one on a phone.
+ * few games there are. ~230px gives three or four across a desktop; a phone gets app icons (below).
  */
 .game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
-@media (max-width: 560px) { .game-grid { grid-template-columns: 1fr; } }
 .game-card {
   display: flex;
   flex-direction: column;
@@ -435,6 +434,42 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .game-card-meta { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
 .game-card-go { margin-left: auto; color: var(--accent); display: inline-flex; transition: transform 220ms var(--spring); }
 .game-card:hover .game-card-go { transform: translateX(3px); }
+
+/* The phone's icon and player count, hidden until a phone asks for them. */
+.game-card-icon, .game-card-players { display: none; }
+
+/*
+ * On a phone the games are app icons, like the phone's own home screen: each game's own square
+ * icon (its `AppIcon`, not the cover cropped — that lost most of every picture) with the name and
+ * how many can play underneath, three to a row (two on the narrowest phones). The tagline waits
+ * for the lobby, which has room for it.
+ */
+@media (max-width: 560px) {
+  .game-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px 14px; }
+  .game-card {
+    align-items: center; text-align: center; overflow: visible;
+    background: none; border: none; border-radius: 0; box-shadow: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .game-card:hover { transform: none; box-shadow: none; }
+  .game-card:active { transform: scale(0.94); }
+  .game-card-art, .game-card-tagline, .game-card-meta { display: none; }
+  .game-card-icon {
+    display: block; width: 100%; aspect-ratio: 1; overflow: hidden; border-radius: 23%;
+    box-shadow: 0 6px 16px rgb(40 25 10 / 0.2), 0 1px 3px rgb(40 25 10 / 0.14), inset 0 0 0 1px rgb(255 255 255 / 0.12);
+  }
+  .app-icon { display: block; width: 100%; height: 100%; }
+  .game-card-body { padding: 8px 0 0; align-items: center; gap: 3px; width: 100%; }
+  .game-card strong {
+    font-size: 0.86rem; font-weight: 650; letter-spacing: 0; line-height: 1.25;
+    max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .game-card-players {
+    display: inline-flex; align-items: center; gap: 3px; padding: 1px 7px; border-radius: 999px;
+    background: var(--accent-soft); color: var(--accent); font-size: 0.68rem; font-weight: 700; white-space: nowrap;
+  }
+}
+@media (max-width: 340px) { .game-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 
 /* A game's lobby: the same art as a band, with everything readable on the page below it. */
 .lobby-head { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }

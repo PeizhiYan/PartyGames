@@ -11,7 +11,9 @@ const PATHS = {
   close: 'M18 6L6 18 M6 6l12 12',
   trash: 'M3 6h18 M8 6V4h8v2 M19 6l-1 14H6L5 6',
   logout: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9',
-  undo: 'M3 7v6h6 M3.5 13a9 9 0 1 0 2.1-6.4L3 10',
+  // One open circle running anticlockwise into its arrowhead. The first drawing's arc doubled back
+  // over itself and its head floated beside it.
+  undo: 'M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8 M3 3v5h5',
   flag: 'M4 22V4 M4 4h11l-1.5 4L15 12H4',
   eye: 'M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z',
   // A temple front, not a house — `home` is the house, and Monopoly uses both side by side.

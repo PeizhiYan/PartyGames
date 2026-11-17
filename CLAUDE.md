@@ -219,7 +219,7 @@ Nothing else. The home grid, the lobby, the room page, the solo route and the ro
 the registries — there are no per-game branches left anywhere else in the app.
 
 Cover art is drawn on a 640x200 canvas and cropped two ways; see `src/games/art.ts` for the safe
-zone before drawing.
+zone before drawing. Every game also needs an `AppIcon` (120x120) for the home screen on a phone.
 
 ## Gomoku: the port
 
@@ -520,7 +520,9 @@ the same peg cancels instead of counting a move, and only a successful move adva
 - **Cover art has to survive two crops** (`src/games/art.ts`). It is drawn on 640x200 and `slice`-cropped into a 2:1
   card (sides trimmed) and a ~5:1 lobby banner (top and bottom trimmed), so anything that matters
   lives inside x 120-520, y 34-166. The canvas started at 320x160 and the banner cropped three
-  times into the middle of it.
+  times into the middle of it. A phone's home screen does not crop it at all: it shows
+  each game's own `AppIcon`, a square 120x120 drawing of one bold subject. A square crop of the
+  cover was tried first and lost most of every picture.
 - **`--bg` is a `color-mix()`**, so reading it back with `getPropertyValue('--bg')` returns the
   literal `color-mix(...)` text, not a colour. `applyTheme` takes the computed
   `backgroundColor` off `document.body` instead, for the `theme-color` meta.
