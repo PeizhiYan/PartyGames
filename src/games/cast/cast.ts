@@ -6,7 +6,7 @@
  * learns who they are up against. People get a character picked from their uid, so the same
  * person looks the same in every game and on every device, with no setting to store.
  */
-import { COMPUTER_UID } from '../local';
+import { COMPUTER_UID } from '../../rooms/computers';
 
 export const SPECIES = ['cat', 'bear', 'bunny', 'robot', 'frog', 'fox', 'panda', 'owl'] as const;
 export type Species = (typeof SPECIES)[number];
@@ -34,6 +34,12 @@ export function computerIndex(uid: string): number {
   if (uid === COMPUTER_UID) return 0;
   const m = /^computer-(\d+)$/.exec(uid);
   return m ? Number(m[1]) - 1 : -1;
+}
+
+/** A computer player's name, from its uid. */
+export function computerName(uid: string): string {
+  const i = computerIndex(uid);
+  return i >= 0 ? COMPUTER_CAST[i % COMPUTER_CAST.length].name : 'Computer';
 }
 
 function hash(text: string): number {

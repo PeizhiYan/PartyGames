@@ -2,6 +2,7 @@ import { useMemo, useState, type CSSProperties } from 'react';
 import Icon from '../../ui/Icon';
 import Sheet from '../../ui/Sheet';
 import Seat from '../cast/Seat';
+import { RemoveComputer, type Seating } from '../cast/Seating';
 import Confetti from '../cast/Confetti';
 import { assignSpecies } from '../cast/cast';
 import { bubbleFor, expressionFor, useMoments, type Detect, type Moment } from '../cast/moments';
@@ -24,6 +25,8 @@ export interface TableProps {
   error: string;
   /** The host deals each round. */
   owner: boolean;
+  /** The host's controls for computer players, in a room's lobby. */
+  seating?: Seating;
 }
 
 /** Display order for a hand: by colour, then by face. Purely cosmetic — the state keeps deal order. */
@@ -97,7 +100,7 @@ function seatAt(offset: number, n: number): { x: number; y: number } {
  * Reads only the viewer's own hand. For everyone else it reads `.length` and nothing more — the
  * rule that keeps a later move to per-player documents mechanical (see CLAUDE.md).
  */
-export default function UnoTable({ state, uid, act, busy, error, owner }: TableProps) {
+export default function UnoTable({ state, uid, act, busy, error, owner, seating }: TableProps) {
   const [wildCard, setWildCard] = useState<number | null>(null);
   const detect = useMemo(() => detector(uid), [uid]);
   const moments = useMoments(state, detect);
@@ -185,6 +188,7 @@ export default function UnoTable({ state, uid, act, busy, error, owner }: TableP
                   {n < 2 ? 'Waiting for a second player…' : 'Deal'}
                 </button>
               : <span className="muted">Waiting for the host to deal…</span>}
+            {seating?.add && <button type="button" className="small ut-add" onClick={seating.add}><Icon name="plus" size={14} /> Add a computer</button>}
           </div>
         )}
 
@@ -209,6 +213,7 @@ export default function UnoTable({ state, uid, act, busy, error, owner }: TableP
               <Seat uid={s.uid} species={looks[s.uid]} name={isMe ? 'You' : firstName(s.name)} size={seatSize}
                 expression={face(s.uid)} turn={state.phase === 'playing' && current?.uid === s.uid} away={s.absent}
                 bubble={bubbleFor(moments, s.uid)}
+                corner={seating && state.phase === 'lobby' && isComputer(s.uid) ? <RemoveComputer name={s.name} onRemove={() => seating.remove(s.uid)} /> : undefined}
                 meta={state.phase === 'lobby' || !anyScore ? undefined : `${s.score} pts`}>
                 {state.phase === 'playing' && !isMe && (
                   <span className="ut-backs" aria-label={`${count} cards`}>

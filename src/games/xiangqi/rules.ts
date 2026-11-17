@@ -204,8 +204,8 @@ export const xiangqi: GameDefinition<XiangqiState, XiangqiAction> = {
   maxPlayers: 2,
   solo: true,
   multiplayer: true,
-  soloTitle: 'Play the engine',
-  soloDescription: 'No room needed. Three strengths.',
+  soloTitle: 'Play on this device',
+  soloDescription: 'The engine at three strengths, or a friend on the same screen.',
   newState: initial,
   onPlayersChanged: reseat,
   reduce(state, action, ctx) {

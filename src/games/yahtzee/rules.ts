@@ -234,7 +234,8 @@ function again(state: YahtzeeState, ctx: GameContext): YahtzeeState {
 export const ranking = (state: YahtzeeState): Seat[] => [...state.seats].sort((a, b) => grandTotal(b) - grandTotal(a));
 
 /** Five dice from the device. Passed in on the action, never rolled inside the reducer. */
-export const throwFive = (): number[] => Array.from({ length: 5 }, () => 1 + Math.floor(Math.random() * 6));
+export const throwFive = (random: () => number = Math.random): number[] =>
+  Array.from({ length: 5 }, () => 1 + Math.floor(random() * 6));
 
 export const yahtzee: GameDefinition<YahtzeeState, YahtzeeAction> = {
   id: 'yahtzee',
@@ -245,8 +246,9 @@ export const yahtzee: GameDefinition<YahtzeeState, YahtzeeAction> = {
   maxPlayers: 6,
   solo: true,
   multiplayer: true,
-  soloTitle: 'Play the computer',
-  soloDescription: 'No room needed. One to three computer players.',
+  computerPlayers: true,
+  soloTitle: 'Play on this device',
+  soloDescription: 'No room needed. Computer players, friends passing the phone, or both.',
   newState: initial,
   onPlayersChanged: syncSeats,
   reduce(state, action, ctx) {

@@ -469,6 +469,7 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
 .faces { display: flex; }
 .faces > * { margin-left: -8px; box-shadow: 0 0 0 2px var(--surface); }
 .faces > *:first-child { margin-left: 0; }
+.avatar-computer { display: inline-flex; border-radius: 50%; background: var(--inset); }
 .room-banner { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--radius); background: var(--accent-soft); margin-bottom: 14px; }
 
 /* Game screens */

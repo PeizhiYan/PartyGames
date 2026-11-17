@@ -27,6 +27,7 @@ import type { GomokuState } from '../../games/gomoku/rules';
 import { idx } from '../../games/gomoku/board';
 import { ABANDONED_AFTER_MS } from '../../rooms/rules';
 import type { Room } from '../../types';
+import type { YahtzeeState } from '../../games/yahtzee/rules';
 
 describe('two players in a room', () => {
   beforeEach(() => { localStorage.clear(); sessionStorage.clear(); });
@@ -137,5 +138,57 @@ describe('two players in a room', () => {
     await host.rooms.reap('gomoku');
     host.rooms.watchRoom(roomId, (r) => { room = r; });
     expect(room).toBeNull();
+  });
+
+  it('seats computer players, plays their turns from any player, and closes when only they remain', async () => {
+    const host = createMemoryBackend();
+    await host.auth.signInWithGoogle();
+    sessionStorage.clear();
+    const guest = createMemoryBackend();
+    await guest.auth.signInWithGoogle();
+
+    // Gomoku has no computer players in rooms; Yahtzee does.
+    const gomokuRoom = await host.rooms.create('gomoku', 'No computers');
+    await expect(host.rooms.addComputer(gomokuRoom)).rejects.toThrow(/no computer/i);
+
+    const roomId = await host.rooms.create('yahtzee', 'Dice night');
+    await guest.rooms.requestJoin(roomId);
+    await host.rooms.approve(roomId, 'player2');
+    let room: Room | null = null;
+    host.rooms.watchRoom(roomId, (r) => { room = r; });
+
+    // Only the host seats them, and they sit at the table like anyone else, named from the cast.
+    await expect(guest.rooms.addComputer(roomId)).rejects.toThrow(/host/i);
+    await host.rooms.addComputer(roomId);
+    await host.rooms.addComputer(roomId);
+    expect(room!.playerUids).toEqual(['admin', 'player2', 'computer', 'computer-2']);
+    expect(room!.players.slice(2).map((p) => p.name)).toEqual(['Dot', 'Pip']);
+    expect((room!.state as YahtzeeState).seats.map((s) => s.uid)).toEqual(['admin', 'player2', 'computer', 'computer-2']);
+
+    // Taking one out frees its seat.
+    await host.rooms.removeComputer(roomId, 'computer-2');
+    expect(room!.playerUids).toEqual(['admin', 'player2', 'computer']);
+    await expect(host.rooms.removeComputer(roomId, 'player2')).rejects.toThrow(/computer/i);
+
+    // A player in the room plays for a computer; nobody plays as another person.
+    await host.rooms.act(roomId, { type: 'start' });
+    await host.rooms.act(roomId, { type: 'roll', dice: [1, 2, 3, 4, 5] });
+    await host.rooms.act(roomId, { type: 'score', category: 'chance' });
+    await guest.rooms.act(roomId, { type: 'roll', dice: [6, 6, 6, 6, 6] });
+    await guest.rooms.act(roomId, { type: 'score', category: 'yahtzee' });
+    await expect(host.rooms.act(roomId, { type: 'roll', dice: [1, 1, 1, 1, 1] }, 'player2')).rejects.toThrow(/computer/i);
+    await guest.rooms.act(roomId, { type: 'roll', dice: [2, 2, 3, 3, 3] }, 'computer');
+    await guest.rooms.act(roomId, { type: 'score', category: 'fullHouse' }, 'computer');
+    const seats = (room!.state as YahtzeeState).seats;
+    expect(seats.find((s) => s.uid === 'computer')!.card.fullHouse).toBe(25);
+
+    // The host leaves: the room goes to the guest, not a computer. Then the guest leaves, and a
+    // room of computers alone is closed.
+    await host.rooms.leave(roomId);
+    let guestView: Room | null = null;
+    guest.rooms.watchRoom(roomId, (r) => { guestView = r; });
+    expect(guestView!.ownerUid).toBe('player2');
+    await guest.rooms.leave(roomId);
+    expect(guestView).toBeNull();
   });
 });

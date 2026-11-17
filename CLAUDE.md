@@ -67,13 +67,15 @@ src/
 │  ├─ hanoi/         rules (+tests) · Solo Board Leaderboard Art
 │  ├─ xiangqi/       engine rules ai (+tests) · Room Board Solo Art
 │  ├─ chess/         engine rules ai (+tests) · Room Board Pieces Solo Art
-│  ├─ yahtzee/       rules ai (+tests) · Table Room Solo Art
-│  ├─ uno/           cards rules ai (+tests) · Card Table Room Solo Art
-│  ├─ mahjong/       tiles hand scoring rules ai (+tests) · Tile Table Room Solo Art
+│  ├─ yahtzee/       rules ai computers (+tests) · Table Room Solo Art
+│  ├─ uno/           cards rules ai computers (+tests) · Card Table Room Solo Art
+│  ├─ mahjong/       tiles hand scoring rules ai computers (+tests) · Tile Table Room Solo Art
 │  ├─ shuffle.ts     seeded rng + shuffle + newSeed, for any game that deals
-│  ├─ cast/          Character faces, Seat, moments, Setup (player count), Confetti — every table
-│  └─ local.ts       useLocalGame: any GameDefinition, played on-device with computer seats
-├─ rooms/          the multiplayer layer games plug into: rules, useRooms, RoomList
+│  ├─ cast/          Character faces, Seat, moments, Setup, Seating, Opponent, Confetti
+│  ├─ local.ts       useLocalGame: any GameDefinition, played on-device with computer and guest seats
+│  ├─ turns.ts       useComputerTurns: plays a game's ComputerPolicy, solo or in a room
+│  └─ roomComputers.ts  computers in a room: the host's seating controls, which device drives
+├─ rooms/          the multiplayer layer games plug into: rules, computers, useRooms, RoomList
 ├─ services/       the backend contract
 ├─ adapters/       firebase/ and memory/ — the only places that know a backend exists
 ├─ ui/             design-system primitives: Icon Sheet Toast Segmented Avatar
@@ -250,6 +252,50 @@ on uses the hook. It imports nothing from `src/services`, so solo play works off
 and the computer acting straight after you must see your move. `generation` is bumped on reset
 so a reply already on its way is thrown away.
 
+## Computer players
+
+A computer is an ordinary `RoomPlayer` whose uid starts with `computer` (`rooms/computers.ts`), so
+every game seats it without knowing it is one, and the cast gives it its fixed face and name.
+
+- **Each game's computers are a `ComputerPolicy`** in `<game>/computers.ts`: a pure function from
+  the state to the moves its computers would make now, each with who makes it, its actions and a
+  delay. `useComputerTurns` (`games/turns.ts`) plays the soonest. Solo screens run it against
+  `useLocalGame`; rooms run it against the backend. One policy, so a computer cannot play
+  differently alone and in a room. `games/computers.test.ts` plays whole games with nothing but
+  computers through the real reducers.
+- **A move's delay runs from when it was first offered**, not from the latest change. UNO's catch
+  waits 2.5 s of grace while other computers keep playing; restarting its clock on every move meant
+  it never fired. `chance` (catching only 60% of the time) is rolled once per offer for the same
+  reason: re-rolling on every change makes "sometimes" into "eventually".
+- **In a room, one device plays the computers** (`computerDriver`): the host's, or — when the host
+  has not checked in for `PRESENCE_TIMEOUT_MS`, say a locked phone — the longest-standing person
+  who has. Two devices driving at once would play a turn twice. It acts through
+  `rooms.act(roomId, action, as)`, which any player may use, but only `as` a computer in that room.
+  The Firestore rules already let a player rewrite the roster, so seating computers needed no rules
+  change; they still cap a room at eight (`ROOM_LIMIT`), which is why UNO stops seating there.
+- **Computers never keep a room alive or own it.** The host's seat passes to the next *person*, and
+  the last person out still deletes the room (`afterLeaving`).
+- `GameDefinition.computerPlayers` says a game has them (Yahtzee, UNO, Mahjong). The host adds and
+  removes them in the lobby only: a game seats newcomers between rounds, never mid-round.
+
+## Several people on one device
+
+`localRoster` mixes you, computers and guests (`guest`, `guest-2`, … — people with no account).
+Yahtzee's setup lets each seat be a computer or a named person; chess, Chinese chess and Gomoku
+have an Opponent card ("A friend, here").
+
+- **The action is played as whoever holds the device**: the person to move. Between two friends
+  at chess that is the side to move; at Yahtzee the person whose turn it is, or while a computer
+  moves, whoever moved last, so the screen does not jump back to you between other people's turns.
+  Starting another game is still the host's (you).
+- **Nobody is "You" on a shared device** (`hotseat` on the Yahtzee table): it would mean a
+  different person every turn, so everyone is called by name.
+- Between friends the tally is kept by colour and the colours do not swap — the two of you can
+  swap chairs. The board turns to the side to move by default ("The board" card), or stays put for
+  a device lying flat between you.
+- UNO and Mahjong are not offered this way: their hands are hidden, and a shared screen cannot hide
+  one player's hand from the next.
+
 ## Chinese Chess: the port
 
 `games/xiangqi/engine.ts` is XiangQi Wizard Light (`position.js` + `search.js` from
@@ -322,7 +368,7 @@ gets castling-through-check and en-passant pins right with no special cases.
 - A tie is announced as a tie.
 - The computer (`ai.ts`) is a list of rules, not a search: keep the largest group, chase four to
   a straight, take the big boxes when they appear, zero the cheapest box when nothing fits. The
-  solo driver plays it one beat (650 ms) at a time so a turn can be followed.
+  policy in `computers.ts` plays it one beat (800 ms) at a time so a turn can be followed.
 - Dice faces live in `src/ui/Die.tsx` for any game; with `onToggle` a die is a hold button.
 
 ## The cast: faces, moments and setup
@@ -359,9 +405,9 @@ gets castling-through-check and en-passant pins right with no special cases.
   and turn order stays sane. Seats follow the room again between rounds.
 - `state.last` is a sentence about what just happened. With three computers moving, the table is
   unreadable without it.
-- The solo driver gives the computers human flaws on purpose: they call UNO 85% of the time (so
-  you can catch them) and catch you 60% of the time, after 2.5 s of grace. That catch effect
-  depends only on whether you are catchable — re-arming it on every move meant it never fired.
+- `computers.ts` gives the computers human flaws on purpose: they call UNO 85% of the time (so
+  you can catch them) and catch a person 60% of the time, after 2.5 s of grace. They never catch
+  each other. See "Computer players" for why the grace is not reset by other players' moves.
 - **The round table** (`Table.tsx`): seats sit round an oval with the viewer at the bottom and play
   running clockwise, so turn order is what you see. The table is a CSS **size container**, so a
   card can fly from a seat to the pile with `translate(Xcqw, Ycqh)` — percentages of the table —

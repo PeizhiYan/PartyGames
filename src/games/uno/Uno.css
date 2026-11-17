@@ -28,6 +28,7 @@
 
 .ut-centre { position: absolute; left: 50%; top: 48%; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 22px; z-index: 2; }
 .ut-lobby-centre { flex-direction: column; gap: 10px; color: #eaf6ec; text-align: center; }
+.ut-add { background: rgb(255 255 255 / 0.12); border-color: rgb(255 255 255 / 0.35); color: #eaf6ec; }
 .ut-deck { position: relative; padding: 0; border: none; background: none; min-height: 0; border-radius: 9px; }
 .ut-deck:disabled { opacity: 1; cursor: default; }
 .ut-deck-stack { position: absolute; inset: 0; }

@@ -89,6 +89,11 @@ export interface GameDefinition<S, A> {
   multiplayer: boolean;
   soloTitle?: string;
   soloDescription?: string;
+  /**
+   * True if the host may seat computer players in a room. The computers' turns are played by a
+   * device in the room (see `src/rooms/computers.ts`), so the game needs a computer opponent.
+   */
+  computerPlayers?: boolean;
   newState(ctx: GameContext): S;
   /** Must be pure. Throws `GameRuleError` if the action isn't allowed. */
   reduce(state: S, action: A, ctx: GameContext): S;

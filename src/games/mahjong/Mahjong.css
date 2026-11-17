@@ -38,6 +38,8 @@
 .mt-right { grid-area: right; flex-direction: column; justify-content: center; }
 .mt-wind { display: inline-grid; place-items: center; width: 16px; height: 16px; border-radius: 4px; font-size: 0.62rem; background: rgb(255 255 255 / 0.18); color: #fff; }
 .mt-wind.east { background: #c0392b; }
+.mt .seat-add { color: rgb(255 255 255 / 0.7); }
+.mt .seat-add:hover { color: #fff; }
 .mt-empty-seat { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px; border: 2px dashed rgb(255 255 255 / 0.3); border-radius: 50%; width: 72px; height: 72px; justify-content: center; font-size: 0.62rem; color: rgb(255 255 255 / 0.6); }
 
 .mt-backs { display: flex; }

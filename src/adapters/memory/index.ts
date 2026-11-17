@@ -9,6 +9,8 @@
  */
 import { applyGameAction, getGame, syncGamePlayers } from '../../games/registry';
 import { defaultRoomName, isStale, newRoomCode, normalizeCode } from '../../rooms/rules';
+import { actingAs, afterLeaving, seatComputer, unseatComputer } from '../../rooms/computers';
+import { computerName } from '../../games/cast/cast';
 import {
   GameRuleError, type AppUser, type GameContext, type GameId, type JoinRequest, type Member,
   type Room, type RoomPlayer, type RoomSummary,
@@ -227,11 +229,10 @@ export function createMemoryBackend(): Backend & { dev: MemoryDevTools } {
       update((store) => {
         const room = store.rooms[roomId];
         if (!room) return;
-        const players = room.players.filter((p) => p.uid !== actor.uid);
-        if (players.length === 0) { delete store.rooms[roomId]; return; }
-        if (room.ownerUid === actor.uid) {
-          room.ownerUid = [...players].sort((a, b) => a.joinedAt - b.joinedAt)[0].uid;
-        }
+        const next = afterLeaving(room, actor.uid);
+        if (!next) { delete store.rooms[roomId]; return; }
+        const { players } = next;
+        room.ownerUid = next.ownerUid;
         room.requests = room.requests.filter((r) => r.uid !== actor.uid);
         delete room.presence[actor.uid];
         setPlayers(room, players, actor.uid);
@@ -249,10 +250,19 @@ export function createMemoryBackend(): Backend & { dev: MemoryDevTools } {
       });
     },
 
-    act: (roomId, action) => editRoom(roomId, (room) => {
-      const actor = requireUser();
-      if (!room.playerUids.includes(actor.uid)) throw new GameRuleError('You are not in this room.');
-      room.state = applyGameAction(room.game, room.state, action, contextOf(room, actor.uid));
+    addComputer: (roomId) => editRoom(roomId, (room) => {
+      const computer = seatComputer(room, requireUser().uid, getGame(room.game), computerName, Date.now());
+      setPlayers(room, [...room.players, computer], room.ownerUid);
+    }),
+
+    removeComputer: (roomId, who) => editRoom(roomId, (room) => {
+      if (!room.playerUids.includes(who)) return;
+      setPlayers(room, unseatComputer(room, requireUser().uid, who), room.ownerUid);
+    }),
+
+    act: (roomId, action, as) => editRoom(roomId, (room) => {
+      const actor = actingAs(room, requireUser().uid, as);
+      room.state = applyGameAction(room.game, room.state, action, contextOf(room, actor));
     }),
 
     async heartbeat(roomId) {

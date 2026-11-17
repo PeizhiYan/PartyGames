@@ -5,6 +5,7 @@ import Sheet from '../../ui/Sheet';
 import Character from '../cast/Character';
 import Confetti from '../cast/Confetti';
 import Seat from '../cast/Seat';
+import { AddComputer, RemoveComputer, type Seating } from '../cast/Seating';
 import { isComputer } from '../local';
 import { assignSpecies } from '../cast/cast';
 import { bubbleFor, expressionFor, useMoments, type Detect } from '../cast/moments';
@@ -25,6 +26,13 @@ export interface TableProps {
   error: string;
   /** The host starts each game. */
   owner: boolean;
+  /** The host's controls for computer players, in a room's lobby. */
+  seating?: Seating;
+  /**
+   * Several people are playing on this one device, and `uid` is whoever holds it now. Everyone
+   * is then called by name: "You" would mean a different person every turn.
+   */
+  hotseat?: boolean;
 }
 
 /** Notices boxes being filled, so the card can flash them and the faces can react. */
@@ -68,17 +76,22 @@ const tumble = (i: number, roll: number): CSSProperties => ({
  * card comes first and the tray docks to the bottom of the screen, so a whole turn — roll, hold,
  * roll, score — happens without scrolling.
  */
-export default function YahtzeeTable({ state, uid, act, busy, error, owner }: TableProps) {
+export default function YahtzeeTable({ state, uid, act, busy, error, owner, seating, hotseat }: TableProps) {
   const [help, setHelp] = useState<Category | 'bonus' | 'zero' | null>(null);
   const moments = useMoments(state, detect);
   const looks = assignSpecies(state.seats.map((s) => s.uid));
+  const nameOf = (s: { uid: string; name: string }) => (!hotseat && s.uid === uid ? 'You' : firstName(s.name));
 
   if (state.phase === 'lobby') {
     return (
       <div className="yz-lobby">
         <h2>Around the table</h2>
         <div className="yz-lobby-seats">
-          {state.seats.map((s) => <Seat key={s.uid} uid={s.uid} species={looks[s.uid]} name={s.uid === uid ? 'You' : firstName(s.name)} size={56} />)}
+          {state.seats.map((s) => (
+            <Seat key={s.uid} uid={s.uid} species={looks[s.uid]} name={nameOf(s)} size={56}
+              corner={seating && isComputer(s.uid) ? <RemoveComputer name={s.name} onRemove={() => seating.remove(s.uid)} /> : undefined} />
+          ))}
+          {seating?.add && <AddComputer onAdd={seating.add} size={56} />}
         </div>
         <p className="muted">
           Thirteen turns each. Roll up to three times a turn, keeping the dice you like, then fill
@@ -113,7 +126,7 @@ export default function YahtzeeTable({ state, uid, act, busy, error, owner }: Ta
 
   return (
     <div className={`yz${state.phase === 'results' ? ' done' : ''}`}>
-      {state.phase === 'results' && <Results state={state} uid={uid} owner={owner} busy={busy} act={act} species={looks} />}
+      {state.phase === 'results' && <Results state={state} nameOf={nameOf} owner={owner} busy={busy} act={act} species={looks} />}
 
       <section className="yz-sheet" aria-label="Scorecard">
         <div className="yz-card-wrap">
@@ -130,7 +143,7 @@ export default function YahtzeeTable({ state, uid, act, busy, error, owner }: Ta
                         <Character uid={s.uid} species={looks[s.uid]} size={30} expression={faceOf(s)} />
                         {bubbleFor(moments, s.uid) && <span key={bubbleFor(moments, s.uid)!.key} className={`bubble ${bubbleFor(moments, s.uid)!.tone ?? ''}`}>{bubbleFor(moments, s.uid)!.text}</span>}
                       </span>
-                      <span className="yz-head-name">{s.uid === uid ? 'You' : firstName(s.name)}</span>
+                      <span className="yz-head-name">{nameOf(s)}</span>
                       <strong className="yz-head-total">{grandTotal(s)}</strong>
                     </span>
                   </th>
@@ -184,7 +197,7 @@ export default function YahtzeeTable({ state, uid, act, busy, error, owner }: Ta
             {current && <Character uid={current.uid} species={looks[current.uid]} size={34} expression={faceOf(current)} />}
             <div className="grow" style={{ minWidth: 0 }}>
               <strong className="truncate" style={{ display: 'block' }}>
-                {myTurn ? 'Your turn' : `${firstName(current?.name ?? '')}'s turn`}
+                {myTurn && !hotseat ? 'Your turn' : `${firstName(current?.name ?? '')}'s turn`}
               </strong>
               <small className="muted">
                 {lastScore?.data?.name
@@ -294,13 +307,16 @@ function Row({ c, state, uid, options, best, fresh, busy, onHelp, onPick }: {
   );
 }
 
-function Results({ state, uid, owner, busy, act, species }: Pick<TableProps, 'state' | 'uid' | 'owner' | 'busy' | 'act'> & { species: ReturnType<typeof assignSpecies> }) {
+function Results({ state, nameOf, owner, busy, act, species }: Pick<TableProps, 'state' | 'owner' | 'busy' | 'act'> & {
+  species: ReturnType<typeof assignSpecies>;
+  nameOf: (s: SeatState) => string;
+}) {
   const order = ranking(state);
   const winner = order[0];
   // Everyone level on the top score shares it; "You win!" for a tie would be a lie.
   const top = grandTotal(winner);
   const winners = order.filter((s) => grandTotal(s) === top);
-  const names = winners.map((s) => (s.uid === uid ? 'you' : firstName(s.name)));
+  const names = winners.map((s) => (nameOf(s) === 'You' ? 'you' : nameOf(s)));
   return (
     <section className="yz-results">
       <Confetti />
@@ -308,10 +324,10 @@ function Results({ state, uid, owner, busy, act, species }: Pick<TableProps, 'st
       <h2>
         {winners.length > 1
           ? `A tie between ${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}!`
-          : winner.uid === uid ? 'You win!' : `${firstName(winner.name)} wins!`}
+          : nameOf(winner) === 'You' ? 'You win!' : `${nameOf(winner)} wins!`}
       </h2>
       <p className="muted" style={{ margin: 0 }}>
-        {order.map((s, i) => `${i + 1}. ${s.uid === uid ? 'You' : firstName(s.name)} ${grandTotal(s)}`).join('   ·   ')}
+        {order.map((s, i) => `${i + 1}. ${nameOf(s)} ${grandTotal(s)}`).join('   ·   ')}
       </p>
       {owner
         ? <button type="button" className="primary" disabled={busy} onClick={() => act({ type: 'again' })}>Play again</button>
