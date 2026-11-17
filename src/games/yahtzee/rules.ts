@@ -133,7 +133,9 @@ export function jokerState(seat: Seat, dice: Dice): { joker: boolean; mustUse: C
 export function choices(seat: Seat, dice: Dice): { category: Category; score: number }[] {
   const { joker, mustUse } = jokerState(seat, dice);
   const open = openCategories(seat);
-  const allowed = mustUse ? [mustUse] : joker ? open.filter((c) => !UPPER.includes(c) || true) : open;
+  // Under the joker with the matching upper box filled, any open box may be used: a lower box
+  // for its full value, an upper one for whatever the dice happen to score there.
+  const allowed = mustUse ? [mustUse] : open;
   return allowed.map((category) => ({ category, score: scoreFor(category, dice, joker && LOWER.includes(category)) }));
 }
 

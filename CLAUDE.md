@@ -182,10 +182,14 @@ Split across four files because the game got big:
 ## Everything in a room is public
 
 A room is one document and every player in it reads all of it, so there is **nowhere to keep a
-secret**. Fine for Gomoku and for MonopolyBuddy; it rules out card games as the model stands — a
-hidden hand in the room document is readable by anyone in the room, whatever the UI does. UNO and
-Mahjong (both on the roadmap) need either per-player documents guarded by rules, or dealing from
-a server. Decide that before the first card game, not during it.
+secret**: a hidden hand in the room document is readable by anyone in the room, whatever the UI
+does. **Decided (2026-11-16): UNO and Mahjong run on the trusted-client model anyway**, the same
+one the Hanoi leaderboard runs on — hands and the deck live in the room document, the UI shows
+only the viewer's own hand, and someone who opens devtools can cheat. The right trade for a room
+of friends. Two rules keep a later move to per-player documents mechanical: private things live
+in their own top-level state keys (`hands`, `deck`), and a UI component may index `hands` only by
+the viewer's uid or read another player's `.length`. The full plan for the remaining games,
+including this, is `docs/games-plan.md`.
 
 ## Adding a game
 
