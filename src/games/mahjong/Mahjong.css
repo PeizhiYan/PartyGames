@@ -1,0 +1,45 @@
+.mj-tile { display: block; flex: none; filter: drop-shadow(0 1px 1.5px rgb(0 0 0 / 0.3)); }
+.mj-row { display: flex; flex-wrap: wrap; gap: 2px; align-items: flex-end; }
+.mj-melds { display: flex; flex-wrap: wrap; gap: 8px; }
+.mj-meld { display: flex; gap: 1px; padding: 2px; border-radius: 6px; background: color-mix(in srgb, var(--text) 6%, transparent); }
+
+.mj-status { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; font-size: 0.88rem; }
+.mj-wind {
+  display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 6px; flex: none;
+  font-size: 0.72rem; font-weight: 800; background: var(--inset); color: var(--text-muted);
+}
+.mj-wind.east { background: #c0392b; color: #fff; }
+
+/* The other three players. */
+.mj-opponents { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.mj-opp { padding: 10px; border-radius: 14px; background: var(--inset); border: 1.5px solid transparent; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.mj-opp.turn { border-color: var(--accent); background: var(--accent-soft); }
+.mj-opp.thinking { border-color: var(--accent); border-style: dashed; }
+.mj-opp.absent { opacity: 0.5; }
+.mj-opp-head { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.mj-opp-head small { color: var(--text-muted); font-size: 0.75rem; display: block; }
+.mj-discards .mj-tile.latest { filter: drop-shadow(0 0 0 var(--accent)) drop-shadow(0 0 3px var(--accent)); }
+
+.mj-last { text-align: center; color: var(--text-muted); font-size: 0.9rem; min-height: 1.4em; margin: 0 0 10px; }
+
+/* Calling a discard. */
+.mj-claim { display: flex; flex-direction: column; gap: 10px; padding: 12px; border-radius: var(--radius); background: var(--accent-soft); margin-bottom: 12px; }
+.mj-claim-head { display: flex; align-items: center; gap: 10px; }
+.mj-claim-options { display: flex; flex-wrap: wrap; gap: 8px; }
+.mj-claim-options button { display: inline-flex; align-items: center; gap: 6px; }
+
+/* Your own hand. */
+.mj-me { padding: 12px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border); }
+.mj-me.turn { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
+.mj-hand { display: flex; flex-wrap: wrap; justify-content: center; gap: 3px; padding-top: 10px; }
+.mj-hand button { padding: 0; border: none; background: none; min-height: 0; border-radius: 6px; transition: transform 0.12s ease; }
+.mj-hand button:disabled { cursor: default; opacity: 1; }
+.mj-hand button.selected { transform: translateY(-10px); }
+.mj-hand button.selected .mj-tile { filter: drop-shadow(0 0 0 var(--accent)) drop-shadow(0 0 4px var(--accent)); }
+.mj-hand .mj-drawn { margin-left: 12px; }
+.mj-actions { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.mj-win { background: #c0392b; color: #fff; border-color: #c0392b; font-weight: 800; }
+
+.mj-fan { list-style: none; padding: 0; margin: 0; }
+.mj-fan li { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--border); }
+.mj-fan li:last-child { border-bottom: none; font-weight: 800; }

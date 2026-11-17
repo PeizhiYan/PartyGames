@@ -1,0 +1,58 @@
+.xq { display: flex; justify-content: center; width: 100%; }
+.xq-board {
+  width: 100%;
+  /* Taller than wide, so height is what runs out first on a phone held upright. */
+  max-width: min(100%, calc((100dvh - 230px) * 0.9));
+  height: auto;
+  display: block;
+  border-radius: 14px;
+  box-shadow: 0 6px 20px rgb(40 20 10 / 0.28);
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.xq-wood { fill: var(--board-wood-1); }
+.xq-frame { fill: none; stroke: var(--board-line); stroke-width: 3; }
+.xq-lines line { stroke: var(--board-line); stroke-width: 1.4; }
+.xq-river text {
+  fill: var(--board-line);
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: 0.3em;
+  text-anchor: middle;
+  dominant-baseline: central;
+  font-family: 'Noto Serif CJK SC', 'Songti SC', 'STSong', 'SimSun', serif;
+  opacity: 0.75;
+}
+.xq-sq.live { cursor: pointer; }
+
+/* Pieces: an ivory disc with a coloured rim and the character in the same colour. */
+.xq-shadow { fill: rgb(0 0 0 / 0.28); }
+.xq-disc { fill: #f3e6cb; stroke: #8a6a3a; stroke-width: 1.5; }
+.xq-rim { fill: none; stroke-width: 2; }
+.xq-char {
+  font-size: 30px;
+  font-weight: 700;
+  text-anchor: middle;
+  dominant-baseline: central;
+  font-family: 'Noto Serif CJK SC', 'Songti SC', 'STSong', 'SimSun', 'Noto Sans CJK SC', serif;
+  pointer-events: none;
+}
+/* The rim is a stroke and the character a fill; giving the rim a fill paints over the disc. */
+.xq-piece.red .xq-rim { stroke: #c0392b; }
+.xq-piece.red .xq-char { fill: #c0392b; }
+.xq-piece.black .xq-rim { stroke: #1f1f1f; }
+.xq-piece.black .xq-char { fill: #1f1f1f; }
+.xq-piece.selected .xq-disc { stroke: var(--accent); stroke-width: 4; }
+.xq-piece.check .xq-disc { stroke: #e11d48; stroke-width: 4; }
+
+/* The last move: a soft square under both ends of it. */
+.xq-last { fill: color-mix(in srgb, var(--accent) 28%, transparent); }
+/* Where the picked-up piece may go. */
+.xq-dot { fill: color-mix(in srgb, var(--accent) 70%, #000 10%); }
+.xq-capture { fill: none; stroke: #e11d48; stroke-width: 3; stroke-dasharray: 6 4; }
+
+/* The side markers in the score strip and turn pill. */
+.xq-side-dot { width: 14px; height: 14px; border-radius: 50%; flex: none; box-shadow: inset 0 -1px 2px rgb(0 0 0 / 0.3); }
+.xq-side-dot.red { background: linear-gradient(145deg, #f08a7a, #c0392b); }
+.xq-side-dot.black { background: linear-gradient(145deg, #6a6a6a, #111); }

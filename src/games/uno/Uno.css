@@ -1,0 +1,46 @@
+.uno-card { display: block; flex: none; filter: drop-shadow(0 2px 3px rgb(0 0 0 / 0.25)); }
+
+/* Everyone else at the table, in turn order after you. */
+.uno-opponents { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.uno-opp {
+  display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 12px;
+  background: var(--inset); border: 1.5px solid transparent; min-width: 0;
+}
+.uno-opp.turn { border-color: var(--accent); background: var(--accent-soft); }
+.uno-opp.absent { opacity: 0.45; }
+.uno-opp small { display: block; color: var(--text-muted); font-size: 0.75rem; }
+.uno-opp .uno-count { display: inline-flex; align-items: center; gap: 4px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.uno-badge {
+  display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 0.7rem; font-weight: 800;
+  letter-spacing: 0.04em; background: #e0393e; color: #fff; font-style: italic;
+}
+.uno-opp button.small { padding: 2px 10px; min-height: 28px; font-size: 0.8rem; }
+
+/* The middle of the table: the deck and the pile. */
+.uno-centre { display: flex; justify-content: center; align-items: center; gap: 28px; margin: 6px 0 10px; }
+.uno-deck { padding: 0; border: none; background: none; border-radius: 10px; position: relative; }
+.uno-deck:disabled { opacity: 1; cursor: default; }
+.uno-deck:not(:disabled) { cursor: pointer; }
+.uno-deck:not(:disabled) .uno-card { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 8px; }
+.uno-deck-count { position: absolute; bottom: -20px; left: 0; right: 0; text-align: center; font-size: 0.75rem; color: var(--text-muted); }
+.uno-pile { position: relative; border-radius: 12px; padding: 5px; }
+.uno-pile-label { text-align: center; font-size: 0.78rem; margin-top: 6px; font-weight: 600; text-transform: capitalize; }
+.uno-pending {
+  position: absolute; top: -10px; right: -14px; padding: 2px 8px; border-radius: 999px;
+  background: #1e1e22; color: #fff; font-weight: 800; font-size: 0.85rem;
+}
+.uno-last { text-align: center; color: var(--text-muted); font-size: 0.9rem; min-height: 1.4em; margin: 0 0 10px; }
+
+/* Your hand. Everything wraps so no card is hidden behind another. */
+.uno-hand { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 10px 0 4px; }
+.uno-hand button { padding: 0; border: none; background: none; border-radius: 8px; min-height: 0; transition: transform 0.15s ease, opacity 0.15s; }
+.uno-hand button.playable { transform: translateY(-8px); }
+.uno-hand button.playable .uno-card { outline: 2.5px solid var(--accent); outline-offset: 2px; border-radius: 7px; }
+.uno-hand.mine-to-play button:not(.playable) { opacity: 0.45; }
+.uno-hand button:disabled { cursor: default; }
+.uno-actions { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+.uno-call { background: #e0393e; color: #fff; border-color: #e0393e; font-weight: 900; font-style: italic; letter-spacing: 0.04em; }
+
+/* Naming a colour for a wild. */
+.uno-colors { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.uno-colors button { min-height: 64px; border-radius: 14px; color: #fff; font-weight: 800; text-transform: capitalize; border: none; }

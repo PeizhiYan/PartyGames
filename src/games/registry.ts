@@ -13,6 +13,11 @@ import { GameRuleError, type GameContext, type GameDefinition, type GameId } fro
 import { gomoku } from './gomoku/rules';
 import { monopoly } from './monopoly/rules';
 import { hanoi } from './hanoi/rules';
+import { xiangqi } from './xiangqi/rules';
+import { chess } from './chess/rules';
+import { yahtzee } from './yahtzee/rules';
+import { uno } from './uno/rules';
+import { mahjong } from './mahjong/rules';
 
 /**
  * Games keep their own state and action types, but the room layer handles them all the same way,
@@ -21,7 +26,7 @@ import { hanoi } from './hanoi/rules';
  */
 export type AnyGame = GameDefinition<never, never>;
 
-export const GAMES_BY_ID = { gomoku, monopoly, hanoi } as unknown as Record<GameId, AnyGame>;
+export const GAMES_BY_ID = { gomoku, xiangqi, chess, yahtzee, uno, mahjong, monopoly, hanoi } as unknown as Record<GameId, AnyGame>;
 
 /** In the order they appear on the home screen. */
 export const GAMES: AnyGame[] = Object.values(GAMES_BY_ID);

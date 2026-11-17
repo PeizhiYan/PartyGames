@@ -240,7 +240,7 @@ service cloud.firestore {
         function validRoom(d) {
           return d.keys().hasOnly(['game', 'name', 'code', 'ownerUid', 'players', 'playerUids',
                                    'requests', 'state', 'createdAt', 'updatedAt', 'presence'])
-            && d.game in ['gomoku', 'monopoly']
+            && d.game in ['gomoku', 'monopoly', 'xiangqi', 'chess', 'yahtzee', 'uno', 'mahjong']
             && d.name is string && d.name.size() > 0 && d.name.size() <= 40
             && d.code is string && d.code.size() <= 8
             && d.ownerUid is string

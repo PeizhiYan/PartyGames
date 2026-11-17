@@ -66,6 +66,20 @@ and opens the puzzle directly.
   marked, the winning five
   is struck through, colours swap each rematch, and the room keeps the score. Against the computer
   there's also **Insight**: the board shaded by what each point is worth.
+- **Chinese Chess** (象棋) – the engine from Peizhi's original site, ported whole: play a friend in
+  a room, or the engine at three strengths. Tap a piece to see every square it may go to; the
+  board turns to face whichever side you play. Takebacks need the opponent's say-so.
+- **Chess** – full rules (castling, en passant, promotion, every draw), play a friend in a room or
+  the computer at three strengths. Tap a piece to see where it may go.
+- **Yahtzee** – up to six players in a room, or one to three computer players. Tap dice to hold
+  them; every open box on your card shows what it would score before you choose. Full rules,
+  including the upper bonus and the Yahtzee joker.
+- **UNO** – 2-10 players in a room, or one to three computer players. Stack draw-twos, name the
+  colour on a wild, call UNO on your last card — and catch anyone who forgets. Scores carry over
+  between rounds; first to 500 takes the match.
+- **Mahjong** (麻将) – four at a table, with friends or three computer players. 136 tiles,
+  simplified Guangdong-style scoring: four sets and a pair, seven pairs or thirteen orphans; chow
+  from the player before you, pong or kong on anyone. The fan for every win is itemised.
 - **Monopoly** – two ways to play, chosen by the host.
   - **Play the board** — the whole game happens here. Tokens move, rent is charged, Chance and
     Community Chest are drawn, jail works three ways in and three ways out, houses build evenly on
@@ -108,31 +122,26 @@ and opens the puzzle directly.
 
 ### More games
 
-| Game | Players | Notes |
-|---|---|---|
-| **Chinese chess** (象棋) | 2 | Closest to what exists. Same shape as Gomoku: a board, alternating turns, a reducer that validates a move. Piece movement rules are the bulk of the work. |
-| **Chess** | 2 | As above, plus castling, en passant and promotion — the awkward corners are all in the rules, not the plumbing. |
-| **Yahtzee** | 2–6 | Dice and a scorecard. `throwDice()` and the `Dice` component already exist; the interesting part is the scoring table and keeping it honest about which categories are still open. |
-| **UNO** | 2–10 | Needs hidden hands — see below. |
-| **Mahjong** (麻将) | 4 | Hidden hands too, and by far the most rules. Worth deciding up front which variant, since 国标 / 广东 / 日麻 score completely differently. |
+Every game on the original list is in. Adding another is three edits — see "Adding a game".
 
-### The thing that blocks UNO and Mahjong
+### How hidden hands work
 
-Everything today is **open information**. A room is one document holding the whole game state, and
-every player in the room can read all of it — which is fine for Gomoku (the board is public
-anyway) and for MonopolyBuddy (balances are public, or hidden only as a courtesy).
+A room is one document and every player in it can read all of it, so a card game has nowhere to
+keep a secret. UNO and Mahjong run on the **trusted-client model** anyway — the same one
+the Hanoi leaderboard uses. Hands and the deck live in the room document; the UI only ever shows
+you your own hand. Someone who opens the browser's developer tools could peek. Among friends
+that is the right trade.
 
-A card game is different: if a hand lives in the room document, anyone can read the document and
-see it. Hiding it in the UI changes nothing, because the data is already on their device. Making
-that genuinely secret needs one of:
+If that ever stops being good enough, there are two ways to make hands genuinely secret, and the
+state is already shaped for either:
 
 - **server-side filtering** — a Cloud Function or a real server that sends each player only their
-  own hand, which means game logic moving off the client; or
+  own hand; or
 - **per-player documents** (`rooms/{id}/hands/{uid}`) with security rules that let only that uid
   read them, and a deck the server deals from.
 
-Either is a real change to the room layer, not just a new reducer. Worth doing once, before the
-first card game rather than during it.
+What keeps that move mechanical: private things live in their own top-level keys (`hands`,
+`deck`), and the UI reads `hands` only for the viewer, or another player's `.length`.
 
 ### Backend portability
 
@@ -397,6 +406,11 @@ Their `disabled` member record is what keeps them out in the meantime, so this s
   originally written by Peizhi Yan in 2023. The seven-disk rules, right-peg goal and rainbow disk
   palette are preserved; the shaded canvas artwork is redrawn as SVG. The old hand-entered
   leaderboard is replaced by signed-in players' Firestore results.
+- **Chinese Chess** runs the XiangQi Wizard Light engine (position, evaluation and search) as
+  used by [`../PeizhiYan.github.io/js_codes/chinese_chess`](../PeizhiYan.github.io/js_codes/chinese_chess),
+  ported to TypeScript without its opening book.
+- **Chess pieces** are the chess glyphs from [Font Awesome Free 5.15](https://fontawesome.com),
+  used under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) (`src/games/chess/Pieces.tsx`).
 - **Gomoku** is ported from the original JavaScript version in
   [`PeizhiYan.github.io/js_codes/gomoku`](../PeizhiYan.github.io/js_codes/gomoku) — the pattern
   weights, the offence + defence + centre-bias move scoring, the alpha-beta search at even depths

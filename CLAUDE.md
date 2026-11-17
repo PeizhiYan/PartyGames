@@ -64,7 +64,14 @@ src/
 │  ├─ art.ts         the 640x200 canvas every cover is drawn on
 │  ├─ gomoku/        rules board ai (+tests) · Room BoardCanvas Solo Art
 │  ├─ monopoly/      rules (+tests) · Room Dice BalanceChart Art
-│  └─ hanoi/         rules (+tests) · Solo Board Leaderboard Art
+│  ├─ hanoi/         rules (+tests) · Solo Board Leaderboard Art
+│  ├─ xiangqi/       engine rules ai (+tests) · Room Board Solo Art
+│  ├─ chess/         engine rules ai (+tests) · Room Board Pieces Solo Art
+│  ├─ yahtzee/       rules ai (+tests) · Table Room Solo Art
+│  ├─ uno/           cards rules ai (+tests) · Card Table Room Solo Art
+│  ├─ mahjong/       tiles hand scoring rules ai (+tests) · Tile Table Room Solo Art
+│  ├─ shuffle.ts     seeded rng + shuffle + newSeed, for any game that deals
+│  └─ local.ts       useLocalGame: any GameDefinition, played on-device with computer seats
 ├─ rooms/          the multiplayer layer games plug into: rules, useRooms, RoomList
 ├─ services/       the backend contract
 ├─ adapters/       firebase/ and memory/ — the only places that know a backend exists
@@ -179,10 +186,14 @@ Split across four files because the game got big:
 ## Everything in a room is public
 
 A room is one document and every player in it reads all of it, so there is **nowhere to keep a
-secret**. Fine for Gomoku and for MonopolyBuddy; it rules out card games as the model stands — a
-hidden hand in the room document is readable by anyone in the room, whatever the UI does. UNO and
-Mahjong (both on the roadmap) need either per-player documents guarded by rules, or dealing from
-a server. Decide that before the first card game, not during it.
+secret**: a hidden hand in the room document is readable by anyone in the room, whatever the UI
+does. **Decided (2026-11-16): UNO and Mahjong run on the trusted-client model anyway**, the same
+one the Hanoi leaderboard runs on — hands and the deck live in the room document, the UI shows
+only the viewer's own hand, and someone who opens devtools can cheat. The right trade for a room
+of friends. Two rules keep a later move to per-player documents mechanical: private things live
+in their own top-level state keys (`hands`, `deck`), and a UI component may index `hands` only by
+the viewer's uid or read another player's `.length`. The full plan for the remaining games,
+including this, is `docs/games-plan.md`.
 
 ## Adding a game
 
@@ -224,6 +235,137 @@ Three things that were real bugs in the original or in this port, and have tests
 - **Defence must be scored**, or a cell that has to be blocked gets pruned before the search sees it.
 - `candidates()` falls back to the centre **only on an empty board**. A full board also has no
   candidates, and offering the centre there hands the search an occupied cell to play on.
+
+## Solo modes are the room's reducer
+
+Every "vs the computer" screen runs the game's own `GameDefinition` through `games/local.ts`
+(`useLocalGame`), with a made-up room whose other seats are the computer. The AI takes its turn
+through the same `reduce` a friend would, so a game cannot behave one way against a person and
+another against the engine, and a solo undo is just "request the takeback as you, approve it as
+the computer". Gomoku predates this and keeps its own solo loop; everything from Chinese Chess
+on uses the hook. It imports nothing from `src/services`, so solo play works offline.
+
+`act` reduces from a ref of the latest state, not the render's copy: React batches `setState`,
+and the computer acting straight after you must see your move. `generation` is bumped on reset
+so a reply already on its way is thrown away.
+
+## Chinese Chess: the port
+
+`games/xiangqi/engine.ts` is XiangQi Wizard Light (`position.js` + `search.js` from
+`../PeizhiYan.github.io/js_codes/chinese_chess`) in TypeScript, kept line-for-line where the
+language allows so its strength carries over: a 16x16 board with the 9x10 playing area at files
+3-11 / ranks 3-12, moves as `src + (dst << 8)`, piece-square evaluation, alpha-beta with a
+transposition table, killers, history, null-move and quiescence. The opening book is left out —
+300KB for a few more varied first moves.
+
+- **The reducer stores only the move list** and replays it from the start position whenever it
+  needs the board (`positionOf`). A hundred moves replay in well under a millisecond; a stored
+  board would have to be kept in step with the engine's zobrist keys and repetition history.
+- **End conditions are the engine's verdict** (`settle()`): mate (which includes stalemate —
+  no legal move loses in xiangqi), repetition with the perpetual-check rule deciding who loses,
+  no attacking material left after a capture, and fifty moves without one. The bare-board draw
+  counts *both* sides' pieces: a rook that stays on the board is still attacking material.
+- `MoveSort.next` is a ladder of ifs rather than the original's fall-through switch, because the
+  project forbids fall-through. Same order, same early returns.
+- `Search` takes an injectable random source, so the engine test can prove it deterministic.
+- The board flips for black (`viewer`) by remapping piece positions only; the river's writing is
+  never rotated — it faces whoever is looking. A rim is a stroke and a character a fill: giving
+  the rim a fill paints over the disc and hides the character, which is how the first render
+  came out solid.
+
+## Chess
+
+`games/chess/engine.ts` is our own: an 8x8 mailbox (`Int8Array(64)`, signed pieces, a1 = 0),
+moves as `from | (to << 6) | (promotion << 12)`. Legality is decided the plain way — make the
+move, see whether the mover's king is attacked, unmake — which is slower than pin detection but
+gets castling-through-check and en-passant pins right with no special cases.
+
+- **`engine.test.ts` is perft.** Node counts from the Chess Programming Wiki for the start
+  position, Kiwipete, and positions 3 and 4 to depth 3. If a rule is wrong, a count is wrong;
+  do not change the generator without running it.
+- **A promotion is part of the move**, so a pawn reaching the last rank with no promotion type
+  is simply not a legal move. `Board.tsx` opens a sheet to ask which piece, then plays the full
+  code. The reducer never has to guess.
+- Draws the reducer settles (`settle()`): stalemate, insufficient material (bare kings, one
+  minor, or same-shade bishops), fifty moves on the halfmove clock, and threefold repetition —
+  `replay()` returns the list of position keys alongside the board for the last one.
+- The computer (`ai.ts`) is alpha-beta with piece-square tables, captures searched to quiet,
+  and iterative deepening against a time budget. A result from an iteration that ran out of
+  time is partial and is thrown away in favour of the last complete one. `random` is injected
+  so the tests are deterministic.
+- **The pieces are Font Awesome Free 5's chess glyphs** (`Pieces.tsx`, CC BY 4.0, credited in
+  README) rather than Unicode's ♔♕♖, which are a different drawing in every font and render as
+  emoji on some phones. White pieces are ivory with a dark outline and black ones charcoal with
+  a light one (`paint-order: stroke`), so each reads on both shades of square.
+
+## Yahtzee
+
+- **Dice arrive on the `roll` action** (`throwFive()` on the device) and the reducer replaces
+  only the dice that are not held. That keeps the reducer pure and also means a client cannot
+  send a hand-picked five: a roll can only change what the rules let change.
+- **The joker rule** (`jokerState`): a Yahtzee rolled with the Yahtzee box already filled must go
+  in its matching upper box if that is open; otherwise any open box, with full house and the
+  straights scoring their full value. A bonus of 100 is paid only if the Yahtzee box holds 50.
+  `choices()` is the single answer to "where may these dice go", used by the reducer, the
+  scorecard's buttons and the AI alike, so the three cannot disagree.
+- `Table.tsx` is the whole screen and is shared by `Room` and `Solo`; they differ only in where
+  `act` goes. On your turn each open box in your column is a button showing what it would score.
+- The computer (`ai.ts`) is a list of rules, not a search: keep the largest group, chase four to
+  a straight, take the big boxes when they appear, zero the cheapest box when nothing fits. The
+  solo driver plays it one beat (650 ms) at a time so a turn can be followed.
+- Dice faces live in `src/ui/Die.tsx` for any game; with `onToggle` a die is a hold button.
+
+## UNO
+
+- **Cards are ids** — indices into `DECK` in `cards.ts` — so the room document holds short arrays
+  of numbers, and two copies of the same face are still two different cards. Tests assert after
+  every move of fifty seeded games that each of the 108 ids is in exactly one place.
+- **The deal is a pure function of the seed** on `start`/`again` (`shuffle.ts`). Draws take from
+  the end of `deck`; an empty deck reshuffles the pile under its top card with
+  `seed + reshuffles`, so a round replays exactly from its actions.
+- **House rules are written at the top of `rules.ts`** and nowhere else: the first card is always
+  a number; +2 stacks on +2 and +4 on +4 only; no draw-four challenge; a drawn card that fits may
+  be played at once, one that does not passes the turn; anyone on one or two cards may call UNO,
+  and anyone may catch a player on one who has not. Change a rule there and in its test together.
+- **A player who leaves mid-round is skipped, not removed** (`absent`), so nobody's hand vanishes
+  and turn order stays sane. Seats follow the room again between rounds.
+- `state.last` is a sentence about what just happened. With three computers moving, the table is
+  unreadable without it.
+- The solo driver gives the computers human flaws on purpose: they call UNO 85% of the time (so
+  you can catch them) and catch you 60% of the time, after 2.5 s of grace. That catch effect
+  depends only on whether you are catchable — re-arming it on every move meant it never fired.
+- `Card.tsx` draws every card in SVG. A `clipPath` is resolved in the coordinates of the element
+  using it, so it has to sit on an untransformed group: on the translated one it clipped the
+  middle of every card down to its bottom-right corner, which is how the first render came out.
+
+## Mahjong
+
+One variant, chosen and written down: 136 tiles, four players, **simplified Guangdong-style
+scoring**. The rule choices are at the top of `mahjong/rules.ts`; the fan table is at the top of
+`mahjong/scoring.ts`, one test per line.
+
+- **Tiles are 0-135, kinds are `tile >> 2`** (34 of them), the same id trick as UNO's cards.
+  `testTiles.ts` writes hands by name (`b(3)`, `c(5)`, `R()`) and hands out a fresh copy each
+  call — call `fresh()` between hands in one test or it runs out of copies.
+- **`isStandardWin` is complete with only two branches**: the lowest kind left must start either
+  a pong or a chow. Seven pairs and thirteen orphans need all fourteen tiles concealed.
+- **The reducer drives the loop itself.** After a discard it opens a claim window only for players
+  who could use the tile and passes the rest automatically; when every answer is in it resolves
+  (win > kong/pong > chow, nearest to the discarder on a tie), or the next player draws on their
+  own. So a room never taps "pass" thirty times a hand. The cost: the table can see that someone
+  is thinking about a discard.
+- **The newest tile is last in its hand**, so "the tile just drawn" needs no field naming a tile
+  in a hand — which would break the hidden-hands rule. `justDrew` (a boolean) is what enables a
+  self-drawn win.
+- **A player who leaves mid-hand** has their claims passed for them, and the host gets a button
+  (`cover`) to play their turn by discarding the tile they just drew.
+- The computer (`ai.ts`) plays tile efficiency: keep tiles with partners, discard the loneliest,
+  prefer tiles already seen discarded. The most valuable test in the folder is fifty seeded hands
+  played out by four computers, checking after every action that all 136 tiles are in exactly one
+  place, and that every hand's payments sum to zero.
+- Payments: 2^fan; a discarder pays three shares; the dealer's payments double — only when the
+  dealer is the payer or the winner. (The first version doubled a discard whenever the dealer was
+  merely at the table.)
 
 ## Hanoi Tower and its leaderboard
 
