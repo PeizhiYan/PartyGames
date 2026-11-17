@@ -71,6 +71,9 @@ and opens the puzzle directly.
   board turns to face whichever side you play. Takebacks need the opponent's say-so.
 - **Chess** – full rules (castling, en passant, promotion, every draw), play a friend in a room or
   the computer at three strengths. Tap a piece to see where it may go.
+- **Yahtzee** – up to six players in a room, or one to three computer players. Tap dice to hold
+  them; every open box on your card shows what it would score before you choose. Full rules,
+  including the upper bonus and the Yahtzee joker.
 - **Monopoly** – two ways to play, chosen by the host.
   - **Play the board** — the whole game happens here. Tokens move, rent is charged, Chance and
     Community Chest are drawn, jail works three ways in and three ways out, houses build evenly on
@@ -115,7 +118,6 @@ and opens the puzzle directly.
 
 | Game | Players | Notes |
 |---|---|---|
-| **Yahtzee** | 2–6 | Dice and a scorecard. `throwDice()` and the `Dice` component already exist; the interesting part is the scoring table and keeping it honest about which categories are still open. |
 | **UNO** | 2–10 | Needs hidden hands — see below. |
 | **Mahjong** (麻将) | 4 | Hidden hands too, and by far the most rules. Worth deciding up front which variant, since 国标 / 广东 / 日麻 score completely differently. |
 

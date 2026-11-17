@@ -67,6 +67,7 @@ src/
 │  ├─ hanoi/         rules (+tests) · Solo Board Leaderboard Art
 │  ├─ xiangqi/       engine rules ai (+tests) · Room Board Solo Art
 │  ├─ chess/         engine rules ai (+tests) · Room Board Pieces Solo Art
+│  ├─ yahtzee/       rules ai (+tests) · Table Room Solo Art
 │  └─ local.ts       useLocalGame: any GameDefinition, played on-device with computer seats
 ├─ rooms/          the multiplayer layer games plug into: rules, useRooms, RoomList
 ├─ services/       the backend contract
@@ -293,6 +294,23 @@ gets castling-through-check and en-passant pins right with no special cases.
   README) rather than Unicode's ♔♕♖, which are a different drawing in every font and render as
   emoji on some phones. White pieces are ivory with a dark outline and black ones charcoal with
   a light one (`paint-order: stroke`), so each reads on both shades of square.
+
+## Yahtzee
+
+- **Dice arrive on the `roll` action** (`throwFive()` on the device) and the reducer replaces
+  only the dice that are not held. That keeps the reducer pure and also means a client cannot
+  send a hand-picked five: a roll can only change what the rules let change.
+- **The joker rule** (`jokerState`): a Yahtzee rolled with the Yahtzee box already filled must go
+  in its matching upper box if that is open; otherwise any open box, with full house and the
+  straights scoring their full value. A bonus of 100 is paid only if the Yahtzee box holds 50.
+  `choices()` is the single answer to "where may these dice go", used by the reducer, the
+  scorecard's buttons and the AI alike, so the three cannot disagree.
+- `Table.tsx` is the whole screen and is shared by `Room` and `Solo`; they differ only in where
+  `act` goes. On your turn each open box in your column is a button showing what it would score.
+- The computer (`ai.ts`) is a list of rules, not a search: keep the largest group, chase four to
+  a straight, take the big boxes when they appear, zero the cheapest box when nothing fits. The
+  solo driver plays it one beat (650 ms) at a time so a turn can be followed.
+- Dice faces live in `src/ui/Die.tsx` for any game; with `onToggle` a die is a hold button.
 
 ## Hanoi Tower and its leaderboard
 

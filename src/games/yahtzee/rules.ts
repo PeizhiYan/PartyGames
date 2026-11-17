@@ -5,7 +5,7 @@
  * stays a pure function. It replaces only the dice that are not held, which is also what keeps a
  * client from sending a hand-picked five: a roll can only change what the rules say may change.
  */
-import { GameRuleError, type GameContext, type GameDefinition, type GameId, type RoomPlayer } from '../../types';
+import { GameRuleError, type GameContext, type GameDefinition, type RoomPlayer } from '../../types';
 
 export const CATEGORIES = [
   'ones', 'twos', 'threes', 'fours', 'fives', 'sixes',
@@ -237,8 +237,7 @@ export const ranking = (state: YahtzeeState): Seat[] => [...state.seats].sort((a
 export const throwFive = (): number[] => Array.from({ length: 5 }, () => 1 + Math.floor(Math.random() * 6));
 
 export const yahtzee: GameDefinition<YahtzeeState, YahtzeeAction> = {
-  // TODO(yahtzee): plain literal once 'yahtzee' joins the GameId union, when the screens land.
-  id: 'yahtzee' as GameId,
+  id: 'yahtzee',
   name: 'Yahtzee',
   tagline: 'Five dice, three rolls, thirteen boxes. Up to six players, or the computer.',
   emoji: '🎲',

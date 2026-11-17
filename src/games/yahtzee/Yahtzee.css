@@ -1,0 +1,31 @@
+.yz-dice { display: flex; justify-content: center; gap: 10px; margin: 14px 0; }
+.yz-dice .die { cursor: default; }
+.yz-dice button.die { cursor: pointer; transition: transform 0.15s var(--spring, ease), box-shadow 0.15s; }
+.die.held { box-shadow: 0 0 0 3px var(--accent), 0 3px 8px rgb(20 10 40 / 0.2); transform: translateY(-6px); }
+.yz-dice .die.idle { opacity: 0.35; }
+
+/* The scorecard: categories down, players across, the current player's column lit. */
+.yz-card-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 0 -14px; padding: 0 14px; }
+.yz-card { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 100%; font-size: 0.9rem; }
+.yz-card th, .yz-card td { padding: 6px 8px; text-align: center; white-space: nowrap; border-bottom: 1px solid var(--border); }
+.yz-card th:first-child, .yz-card td:first-child { text-align: left; position: sticky; left: 0; background: var(--surface); z-index: 1; }
+.yz-card thead th { font-size: 0.78rem; color: var(--text-muted); font-weight: 600; }
+.yz-card thead th.turn { color: var(--accent); }
+.yz-card td.turn { background: color-mix(in srgb, var(--accent) 10%, transparent); }
+.yz-card tr.section td, .yz-card tr.section th { font-weight: 700; background: var(--inset); }
+.yz-card tr.total td { font-weight: 800; font-size: 1rem; }
+.yz-card .filled { font-variant-numeric: tabular-nums; }
+.yz-card .zero { color: var(--text-muted); }
+.yz-card button.pick {
+  min-height: 32px;
+  padding: 2px 10px;
+  border-radius: 8px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  border: 1px dashed var(--accent);
+  background: var(--accent-soft);
+  color: var(--text);
+}
+.yz-card button.pick.zero { border-style: dotted; color: var(--text-muted); background: transparent; }
+.yz-card button.pick:disabled { opacity: 0.5; }
+.yz-seat { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }

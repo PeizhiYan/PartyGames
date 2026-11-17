@@ -118,7 +118,11 @@ after `start`. When the deck runs out in UNO, reshuffle the discard pile (minus 
 
 ---
 
-## 1. Yahtzee (finish it)
+## 1. Yahtzee — DONE (v0.15.0)
+
+Shipped as described below; kept for reference. Start with UNO.
+
+### Original plan
 
 `src/games/yahtzee/rules.ts` exists and is complete; read it. Exports you will use:
 `CATEGORIES`, `CATEGORY_LABEL`, `UPPER`, `LOWER`, `scoreFor`, `choices(seat, dice)`,

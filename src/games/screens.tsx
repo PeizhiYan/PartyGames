@@ -23,6 +23,9 @@ import XiangqiSolo from './xiangqi/Solo';
 import ChessArt from './chess/Art';
 import ChessRoom from './chess/Room';
 import ChessSolo from './chess/Solo';
+import YahtzeeArt from './yahtzee/Art';
+import YahtzeeRoom from './yahtzee/Room';
+import YahtzeeSolo from './yahtzee/Solo';
 
 export interface GameScreens {
   /** The game itself, inside a room. */
@@ -45,6 +48,7 @@ export const SCREENS: Record<GameId, GameScreens> = {
   gomoku: { Room: GomokuRoom, Solo: GomokuSolo, Art: GomokuArt },
   xiangqi: { Room: XiangqiRoom, Solo: XiangqiSolo, Art: XiangqiArt },
   chess: { Room: ChessRoom, Solo: ChessSolo, Art: ChessArt },
+  yahtzee: { Room: YahtzeeRoom, Solo: YahtzeeSolo, Art: YahtzeeArt },
   monopoly: {
     Room: MonopolyRoom,
     Art: MonopolyArt,
