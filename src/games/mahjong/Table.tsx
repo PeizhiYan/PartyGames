@@ -156,7 +156,10 @@ export default function MahjongTable({ state, uid, act, busy, error, owner, seat
   }
 
   const turnSide = current ? SIDES[(state.seats.indexOf(current) - myIndex + SEATS) % SEATS] : null;
-  const claimOptions = myClaimOptions(state, uid);
+  // When the tile would complete your hand, the only choices are to win on it or let it go: a
+  // set called on it is taken as the win anyway (rules.ts), so a Pong button would only mislead.
+  const allClaims = myClaimOptions(state, uid);
+  const claimOptions = allClaims.some((c) => c.kind === 'win') ? allClaims.filter((c) => c.kind === 'win') : allClaims;
   const own = selfOptions(state, uid);
   const newest = myTurn && state.justDrew ? hand[hand.length - 1] : undefined;
   const shown = sortTiles(newest === undefined ? hand : hand.slice(0, -1));
