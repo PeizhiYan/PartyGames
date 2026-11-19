@@ -1,4 +1,5 @@
-import { kindOf, rankOfKind, tileName } from './tiles';
+import { kindOf, rankOfKind } from './tiles';
+import { tileName } from './messages';
 
 /**
  * One mahjong tile in SVG, `width` pixels wide (tiles are 3:4). Ivory face on a green back, the

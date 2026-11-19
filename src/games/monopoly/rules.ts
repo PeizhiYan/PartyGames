@@ -1,3 +1,5 @@
+import { t } from '../../i18n';
+import { m } from './messages';
 /**
  * Monopoly, in two modes.
  *
@@ -109,37 +111,37 @@ const withSeat = (state: MonopolyState, uid: string, patch: Partial<Seat>): Seat
 
 function requireSeat(state: MonopolyState, ctx: GameContext): Seat {
   const seat = seatOf(state, ctx.actorUid);
-  if (!seat) throw new GameRuleError('You are not in this game.');
-  if (seat.bankrupt) throw new GameRuleError('You are out of this game.');
+  if (!seat) throw new GameRuleError(m().errors.notInGame);
+  if (seat.bankrupt) throw new GameRuleError(m().errors.outOfGame);
   return seat;
 }
 
 function requireOwner(ctx: GameContext): void {
-  if (ctx.actorUid !== ctx.ownerUid) throw new GameRuleError('Only the host can do that.');
+  if (ctx.actorUid !== ctx.ownerUid) throw new GameRuleError(t.rules.hostOnly);
 }
 
 function requirePhase(state: MonopolyState, phase: Phase): void {
-  if (state.phase !== phase) throw new GameRuleError('That is not possible right now.');
+  if (state.phase !== phase) throw new GameRuleError(m().errors.notNow);
 }
 
 /** Board mode only: refuse anything out of turn, or while a decision is outstanding. */
 function requireTurn(state: MonopolyState, ctx: GameContext): Seat {
   const seat = requireSeat(state, ctx);
-  if (isBoardMode(state) && state.turn !== ctx.actorUid) throw new GameRuleError("It is not your turn.");
+  if (isBoardMode(state) && state.turn !== ctx.actorUid) throw new GameRuleError(m().errors.notYourTurn);
   return seat;
 }
 
 function wholeAmount(amount: unknown): number {
   const value = Math.floor(Number(amount));
-  if (!Number.isFinite(value) || value <= 0) throw new GameRuleError('Enter an amount above zero.');
-  if (value > 100_000_000) throw new GameRuleError('That is more money than this game holds.');
+  if (!Number.isFinite(value) || value <= 0) throw new GameRuleError(m().errors.aboveZero);
+  if (value > 100_000_000) throw new GameRuleError(m().errors.tooMuch);
   return value;
 }
 
 function checkDice(dice: [number, number]): [number, number] {
   const ok = Array.isArray(dice) && dice.length === 2
     && dice.every((d) => Number.isInteger(d) && d >= 1 && d <= 6);
-  if (!ok) throw new GameRuleError('Those are not two dice.');
+  if (!ok) throw new GameRuleError(m().errors.notTwoDice);
   return [dice[0], dice[1]];
 }
 
@@ -186,18 +188,18 @@ function configure(state: MonopolyState, action: Extract<MonopolyAction, { type:
   if (action.startingBalance !== undefined) {
     const value = Math.floor(Number(action.startingBalance));
     if (!Number.isFinite(value) || value < MIN_BALANCE || value > MAX_BALANCE) {
-      throw new GameRuleError(`Starting balance must be between ${MIN_BALANCE} and ${MAX_BALANCE}.`);
+      throw new GameRuleError(m().errors.balanceRange(MIN_BALANCE, MAX_BALANCE));
     }
     settings.startingBalance = value;
   }
   if (action.showBalances !== undefined) settings.showBalances = !!action.showBalances;
   if (action.mode !== undefined) {
-    if (action.mode !== 'bank' && action.mode !== 'board') throw new GameRuleError('Pick one of the two modes.');
+    if (action.mode !== 'bank' && action.mode !== 'board') throw new GameRuleError(m().errors.pickMode);
     settings.mode = action.mode;
   }
   if (action.boardId !== undefined) {
     if (!boardOf(action.boardId) || boardOf(action.boardId).id !== action.boardId) {
-      throw new GameRuleError('There is no such board.');
+      throw new GameRuleError(m().errors.noBoard);
     }
     settings.boardId = action.boardId;
   }
@@ -208,7 +210,7 @@ function configure(state: MonopolyState, action: Extract<MonopolyAction, { type:
 function start(state: MonopolyState, seed: number, ctx: GameContext): MonopolyState {
   requireOwner(ctx);
   requirePhase(state, 'lobby');
-  if (state.seats.length < 2) throw new GameRuleError('You need at least two players.');
+  if (state.seats.length < 2) throw new GameRuleError(m().errors.needTwo);
   const value = Math.floor(Number(seed));
   return { ...state, phase: 'pick', seed: Number.isFinite(value) ? Math.abs(value) : 1 };
 }
@@ -216,10 +218,10 @@ function start(state: MonopolyState, seed: number, ctx: GameContext): MonopolySt
 function pick(state: MonopolyState, action: Extract<MonopolyAction, { type: 'pick' }>, ctx: GameContext): MonopolyState {
   requirePhase(state, 'pick');
   requireSeat(state, ctx);
-  if (!TOKENS.includes(action.token as (typeof TOKENS)[number])) throw new GameRuleError('Pick one of the tokens.');
-  if (!COLORS.includes(action.color as (typeof COLORS)[number])) throw new GameRuleError('Pick one of the colours.');
+  if (!TOKENS.includes(action.token as (typeof TOKENS)[number])) throw new GameRuleError(m().errors.pickToken);
+  if (!COLORS.includes(action.color as (typeof COLORS)[number])) throw new GameRuleError(m().errors.pickColour);
   if (state.seats.some((s) => s.uid !== ctx.actorUid && s.ready && s.token === action.token)) {
-    throw new GameRuleError('Someone already took that token.');
+    throw new GameRuleError(m().errors.tokenTaken);
   }
   const seats = withSeat(state, ctx.actorUid, { token: action.token, color: action.color, ready: true });
   if (!seats.every((s) => s.ready)) return { ...state, seats };
@@ -233,7 +235,7 @@ function pick(state: MonopolyState, action: Extract<MonopolyAction, { type: 'pic
 function rollOrder(state: MonopolyState, dice: [number, number], ctx: GameContext): MonopolyState {
   requirePhase(state, 'roll');
   const seat = requireSeat(state, ctx);
-  if (seat.dice) throw new GameRuleError('You have already rolled.');
+  if (seat.dice) throw new GameRuleError(m().errors.alreadyRolled);
   const seats = withSeat(state, ctx.actorUid, { dice: checkDice(dice) });
   if (!seats.every((s) => s.dice)) return { ...state, seats };
   const joined = new Map(ctx.players.map((p) => [p.uid, p.joinedAt]));
@@ -252,9 +254,9 @@ function send(state: MonopolyState, action: Extract<MonopolyAction, { type: 'sen
   requirePhase(state, 'playing');
   const from = requireSeat(state, ctx);
   const to = seatOf(state, action.to);
-  if (!to || to.uid === from.uid) throw new GameRuleError('Pick someone else to pay.');
+  if (!to || to.uid === from.uid) throw new GameRuleError(m().errors.pickSomeoneElse);
   const amount = wholeAmount(action.amount);
-  if (from.balance < amount) throw new GameRuleError('You do not have that much.');
+  if (from.balance < amount) throw new GameRuleError(m().errors.notEnough);
 
   let next: MonopolyState = {
     ...state,
@@ -273,7 +275,7 @@ function payBank(state: MonopolyState, action: Extract<MonopolyAction, { type: '
   requirePhase(state, 'playing');
   const seat = requireSeat(state, ctx);
   const amount = wholeAmount(action.amount);
-  if (seat.balance < amount) throw new GameRuleError('You do not have that much.');
+  if (seat.balance < amount) throw new GameRuleError(m().errors.notEnough);
   const balance = seat.balance - amount;
   const next: MonopolyState = {
     ...state,
@@ -293,9 +295,9 @@ function buyProperty(state: MonopolyState, index: number, ctx: GameContext): Mon
   requirePhase(state, 'playing');
   const seat = requireSeat(state, ctx);
   const space = boardFor(state).spaces[index];
-  if (!space || !isOwnable(space)) throw new GameRuleError('That space is not for sale.');
-  if (state.owned[index]) throw new GameRuleError('Somebody already owns that.');
-  if (seat.balance < space.price) throw new GameRuleError('You do not have that much.');
+  if (!space || !isOwnable(space)) throw new GameRuleError(m().errors.notForSale);
+  if (state.owned[index]) throw new GameRuleError(m().errors.owned);
+  if (seat.balance < space.price) throw new GameRuleError(m().errors.notEnough);
 
   const balance = seat.balance - space.price;
   const next: MonopolyState = {
@@ -313,7 +315,7 @@ function requestBank(state: MonopolyState, action: Extract<MonopolyAction, { typ
   requirePhase(state, 'playing');
   const seat = requireSeat(state, ctx);
   const amount = wholeAmount(action.amount);
-  if (state.requests.some((r) => r.uid === seat.uid)) throw new GameRuleError('Your last request is still waiting.');
+  if (state.requests.some((r) => r.uid === seat.uid)) throw new GameRuleError(m().errors.requestWaiting);
   const request = {
     id: makeId(ctx, 'req'), uid: seat.uid, amount, reason: note(action.reason), approvedBy: [], at: ctx.now,
   };
@@ -325,7 +327,7 @@ function respondBank(state: MonopolyState, action: Extract<MonopolyAction, { typ
   requireSeat(state, ctx);
   const request = state.requests.find((r) => r.id === action.id);
   if (!request) return state;
-  if (request.uid === ctx.actorUid) throw new GameRuleError('You cannot approve your own request.');
+  if (request.uid === ctx.actorUid) throw new GameRuleError(m().errors.ownRequest);
   if (!action.approve) return { ...state, requests: state.requests.filter((r) => r.id !== request.id) };
   const approvedBy = request.approvedBy.includes(ctx.actorUid)
     ? request.approvedBy
@@ -373,7 +375,7 @@ function respondEnd(state: MonopolyState, approve: boolean, ctx: GameContext): M
 
 function newGame(state: MonopolyState, ctx: GameContext): MonopolyState {
   requireOwner(ctx);
-  if (state.phase !== 'results') throw new GameRuleError('Finish this game first.');
+  if (state.phase !== 'results') throw new GameRuleError(m().errors.finishFirst);
   // Keep the settings and who is sitting here, and their tokens, so a rematch is quick.
   return {
     ...initial(),
@@ -416,8 +418,8 @@ function reduce(state: MonopolyState, action: MonopolyAction, ctx: GameContext):
         return { ...state, lastRoll: { uid: ctx.actorUid, dice, total: dice[0] + dice[1], at: ctx.now } };
       }
       requireTurn(state, ctx);
-      if (state.pending) throw new GameRuleError('Answer the offer first.');
-      if (state.rolled) throw new GameRuleError('You have already rolled — end your turn.');
+      if (state.pending) throw new GameRuleError(m().errors.answerOffer);
+      if (state.rolled) throw new GameRuleError(m().errors.rolledEnd);
       const moved = rollAndMove(state, ctx.actorUid, dice, ctx.now);
       // A double buys another go; anything else ends the moving part of the turn.
       return settleIfOver({ ...moved, rolled: !rollsAgain(moved, ctx.actorUid) });
@@ -426,7 +428,7 @@ function reduce(state: MonopolyState, action: MonopolyAction, ctx: GameContext):
     case 'buy': {
       requirePhase(state, 'playing');
       requireTurn(state, ctx);
-      if (!state.pending) throw new GameRuleError('There is nothing to buy.');
+      if (!state.pending) throw new GameRuleError(m().errors.nothingToBuy);
       return settleIfOver(buyPending(state, ctx.actorUid, ctx.now));
     }
 
@@ -440,13 +442,13 @@ function reduce(state: MonopolyState, action: MonopolyAction, ctx: GameContext):
     case 'endTurn': {
       requirePhase(state, 'playing');
       requireTurn(state, ctx);
-      if (state.pending) throw new GameRuleError('Answer the offer first.');
-      if (rollsAgain(state, ctx.actorUid)) throw new GameRuleError('You rolled a double — roll again.');
+      if (state.pending) throw new GameRuleError(m().errors.answerOffer);
+      if (rollsAgain(state, ctx.actorUid)) throw new GameRuleError(m().errors.double);
       return endTurn(state);
     }
 
     case 'buyProperty': {
-      if (isBoardMode(state)) throw new GameRuleError('Land on it first.');
+      if (isBoardMode(state)) throw new GameRuleError(m().errors.landFirst);
       return buyProperty(state, action.space, ctx);
     }
 
@@ -454,7 +456,7 @@ function reduce(state: MonopolyState, action: MonopolyAction, ctx: GameContext):
       requirePhase(state, 'playing');
       const seat = isBoardMode(state) ? requireTurn(state, ctx) : requireSeat(state, ctx);
       if (!canBuild(state, seat.uid, action.space)) {
-        throw new GameRuleError('You cannot build there — you need the whole set, built up evenly, and the money.');
+        throw new GameRuleError(m().errors.cannotBuild);
       }
       return build(state, seat.uid, action.space, ctx.now);
     }
@@ -468,21 +470,21 @@ function reduce(state: MonopolyState, action: MonopolyAction, ctx: GameContext):
       requirePhase(state, 'playing');
       requireSeat(state, ctx);
       if (isBoardMode(state)) {
-        throw new GameRuleError('A board game ends when only one player is left.');
+        throw new GameRuleError(m().errors.oneLeft);
       }
       return { ...state, phase: 'endVote', endVote: { by: ctx.actorUid, approvedBy: [ctx.actorUid] } };
     }
 
     case 'respondEnd': return respondEnd(state, action.approve, ctx);
     case 'newGame': return newGame(state, ctx);
-    default: throw new GameRuleError('Unknown move.');
+    default: throw new GameRuleError(t.rules.unknownMove);
   }
 }
 
 export const monopoly: GameDefinition<MonopolyState, MonopolyAction> = {
   id: 'monopoly',
-  name: 'Monopoly',
-  tagline: 'Play the whole board online, or just be the bank for the one on your table.',
+  get name() { return m().name; },
+  get tagline() { return m().tagline; },
   emoji: '🎲',
   minPlayers: 2,
   maxPlayers: 8,

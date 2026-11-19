@@ -1,3 +1,4 @@
+import { m } from './messages';
 import { useEffect, useMemo, useState } from 'react';
 import {
   BISHOP, KNIGHT, QUEEN, ROOK, fileOf, makeMoveCode, moveFrom, movePromotion, moveTo, rankOf, type Board,
@@ -78,7 +79,7 @@ export default function ChessBoard({ board, viewer, canMove, lastMove, onMove }:
   return (
     <div className="chess">
       <svg className="chess-board" viewBox={`0 0 ${SIZE} ${SIZE}`} role="img"
-        aria-label={`Chess board, ${board.fullmove} moves in`}>
+        aria-label={m().boardLabel(board.fullmove)}>
         <rect className="chess-frame" x="0" y="0" width={SIZE} height={SIZE} rx="12" />
         {Array.from({ length: 64 }, (_, sq) => {
           const { x, y } = origin(sq);
@@ -108,10 +109,10 @@ export default function ChessBoard({ board, viewer, canMove, lastMove, onMove }:
         </g>
       </svg>
 
-      <Sheet open={promoting !== null} title="Promote to" onClose={() => setPromoting(null)}>
+      <Sheet open={promoting !== null} title={m().promoteTo} onClose={() => setPromoting(null)}>
         <div className="chess-promote">
           {[QUEEN, ROOK, BISHOP, KNIGHT].map((type) => (
-            <button key={type} type="button" aria-label={['', '', 'knight', 'bishop', 'rook', 'queen'][type]}
+            <button key={type} type="button" aria-label={['', '', m().pieces.knight, m().pieces.bishop, m().pieces.rook, m().pieces.queen][type]}
               onClick={() => {
                 if (!promoting) return;
                 onMove(makeMoveCode(promoting.from, promoting.to, type));

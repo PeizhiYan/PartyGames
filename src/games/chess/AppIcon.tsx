@@ -1,3 +1,4 @@
+import { m } from './messages';
 import { KING, KNIGHT } from './engine';
 import { Piece } from './Pieces';
 import './Board.css';
@@ -5,7 +6,7 @@ import './Board.css';
 /** Chess's phone icon: a white knight, large, with the black king looking on. */
 export default function AppIcon() {
   return (
-    <svg viewBox="0 0 120 120" className="app-icon" role="img" aria-label="Chess">
+    <svg viewBox="0 0 120 120" className="app-icon" role="img" aria-label={m().name}>
       <defs>
         <radialGradient id="chIconShade" cx="0.5" cy="0.45" r="0.75">
           <stop offset="0.55" stopColor="#000" stopOpacity="0" /><stop offset="1" stopColor="#000" stopOpacity="0.28" />

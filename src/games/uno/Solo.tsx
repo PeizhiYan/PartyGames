@@ -1,3 +1,5 @@
+import { t } from '../../i18n';
+import { m } from './messages';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import UnoTable from './Table';
@@ -22,17 +24,17 @@ export default function UnoSoloPage() {
   return (
     <div className="room-screen wide">
       <header className="room-bar">
-        <Link to="/g/uno" className="icon-button" aria-label="Back to the lobby"><Icon name="left" /></Link>
-        <strong className="grow">UNO</strong>
+        <Link to="/g/uno" className="icon-button" aria-label={t.cast.backToLobby}><Icon name="left" /></Link>
+        <strong className="grow">{m().name}</strong>
         {players !== null && (
           <button type="button" className="small" onClick={() => setPlayers(null)}>
-            <Icon name="users" size={16} /> Players
+            <Icon name="users" size={16} /> {t.cast.players}
           </button>
         )}
       </header>
       {players === null
-        ? <Setup title="UNO" blurb="Match the colour or the face. Don't forget to call it." min={2} max={6} initial={remembered}
-            you={{ uid: user.uid, name: user.displayName }} startLabel="Deal the cards"
+        ? <Setup title={m().name} blurb={m().setupBlurb} min={2} max={6} initial={remembered}
+            you={{ uid: user.uid, name: user.displayName }} startLabel={m().dealCards}
             onStart={(n) => { localStorage.setItem(STORED_COUNT, String(n)); setPlayers(n); }} />
         : <SoloGame key={players} computers={players - 1} />}
     </div>

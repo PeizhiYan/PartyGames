@@ -1,9 +1,9 @@
+import { m } from './messages';
 import { useId } from 'react';
 import type { HanoiState } from './rules';
 
 // The rainbow of the original canvas game, smallest to largest.
 const COLORS = ['#ff1900', '#ff7d00', '#ffeb00', '#32ff00', '#00faff', '#0078ff', '#e768e7'];
-const PEG_NAMES = ['Left', 'Middle', 'Right'];
 
 /** The original's cylindrical disks and wooden stand, redrawn as responsive SVG. */
 export function TowerScene({ pegs, selected = null }: { pegs: HanoiState['pegs']; selected?: number | null }) {
@@ -44,7 +44,7 @@ export function TowerScene({ pegs, selected = null }: { pegs: HanoiState['pegs']
               );
             })}
             <text x={x} y="288" fill="currentColor" textAnchor="middle" fontSize="13" letterSpacing="2">
-              {p === 2 ? 'GOAL' : p === 0 ? 'START' : 'HELPER'}
+              {m().pegLabels[p]}
             </text>
           </g>
         );
@@ -60,10 +60,10 @@ export default function Board({ state, selected, onPeg }: {
   return (
     <div className="hanoi-board">
       <TowerScene pegs={state.pegs} selected={selected} />
-      <div className="hanoi-peg-controls" role="group" aria-label="Hanoi pegs">
+      <div className="hanoi-peg-controls" role="group" aria-label={m().pegs}>
         {state.pegs.map((peg, i) => (
           <button key={i} type="button" aria-pressed={selected === i} disabled={!playing}
-            aria-label={`${PEG_NAMES[i]} peg, ${peg.disks.length} disks${peg.disks.length ? `, top disk ${peg.disks.at(-1)}` : ', empty'}${i === 2 ? ', goal' : ''}`}
+            aria-label={m().peg(m().pegNames[i], peg.disks.length, peg.disks.at(-1), i === 2)}
             onClick={() => onPeg(i)} />
         ))}
       </div>

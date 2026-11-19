@@ -1,3 +1,4 @@
+import { m } from './messages';
 import type { MonopolyState, Seat } from './rules';
 import { firstName, money } from '../../lib/format';
 
@@ -38,9 +39,9 @@ export default function BalanceChart({ state }: { state: MonopolyState }) {
 
   return (
     <section className="card">
-      <h3>Cash over the game</h3>
+      <h3>{m().cashOverGame}</h3>
       <svg viewBox={`0 0 ${WIDTH} ${HEIGHT}`} className="balance-chart" role="img"
-        aria-label={`Balance history. Peak balance ${money(peak)}.`}>
+        aria-label={m().chartLabel(money(peak))}>
         <line x1={PAD.left} x2={WIDTH - PAD.right} y1={y(0)} y2={y(0)} stroke="var(--border)" strokeWidth="1" />
         {series.map(({ seat, points }) => (
           <path key={seat.uid} d={path(points)} fill="none" stroke={colorOf(seat)}

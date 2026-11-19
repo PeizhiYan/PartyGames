@@ -1,3 +1,5 @@
+import { t } from '../../i18n';
+import { m } from './messages';
 import { useEffect, useState } from 'react';
 import { useCurrentUser } from '../../hooks/useAuth';
 import { useOnline } from '../../hooks/useOnline';
@@ -22,20 +24,20 @@ export default function Leaderboard() {
 
   return (
     <section className="card hanoi-leaderboard" aria-labelledby="hanoi-leaderboard-title">
-      <h3 id="hanoi-leaderboard-title" className="row"><Icon name="trophy" size={18} /> Leaderboard</h3>
-      <p className="muted">Seven disks · fastest time, then fewest moves. Each player’s best, top 50.</p>
-      {backend.name === 'memory' && <p className="muted">Local playtest scores on this browser.</p>}
-      {!online ? <p className="empty">Connect to see the leaderboard. You can still play offline.</p>
-        : error ? <div role="alert"><p className="error">{error}</p><button type="button" onClick={() => setAttempt(n => n + 1)}>Try again</button></div>
-        : scores === null ? <p className="empty">Loading scores…</p>
-        : scores.length === 0 ? <p className="empty">No times yet. Finish the puzzle to set the first one.</p>
+      <h3 id="hanoi-leaderboard-title" className="row"><Icon name="trophy" size={18} /> {m().leaderboard}</h3>
+      <p className="muted">{m().leaderboardHelp}</p>
+      {backend.name === 'memory' && <p className="muted">{m().localScores}</p>}
+      {!online ? <p className="empty">{m().connect}</p>
+        : error ? <div role="alert"><p className="error">{error}</p><button type="button" onClick={() => setAttempt(n => n + 1)}>{t.common.tryAgain}</button></div>
+        : scores === null ? <p className="empty">{m().loadingScores}</p>
+        : scores.length === 0 ? <p className="empty">{m().noTimes}</p>
         : <div className="hanoi-table-scroll">
           <table>
-            <thead><tr><th scope="col">Rank</th><th scope="col">Player</th><th scope="col">Time</th><th scope="col">Moves</th></tr></thead>
+            <thead><tr><th scope="col">{m().rank}</th><th scope="col">{m().player}</th><th scope="col">{m().time}</th><th scope="col">{m().moves}</th></tr></thead>
             <tbody>{scores.map((score, i) => (
               <tr key={score.uid} className={score.uid === user.uid ? 'is-you' : undefined}>
                 <td>{i + 1}</td>
-                <th scope="row"><span className="hanoi-player-name">{score.uid === user.uid ? 'You' : score.displayName}</span></th>
+                <th scope="row"><span className="hanoi-player-name">{score.uid === user.uid ? t.common.you : score.displayName}</span></th>
                 <td>{formatTime(score.durationMs)}</td><td>{score.moves}</td>
               </tr>
             ))}</tbody>

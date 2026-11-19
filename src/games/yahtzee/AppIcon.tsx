@@ -1,3 +1,4 @@
+import { m } from './messages';
 /** Yahtzee's phone icon: two dice tumbling on green felt. */
 const PIPS: Record<number, [number, number][]> = {
   5: [[-1, -1], [1, -1], [0, 0], [-1, 1], [1, 1]],
@@ -17,7 +18,7 @@ function Die({ x, y, size, tilt, value }: { x: number; y: number; size: number; 
 
 export default function AppIcon() {
   return (
-    <svg viewBox="0 0 120 120" className="app-icon" role="img" aria-label="Yahtzee">
+    <svg viewBox="0 0 120 120" className="app-icon" role="img" aria-label={m().name}>
       <defs>
         <radialGradient id="yzIconFelt" cx="0.5" cy="0.4" r="0.8"><stop offset="0" stopColor="#36a05a" /><stop offset="1" stopColor="#134a26" /></radialGradient>
         <linearGradient id="yzIconFace" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#ffffff" /><stop offset="1" stopColor="#e6dfcd" /></linearGradient>

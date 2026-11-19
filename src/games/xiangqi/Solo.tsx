@@ -1,3 +1,5 @@
+import { t } from '../../i18n';
+import { m, reasonText } from './messages';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import XiangqiBoard from './Board';
@@ -9,17 +11,12 @@ import { positionOf, seatOf, sideToMove, uidOfSide, xiangqi, type Side } from '.
 import { COMPUTER_UID, GUEST_UID, localRoster, useLocalGame } from '../local';
 import { useCurrentUser } from '../../hooks/useAuth';
 
-const DIFFICULTY_LABELS: { id: Difficulty; label: string }[] = [
-  { id: 'easy', label: 'Easy' },
-  { id: 'normal', label: 'Normal' },
-  { id: 'hard', label: 'Hard' },
+const difficultyLabels = (): { id: Difficulty; label: string }[] => [
+  { id: 'easy', label: t.cast.easy },
+  { id: 'normal', label: t.cast.normal },
+  { id: 'hard', label: t.cast.hard },
 ];
-const DIFFICULTY_HELP: Record<Difficulty, string> = {
-  easy: 'Two plies deep and quick about it.',
-  normal: 'Half a second of search per move.',
-  hard: 'Two and a half seconds per move. The original site\'s strength.',
-};
-const SIDE_NAME: Record<Side, string> = { 1: 'Red', 2: 'Black' };
+const sideName = (side: Side): string => (side === 1 ? m().white : m().black);
 
 /** Chinese chess on this device: against the engine, or against a friend sharing it. */
 export default function XiangqiSoloPage() {
@@ -42,7 +39,7 @@ function XiangqiGame({ opponent, onOpponent }: { opponent: Opponent; onOpponent:
   const other = vsComputer ? COMPUTER_UID : GUEST_UID;
   const players = useMemo(
     () => localRoster({ uid: user.uid, name: user.displayName, photoURL: user.photoURL },
-      [vsComputer ? { kind: 'computer', name: 'The engine' } : { kind: 'person', name: 'Friend' }]),
+      [vsComputer ? { kind: 'computer', name: m().computer } : { kind: 'person', name: t.cast.aFriend }]),
     [user, vsComputer],
   );
   const { state, act, reset, error, generation } = useLocalGame(xiangqi, players, user.uid);
@@ -104,14 +101,15 @@ function XiangqiGame({ opponent, onOpponent }: { opponent: Opponent; onOpponent:
     act({ type: 'rematch' }, COMPUTER_UID);
   }
 
-  const status = state.outcome === 3 ? `Draw. ${state.reason}`
-    : !vsComputer && state.outcome !== 0 ? `${SIDE_NAME[state.outcome]} wins! 🎉 ${state.reason}`
-    : state.outcome === mySeat ? `You win! 🎉 ${state.reason}`
-    : state.outcome !== 0 ? `The engine wins. ${state.reason}`
-    : thinking ? 'Thinking…'
-    : !vsComputer ? `${position.inCheck() ? 'Check — ' : ''}${SIDE_NAME[turn]} to move`
-    : position.inCheck() ? 'Check — your turn'
-    : 'Your turn';
+  const reason = reasonText(state.reason);
+  const status = state.outcome === 3 ? `${t.cast.draw} ${reason}`
+    : !vsComputer && state.outcome !== 0 ? `${t.duel.sideWins(sideName(state.outcome))} ${reason}`
+    : state.outcome === mySeat ? `${t.cast.youWin} ${reason}`
+    : state.outcome !== 0 ? `${m().computerWins} ${reason}`
+    : thinking ? t.cast.thinking
+    : !vsComputer ? (position.inCheck() ? t.duel.checkSide(sideName(turn)) : t.duel.sideToMove(sideName(turn)))
+    : position.inCheck() ? t.duel.checkYourTurn
+    : t.cast.yourTurn;
 
   // Between friends the board turns to whoever has the move, unless it is lying flat between them.
   const viewer: Side | null = vsComputer ? mySeat : turning === 'turn' ? turn : 1;
@@ -119,20 +117,20 @@ function XiangqiGame({ opponent, onOpponent }: { opponent: Opponent; onOpponent:
   return (
     <div className="room-screen">
       <header className="room-bar">
-        <Link to="/g/xiangqi" className="icon-button" aria-label="Back to the lobby"><Icon name="left" /></Link>
+        <Link to="/g/xiangqi" className="icon-button" aria-label={t.cast.backToLobby}><Icon name="left" /></Link>
         <div className="grow col" style={{ gap: 0 }}>
-          <strong>{vsComputer ? 'Chinese Chess vs the engine' : 'Chinese Chess · two players'}</strong>
+          <strong>{vsComputer ? m().vsComputer : m().twoPlayers}</strong>
           <small className="muted tabular">
             {vsComputer
-              ? `You ${score.you} — ${score.computer} Engine · you are ${mySeat === 1 ? 'red' : 'black'}`
-              : `Red ${score.red} — ${score.black} Black`}
+              ? `${t.cast.tally(t.common.you, score.you, score.computer, m().computer)} · ${t.duel.youAre(sideName(mySeat ?? 1))}`
+              : t.cast.tally(m().white, score.red, score.black, m().black)}
           </small>
         </div>
-        <button type="button" className="icon-button" aria-label={vsComputer ? 'Undo your last move' : 'Undo the last move'}
+        <button type="button" className="icon-button" aria-label={vsComputer ? t.cast.undoMine : t.cast.undoLast}
           disabled={thinking || state.outcome !== 0 || state.moves.length === 0} onClick={undo}>
           <Icon name="undo" />
         </button>
-        <button type="button" className="icon-button" aria-label="Start over" onClick={again}>
+        <button type="button" className="icon-button" aria-label={t.cast.startOver} onClick={again}>
           <Icon name="plus" />
         </button>
       </header>
@@ -151,17 +149,17 @@ function XiangqiGame({ opponent, onOpponent }: { opponent: Opponent; onOpponent:
       {error && <p className="error row center" style={{ marginTop: 10 }}>{error}</p>}
 
       <div style={{ marginTop: 16 }}>
-        <OpponentCard value={opponent} onChange={onOpponent} computer="The engine" />
+        <OpponentCard value={opponent} onChange={onOpponent} computer={m().theComputer} />
       </div>
       {vsComputer ? (
         <section className="card">
-          <h3>Strength</h3>
-          <Segmented label="Strength" value={difficulty} onChange={setDifficulty} options={DIFFICULTY_LABELS} block />
-          <p className="muted" style={{ margin: '8px 0 0', fontSize: '0.88rem' }}>{DIFFICULTY_HELP[difficulty]}</p>
+          <h3>{t.cast.strength}</h3>
+          <Segmented label={t.cast.strength} value={difficulty} onChange={setDifficulty} options={difficultyLabels()} block />
+          <p className="muted" style={{ margin: '8px 0 0', fontSize: '0.88rem' }}>{m().help[difficulty]}</p>
         </section>
       ) : <TurningCard value={turning} onChange={setTurning} />}
 
-      {state.outcome !== 0 && <button type="button" className="primary block" onClick={again}>Play again</button>}
+      {state.outcome !== 0 && <button type="button" className="primary block" onClick={again}>{t.cast.playAgain}</button>}
     </div>
   );
 }

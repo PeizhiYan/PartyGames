@@ -1,3 +1,4 @@
+import { m } from './messages';
 import UnoCard from './Card';
 import { DECK } from './cards';
 import './Uno.css';
@@ -8,7 +9,7 @@ const FAN = [pick('7', 'red'), pick('wild', 'wild'), pick('draw2', 'blue')];
 
 export default function AppIcon() {
   return (
-    <svg viewBox="0 0 120 120" className="app-icon" role="img" aria-label="UNO">
+    <svg viewBox="0 0 120 120" className="app-icon" role="img" aria-label={m().name}>
       <defs>
         <radialGradient id="unoIconBg" cx="0.5" cy="0.4" r="0.8"><stop offset="0" stopColor="#4a3577" /><stop offset="1" stopColor="#1a1230" /></radialGradient>
       </defs>

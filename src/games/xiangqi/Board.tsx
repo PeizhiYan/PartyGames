@@ -1,3 +1,4 @@
+import { m } from './messages';
 import { useEffect, useMemo, useState } from 'react';
 import {
   COORD_XY, DST, FILE_LEFT, FILE_X, MOVE, PIECE_KING, RANK_TOP, RANK_Y, SIDE_TAG, SRC, type Position,
@@ -121,7 +122,7 @@ export default function XiangqiBoard({ position, viewer, canMove, lastMove, onMo
   return (
     <div className="xq">
       <svg className="xq-board" viewBox={`0 0 ${WIDTH} ${HEIGHT}`} role="img"
-        aria-label={`Chinese chess board, ${position.mvList.length - 1} moves played`}>
+        aria-label={m().boardLabel(position.mvList.length - 1)}>
         <rect className="xq-wood" x="0" y="0" width={WIDTH} height={HEIGHT} rx="14" />
         <rect className="xq-frame" x={MARGIN - 8} y={MARGIN - 8} width={(COLS - 1) * CELL + 16} height={(ROWS - 1) * CELL + 16} />
         <g className="xq-lines">{lines}</g>

@@ -1,3 +1,5 @@
+import { t } from '../../i18n';
+import { m } from './messages';
 /**
  * Yahtzee as a room game: up to six scorecards, one set of dice, three rolls a turn.
  *
@@ -15,11 +17,6 @@ export type Category = (typeof CATEGORIES)[number];
 export const UPPER: Category[] = ['ones', 'twos', 'threes', 'fours', 'fives', 'sixes'];
 export const LOWER: Category[] = ['threeKind', 'fourKind', 'fullHouse', 'smallStraight', 'largeStraight', 'yahtzee', 'chance'];
 
-export const CATEGORY_LABEL: Record<Category, string> = {
-  ones: 'Ones', twos: 'Twos', threes: 'Threes', fours: 'Fours', fives: 'Fives', sixes: 'Sixes',
-  threeKind: '3 of a kind', fourKind: '4 of a kind', fullHouse: 'Full house',
-  smallStraight: 'Small straight', largeStraight: 'Large straight', yahtzee: 'Yahtzee', chance: 'Chance',
-};
 
 export const UPPER_BONUS_AT = 63;
 export const UPPER_BONUS = 35;
@@ -161,20 +158,20 @@ export const isMyTurn = (state: YahtzeeState, uid: string): boolean =>
 /* ── Actions ──────────────────────────────────────────────────────────────── */
 
 function requireOwner(ctx: GameContext): void {
-  if (ctx.actorUid !== ctx.ownerUid) throw new GameRuleError('Only the host can do that.');
+  if (ctx.actorUid !== ctx.ownerUid) throw new GameRuleError(t.rules.hostOnly);
 }
 
 function start(state: YahtzeeState, ctx: GameContext): YahtzeeState {
   requireOwner(ctx);
-  if (state.phase !== 'lobby') throw new GameRuleError('The game has already started.');
-  if (state.seats.length < 1) throw new GameRuleError('Nobody is seated.');
+  if (state.phase !== 'lobby') throw new GameRuleError(t.rules.alreadyStarted);
+  if (state.seats.length < 1) throw new GameRuleError(m().errors.nobody);
   return { ...state, phase: 'playing', turn: 0, rolls: 0, held: NO_HOLDS, dice: [1, 1, 1, 1, 1] };
 }
 
 function requireTurn(state: YahtzeeState, ctx: GameContext): Seat {
-  if (state.phase !== 'playing') throw new GameRuleError('The game is not under way.');
+  if (state.phase !== 'playing') throw new GameRuleError(m().errors.notUnderWay);
   const seat = currentSeat(state);
-  if (!seat || seat.uid !== ctx.actorUid) throw new GameRuleError("It's not your turn.");
+  if (!seat || seat.uid !== ctx.actorUid) throw new GameRuleError(t.rules.notYourTurn);
   return seat;
 }
 
@@ -182,8 +179,8 @@ const validDie = (d: unknown): d is number => Number.isInteger(d) && (d as numbe
 
 function roll(state: YahtzeeState, thrown: number[], ctx: GameContext): YahtzeeState {
   requireTurn(state, ctx);
-  if (state.rolls >= ROLLS_PER_TURN) throw new GameRuleError('No rolls left — pick a box to score.');
-  if (!Array.isArray(thrown) || thrown.length !== 5 || !thrown.every(validDie)) throw new GameRuleError('That is not a throw of five dice.');
+  if (state.rolls >= ROLLS_PER_TURN) throw new GameRuleError(m().errors.noRolls);
+  if (!Array.isArray(thrown) || thrown.length !== 5 || !thrown.every(validDie)) throw new GameRuleError(m().errors.notAThrow);
   // Holds only mean something once there are dice on the table.
   const held = state.rolls === 0 ? NO_HOLDS : state.held;
   const dice = state.dice.map((d, i) => (held[i] ? d : thrown[i])) as Dice;
@@ -192,9 +189,9 @@ function roll(state: YahtzeeState, thrown: number[], ctx: GameContext): YahtzeeS
 
 function hold(state: YahtzeeState, index: number, held: boolean, ctx: GameContext): YahtzeeState {
   requireTurn(state, ctx);
-  if (state.rolls === 0) throw new GameRuleError('Roll first.');
-  if (state.rolls >= ROLLS_PER_TURN) throw new GameRuleError('No rolls left — holding changes nothing now.');
-  if (!Number.isInteger(index) || index < 0 || index > 4) throw new GameRuleError('That is not a die.');
+  if (state.rolls === 0) throw new GameRuleError(m().errors.rollFirst);
+  if (state.rolls >= ROLLS_PER_TURN) throw new GameRuleError(m().errors.noRollsHold);
+  if (!Number.isInteger(index) || index < 0 || index > 4) throw new GameRuleError(m().errors.notADie);
   const next = [...state.held] as YahtzeeState['held'];
   next[index] = !!held;
   return { ...state, held: next };
@@ -202,11 +199,11 @@ function hold(state: YahtzeeState, index: number, held: boolean, ctx: GameContex
 
 function score(state: YahtzeeState, category: Category, ctx: GameContext): YahtzeeState {
   const seat = requireTurn(state, ctx);
-  if (state.rolls === 0) throw new GameRuleError('Roll first.');
-  if (!CATEGORIES.includes(category)) throw new GameRuleError('That is not a box on the card.');
-  if (seat.card[category] !== undefined) throw new GameRuleError('That box is already filled.');
+  if (state.rolls === 0) throw new GameRuleError(m().errors.rollFirst);
+  if (!CATEGORIES.includes(category)) throw new GameRuleError(m().errors.notABox);
+  if (seat.card[category] !== undefined) throw new GameRuleError(m().errors.filled);
   const option = choices(seat, state.dice).find((c) => c.category === category);
-  if (!option) throw new GameRuleError('A Yahtzee has to go in its matching upper box when that box is open.');
+  if (!option) throw new GameRuleError(m().errors.joker);
   const { joker } = jokerState(seat, state.dice);
   const bonus = joker && seat.card.yahtzee === 50 ? 1 : 0;
   const filled: Seat = { ...seat, card: { ...seat.card, [category]: option.score }, yahtzeeBonuses: seat.yahtzeeBonuses + bonus };
@@ -226,7 +223,7 @@ function score(state: YahtzeeState, category: Category, ctx: GameContext): Yahtz
 
 function again(state: YahtzeeState, ctx: GameContext): YahtzeeState {
   requireOwner(ctx);
-  if (state.phase !== 'results') throw new GameRuleError('Finish this game first.');
+  if (state.phase !== 'results') throw new GameRuleError(m().errors.finishFirst);
   return syncSeats({ ...initial(), seats: state.seats.map((s) => ({ ...s, card: {}, yahtzeeBonuses: 0 })) }, ctx);
 }
 
@@ -239,16 +236,16 @@ export const throwFive = (random: () => number = Math.random): number[] =>
 
 export const yahtzee: GameDefinition<YahtzeeState, YahtzeeAction> = {
   id: 'yahtzee',
-  name: 'Yahtzee',
-  tagline: 'Five dice, three rolls, thirteen boxes. Up to six players, or the computer.',
+  get name() { return m().name; },
+  get tagline() { return m().tagline; },
   emoji: '🎲',
   minPlayers: 1,
   maxPlayers: 6,
   solo: true,
   multiplayer: true,
   computerPlayers: true,
-  soloTitle: 'Play on this device',
-  soloDescription: 'No room needed. Computer players, friends passing the phone, or both.',
+  get soloTitle() { return m().soloTitle; },
+  get soloDescription() { return m().soloDescription; },
   newState: initial,
   onPlayersChanged: syncSeats,
   reduce(state, action, ctx) {
@@ -258,7 +255,7 @@ export const yahtzee: GameDefinition<YahtzeeState, YahtzeeAction> = {
       case 'hold': return hold(state, action.index, action.held, ctx);
       case 'score': return score(state, action.category, ctx);
       case 'again': return again(state, ctx);
-      default: throw new GameRuleError('Unknown move.');
+      default: throw new GameRuleError(t.rules.unknownMove);
     }
   },
 };

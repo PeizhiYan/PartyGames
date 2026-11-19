@@ -1,3 +1,4 @@
+import { m } from './messages';
 import MahjongTile from './Tile';
 import './Mahjong.css';
 
@@ -7,7 +8,7 @@ const GREEN_DRAGON = 32 * 4;
 
 export default function AppIcon() {
   return (
-    <svg viewBox="0 0 120 120" className="app-icon" role="img" aria-label="Mahjong">
+    <svg viewBox="0 0 120 120" className="app-icon" role="img" aria-label={m().name}>
       <defs>
         <radialGradient id="mjIconFelt" cx="0.5" cy="0.4" r="0.8"><stop offset="0" stopColor="#2f8f4e" /><stop offset="1" stopColor="#123f22" /></radialGradient>
       </defs>

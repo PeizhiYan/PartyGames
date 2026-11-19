@@ -1,3 +1,4 @@
+import { m } from './messages';
 import { ART_H, ART_W } from '../art';
 import MahjongTile from './Tile';
 
@@ -17,7 +18,7 @@ export default function Art() {
   const rowWidth = (row: number[][]) => row.flat().length * STEP + (row.length - 1) * GAP;
   return (
     <svg viewBox={`0 0 ${ART_W} ${ART_H}`} className="game-art" preserveAspectRatio="xMidYMid slice"
-      role="img" aria-label="A winning mahjong hand on green felt">
+      role="img" aria-label={m().art}>
       <defs>
         <radialGradient id="mjFelt" cx="0.5" cy="0.45" r="0.8">
           <stop offset="0" stopColor="#2b7a4b" />

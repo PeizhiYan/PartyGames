@@ -1,17 +1,18 @@
 // App-level errors, so the UI never depends on a backend's error codes.
 import { GameRuleError } from '../types';
+import { t } from '../i18n';
 
 export class NotSignedInError extends Error {
-  constructor() { super('You are not signed in.'); }
+  constructor() { super(t.errors.notSignedIn); }
 }
 export class PermissionDeniedError extends Error {
-  constructor(message = 'You do not have permission to do that.') { super(message); }
+  constructor(message = t.errors.permission) { super(message); }
 }
 export class OfflineError extends Error {
-  constructor() { super('This needs an internet connection.'); }
+  constructor() { super(t.errors.offline); }
 }
 export class NotFoundError extends Error {
-  constructor(message = 'That room is gone.') { super(message); }
+  constructor(message = t.errors.roomGone) { super(message); }
 }
 export class BackendError extends Error {
   constructor(message: string, readonly cause?: unknown) { super(message); }

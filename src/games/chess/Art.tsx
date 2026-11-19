@@ -1,3 +1,4 @@
+import { m } from './messages';
 import { ART_H, ART_W } from '../art';
 import { BISHOP, KING, KNIGHT, PAWN, QUEEN, ROOK } from './engine';
 import { Piece } from './Pieces';
@@ -19,7 +20,7 @@ export default function Art() {
   ];
   return (
     <svg viewBox={`0 0 ${ART_W} ${ART_H}`} className="game-art" preserveAspectRatio="xMidYMid slice"
-      role="img" aria-label="A chess board mid-game">
+      role="img" aria-label={m().art}>
       <rect width={ART_W} height={ART_H} fill="#8d6433" />
       {Array.from({ length: 5 }, (_, r) => Array.from({ length: 15 }, (_, f) => {
         const { x, y } = at(f, r);

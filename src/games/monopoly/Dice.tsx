@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 import type { CSSProperties } from 'react';
 
 // Dice faces as dots on a 3x3 grid, by which of the nine positions are filled.
@@ -17,7 +18,7 @@ const pips = (value: number) => {
 
 export function Die({ value, rolling }: { value: number; rolling?: boolean }) {
   return (
-    <span className={`die${rolling ? ' rolling' : ''}`} role="img" aria-label={`Die showing ${value}`}>
+    <span className={`die${rolling ? ' rolling' : ''}`} role="img" aria-label={t.die(value, false)}>
       {pips(value)}
     </span>
   );

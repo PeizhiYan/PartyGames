@@ -1,6 +1,7 @@
 // Room rules that do not depend on any backend: join codes, who may do what, and when a room
 // counts as abandoned.
 import type { Room, RoomSummary } from '../types';
+import { t } from '../i18n';
 
 /** Letters and digits that can't be mistaken for each other when read out loud. */
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -87,7 +88,7 @@ export function standing(room: RoomSummary, uid: string, maxPlayers: number): Ro
   return roomIsFull(room, maxPlayers) ? 'full' : 'joinable';
 }
 
-export const defaultRoomName = (ownerName: string): string => `${ownerName.split(' ')[0]}'s room`;
+export const defaultRoomName = (ownerName: string): string => t.rooms.defaultName(ownerName.split(' ')[0]);
 
 /** Rooms sorted the way the list shows them: the ones you're in first, then newest. */
 export function sortRooms(rooms: RoomSummary[], uid: string): RoomSummary[] {

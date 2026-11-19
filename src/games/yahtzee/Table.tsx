@@ -9,9 +9,11 @@ import { AddComputer, RemoveComputer, type Seating } from '../cast/Seating';
 import { isComputer } from '../local';
 import { assignSpecies } from '../cast/cast';
 import { bubbleFor, expressionFor, useMoments, type Detect } from '../cast/moments';
-import { BONUS_HELP, HELP, ZERO_HELP } from './help';
+import { EXAMPLES } from './help';
+import { m } from './messages';
+import { t } from '../../i18n';
 import {
-  CATEGORIES, CATEGORY_LABEL, LOWER, ROLLS_PER_TURN, UPPER, UPPER_BONUS, UPPER_BONUS_AT, YAHTZEE_BONUS, choices,
+  CATEGORIES, LOWER, ROLLS_PER_TURN, UPPER, UPPER_BONUS, UPPER_BONUS_AT, YAHTZEE_BONUS, choices,
   currentSeat, grandTotal, ranking, throwFive, upperBonus, upperTotal,
   type Category, type Seat as SeatState, type YahtzeeAction, type YahtzeeState,
 } from './rules';
@@ -46,7 +48,7 @@ const detect: Detect<YahtzeeState> = (prev, next) => {
       const points = seat.card[c]!;
       const name = firstName(seat.name);
       if (c === 'yahtzee' && points === 50) {
-        out.push({ kind: 'yahtzee', uid: seat.uid, text: 'YAHTZEE!', tone: 'gold', expression: 'happy', ttl: 2800, data: { category: c } });
+        out.push({ kind: 'yahtzee', uid: seat.uid, text: m().yahtzeeShout, tone: 'gold', expression: 'happy', ttl: 2800, data: { category: c } });
       } else {
         out.push({
           kind: 'score', uid: seat.uid, ttl: 2200, data: { category: c, points, name },
@@ -56,7 +58,7 @@ const detect: Detect<YahtzeeState> = (prev, next) => {
       }
     }
     if (seat.yahtzeeBonuses > (before.yahtzeeBonuses ?? 0)) {
-      out.push({ kind: 'yahtzee', uid: seat.uid, text: `+${YAHTZEE_BONUS} bonus!`, tone: 'gold', expression: 'happy', ttl: 2800 });
+      out.push({ kind: 'yahtzee', uid: seat.uid, text: m().bonusShout(YAHTZEE_BONUS), tone: 'gold', expression: 'happy', ttl: 2800 });
     }
   }
   return out;
@@ -80,12 +82,12 @@ export default function YahtzeeTable({ state, uid, act, busy, error, owner, seat
   const [help, setHelp] = useState<Category | 'bonus' | 'zero' | null>(null);
   const moments = useMoments(state, detect);
   const looks = assignSpecies(state.seats.map((s) => s.uid));
-  const nameOf = (s: { uid: string; name: string }) => (!hotseat && s.uid === uid ? 'You' : firstName(s.name));
+  const nameOf = (s: { uid: string; name: string }) => (!hotseat && s.uid === uid ? t.common.you : firstName(s.name));
 
   if (state.phase === 'lobby') {
     return (
       <div className="yz-lobby">
-        <h2>Around the table</h2>
+        <h2>{m().aroundTable}</h2>
         <div className="yz-lobby-seats">
           {state.seats.map((s) => (
             <Seat key={s.uid} uid={s.uid} species={looks[s.uid]} name={nameOf(s)} size={56}
@@ -94,14 +96,13 @@ export default function YahtzeeTable({ state, uid, act, busy, error, owner, seat
           {seating?.add && <AddComputer onAdd={seating.add} size={56} />}
         </div>
         <p className="muted">
-          Thirteen turns each. Roll up to three times a turn, keeping the dice you like, then fill
-          one box on your card. Biggest total wins.
+          {m().lobbyBlurb}
         </p>
         {owner
           ? <button type="button" className="primary" disabled={busy || state.seats.length < 1} onClick={() => act({ type: 'start' })}>
-              Start with {state.seats.length} player{state.seats.length === 1 ? '' : 's'}
+              {m().startWith(state.seats.length)}
             </button>
-          : <p className="empty">Waiting for the host to start…</p>}
+          : <p className="empty">{m().waitingStart}</p>}
         {error && <p className="error">{error}</p>}
       </div>
     );
@@ -128,13 +129,13 @@ export default function YahtzeeTable({ state, uid, act, busy, error, owner, seat
     <div className={`yz${state.phase === 'results' ? ' done' : ''}`}>
       {state.phase === 'results' && <Results state={state} nameOf={nameOf} owner={owner} busy={busy} act={act} species={looks} />}
 
-      <section className="yz-sheet" aria-label="Scorecard">
+      <section className="yz-sheet" aria-label={m().scorecard}>
         <div className="yz-card-wrap">
           <table className="yz-card">
             <thead>
               <tr>
                 <th scope="col" className="yz-corner">
-                  <button type="button" className="link-button" onClick={() => setHelp('zero')}>How scoring works</button>
+                  <button type="button" className="link-button" onClick={() => setHelp('zero')}>{m().howScoring}</button>
                 </th>
                 {state.seats.map((s) => (
                   <th key={s.uid} scope="col" className={s.uid === current?.uid && state.phase === 'playing' ? 'turn' : ''}>
@@ -156,9 +157,9 @@ export default function YahtzeeTable({ state, uid, act, busy, error, owner, seat
               <tr className="yz-sub">
                 <th scope="row">
                   <button type="button" className="yz-name" onClick={() => setHelp('bonus')}>
-                    Bonus <Icon name="info" size={13} />
+                    {m().bonus} <Icon name="info" size={13} />
                   </button>
-                  <small className="yz-desc">{UPPER_BONUS_AT}+ up top · +{UPPER_BONUS}</small>
+                  <small className="yz-desc">{m().bonusShort(UPPER_BONUS_AT, UPPER_BONUS)}</small>
                 </th>
                 {state.seats.map((s) => {
                   const up = upperTotal(s);
@@ -166,7 +167,7 @@ export default function YahtzeeTable({ state, uid, act, busy, error, owner, seat
                     <td key={s.uid}>
                       {upperBonus(s)
                         ? <strong className="yz-bonus-won">+{UPPER_BONUS}</strong>
-                        : <span className="yz-meter" title={`${up} of ${UPPER_BONUS_AT}`}>
+                        : <span className="yz-meter" title={m().meter(up, UPPER_BONUS_AT)}>
                             <span style={{ width: `${Math.min(100, (up / UPPER_BONUS_AT) * 100)}%` }} />
                             <small>{up}/{UPPER_BONUS_AT}</small>
                           </span>}
@@ -178,12 +179,12 @@ export default function YahtzeeTable({ state, uid, act, busy, error, owner, seat
                 busy={busy} onHelp={setHelp} onPick={(category) => act({ type: 'score', category })} />)}
               {state.seats.some((s) => s.yahtzeeBonuses > 0) && (
                 <tr className="yz-sub">
-                  <th scope="row"><span className="yz-name static">Yahtzee bonus</span></th>
+                  <th scope="row"><span className="yz-name static">{m().yahtzeeBonus}</span></th>
                   {state.seats.map((s) => <td key={s.uid}>{s.yahtzeeBonuses ? `+${s.yahtzeeBonuses * YAHTZEE_BONUS}` : '—'}</td>)}
                 </tr>
               )}
               <tr className="yz-total">
-                <th scope="row">Total</th>
+                <th scope="row">{m().total}</th>
                 {state.seats.map((s) => <td key={s.uid}>{grandTotal(s)}</td>)}
               </tr>
             </tbody>
@@ -192,20 +193,20 @@ export default function YahtzeeTable({ state, uid, act, busy, error, owner, seat
       </section>
 
       {state.phase === 'playing' && (
-        <section className={`yz-tray${myTurn ? ' mine' : ''}`} aria-label="Dice">
+        <section className={`yz-tray${myTurn ? ' mine' : ''}`} aria-label={m().dice}>
           <div className="yz-tray-head">
             {current && <Character uid={current.uid} species={looks[current.uid]} size={34} expression={faceOf(current)} />}
             <div className="grow" style={{ minWidth: 0 }}>
               <strong className="truncate" style={{ display: 'block' }}>
-                {myTurn && !hotseat ? 'Your turn' : `${firstName(current?.name ?? '')}'s turn`}
+                {myTurn && !hotseat ? t.cast.yourTurn : t.cast.turnOf(firstName(current?.name ?? ''))}
               </strong>
               <small className="muted">
                 {lastScore?.data?.name
-                  ? `${lastScore.data.name as string} scored ${lastScore.data.points as number} · ${CATEGORY_LABEL[lastScore.data.category as Category]}`
-                  : `Round ${Math.min(13, state.round + 1)} of 13`}
+                  ? m().scored(lastScore.data.name as string, lastScore.data.points as number, m().categories[lastScore.data.category as Category])
+                  : m().round(Math.min(13, state.round + 1))}
               </small>
             </div>
-            <span className="yz-pips" aria-label={`${rollsLeft} rolls left`}>
+            <span className="yz-pips" aria-label={m().rollsLeft(rollsLeft)}>
               {Array.from({ length: ROLLS_PER_TURN }, (_, i) => <i key={i} className={i < rollsLeft ? 'left' : ''} />)}
             </span>
           </div>
@@ -218,7 +219,7 @@ export default function YahtzeeTable({ state, uid, act, busy, error, owner, seat
                   onToggle={myTurn && rolled && rollsLeft > 0 && !busy
                     ? () => act({ type: 'hold', index: i, held: !state.held[i] })
                     : undefined} />
-                <small className="yz-held-tag">{state.held[i] ? 'kept' : ''}</small>
+                <small className="yz-held-tag">{state.held[i] ? m().kept : ''}</small>
               </span>
             ))}
           </div>
@@ -227,13 +228,13 @@ export default function YahtzeeTable({ state, uid, act, busy, error, owner, seat
             <button type="button" className="primary yz-roll" disabled={!myTurn || rollsLeft <= 0 || busy}
               onClick={() => act({ type: 'roll', dice: throwFive() })}>
               <Icon name="dice" size={18} />
-              {!rolled ? 'Roll' : rollsLeft > 0 ? `Roll again · ${rollsLeft}` : 'Pick a box'}
+              {!rolled ? m().rollButton : rollsLeft > 0 ? m().rollAgain(rollsLeft) : m().pickBox}
             </button>
             <span className="yz-hint">
-              {!myTurn ? 'Watch the dice…'
-                : !rolled ? 'Three rolls this turn.'
-                : best ? <>Best: <strong>{CATEGORY_LABEL[best.category]}</strong> · {best.score}</>
-                : 'Pick a box to score.'}
+              {!myTurn ? m().watch
+                : !rolled ? m().threeRolls
+                : best ? <>{m().best}<strong>{m().categories[best.category]}</strong> · {best.score}</>
+                : m().pickToScore}
             </span>
           </div>
           {celebrating && <div className="yz-celebrate"><span>YAHTZEE!</span><Confetti /></div>}
@@ -242,22 +243,22 @@ export default function YahtzeeTable({ state, uid, act, busy, error, owner, seat
 
       {error && <p className="error row center">{error}</p>}
 
-      <Sheet open={help !== null} title={help === 'bonus' ? 'The upper bonus' : help === 'zero' ? 'How scoring works' : help ? CATEGORY_LABEL[help] : ''}
+      <Sheet open={help !== null} title={help === 'bonus' ? m().upperBonus : help === 'zero' ? m().howScoring : help ? m().categories[help] : ''}
         onClose={() => setHelp(null)}>
-        {help === 'bonus' && <p style={{ margin: 0 }}>{BONUS_HELP}</p>}
+        {help === 'bonus' && <p style={{ margin: 0 }}>{m().bonusHelp}</p>}
         {help === 'zero' && (
           <div className="col">
-            <p style={{ margin: 0 }}>Each turn: roll up to three times, tapping dice between rolls to keep them, then fill one box on your card. Tap any box's name for what it needs.</p>
-            <p style={{ margin: 0 }}>{ZERO_HELP}</p>
-            <p style={{ margin: 0 }}>{BONUS_HELP}</p>
+            <p style={{ margin: 0 }}>{m().howToPlay}</p>
+            <p style={{ margin: 0 }}>{m().zeroHelp}</p>
+            <p style={{ margin: 0 }}>{m().bonusHelp}</p>
           </div>
         )}
         {help && help !== 'bonus' && help !== 'zero' && (
           <div className="col">
-            <p style={{ margin: 0 }}>{HELP[help].long}</p>
+            <p style={{ margin: 0 }}>{m().help[help].long}</p>
             <div className="yz-example">
-              {HELP[help].example.map((v, i) => <Die key={i} value={v} />)}
-              <span className="yz-example-score">= {HELP[help].scores}</span>
+              {EXAMPLES[help].example.map((v, i) => <Die key={i} value={v} />)}
+              <span className="yz-example-score">= {EXAMPLES[help].scores}</span>
             </div>
           </div>
         )}
@@ -281,10 +282,10 @@ function Row({ c, state, uid, options, best, fresh, busy, onHelp, onPick }: {
   return (
     <tr>
       <th scope="row">
-        <button type="button" className="yz-name" onClick={() => onHelp(c)} aria-label={`${CATEGORY_LABEL[c]} — what is this?`}>
-          {CATEGORY_LABEL[c]} <Icon name="info" size={13} />
+        <button type="button" className="yz-name" onClick={() => onHelp(c)} aria-label={m().whatIsThis(m().categories[c])}>
+          {m().categories[c]} <Icon name="info" size={13} />
         </button>
-        <small className="yz-desc">{HELP[c].short}</small>
+        <small className="yz-desc">{m().help[c].short}</small>
       </th>
       {state.seats.map((s) => {
         const filled = s.card[c];
@@ -296,7 +297,7 @@ function Row({ c, state, uid, options, best, fresh, busy, onHelp, onPick }: {
               ? <span className={`yz-filled${filled === 0 ? ' zero' : ''}`}>{filled}</span>
               : option
                 ? <button type="button" className={`yz-pick${option.score === 0 ? ' zero' : ''}${best === c && option.score > 0 ? ' best' : ''}`}
-                    disabled={busy} onClick={() => onPick(c)} aria-label={`Score ${option.score} in ${CATEGORY_LABEL[c]}`}>
+                    disabled={busy} onClick={() => onPick(c)} aria-label={m().scoreIn(option.score, m().categories[c])}>
                     {option.score}
                   </button>
                 : <span className="yz-empty" />}
@@ -316,22 +317,22 @@ function Results({ state, nameOf, owner, busy, act, species }: Pick<TableProps, 
   // Everyone level on the top score shares it; "You win!" for a tie would be a lie.
   const top = grandTotal(winner);
   const winners = order.filter((s) => grandTotal(s) === top);
-  const names = winners.map((s) => (nameOf(s) === 'You' ? 'you' : nameOf(s)));
+  const names = winners.map((s) => (nameOf(s) === t.common.you ? m().you : nameOf(s)));
   return (
     <section className="yz-results">
       <Confetti />
       <Character uid={winner.uid} species={species[winner.uid]} size={72} expression="happy" />
       <h2>
         {winners.length > 1
-          ? `A tie between ${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}!`
-          : nameOf(winner) === 'You' ? 'You win!' : `${nameOf(winner)} wins!`}
+          ? m().tie(t.common.list(names))
+          : nameOf(winner) === t.common.you ? m().youWin : m().wins(nameOf(winner))}
       </h2>
       <p className="muted" style={{ margin: 0 }}>
         {order.map((s, i) => `${i + 1}. ${nameOf(s)} ${grandTotal(s)}`).join('   ·   ')}
       </p>
       {owner
-        ? <button type="button" className="primary" disabled={busy} onClick={() => act({ type: 'again' })}>Play again</button>
-        : <p className="empty" style={{ margin: 0 }}>Waiting for the host to start another…</p>}
+        ? <button type="button" className="primary" disabled={busy} onClick={() => act({ type: 'again' })}>{t.cast.playAgain}</button>
+        : <p className="empty" style={{ margin: 0 }}>{m().waitingAnother}</p>}
     </section>
   );
 }

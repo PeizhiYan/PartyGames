@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 import Icon from '../../ui/Icon';
 
 /**
@@ -11,7 +12,7 @@ export interface Seating {
 }
 
 /** A dashed empty seat that seats a computer when tapped. */
-export function AddComputer({ onAdd, size = 52, label = 'Add computer' }: { onAdd: () => void; size?: number; label?: string }) {
+export function AddComputer({ onAdd, size = 52, label = t.cast.addComputer }: { onAdd: () => void; size?: number; label?: string }) {
   return (
     <button type="button" className="seat-add" onClick={onAdd}>
       <span className="seat-add-ring" style={{ width: size, height: size }} aria-hidden><Icon name="plus" size={Math.round(size * 0.42)} /></span>
@@ -23,7 +24,7 @@ export function AddComputer({ onAdd, size = 52, label = 'Add computer' }: { onAd
 /** The little cross on a computer's face that takes it out of the room. */
 export function RemoveComputer({ name, onRemove }: { name: string; onRemove: () => void }) {
   return (
-    <button type="button" className="seat-remove" aria-label={`Take ${name} out of the room`} onClick={onRemove}>
+    <button type="button" className="seat-remove" aria-label={t.cast.removeComputer(name)} onClick={onRemove}>
       <Icon name="close" size={12} />
     </button>
   );

@@ -1,3 +1,5 @@
+import { t } from '../../i18n';
+import { m } from './messages';
 import { useEffect, useState } from 'react';
 import GomokuBoard from './BoardCanvas';
 import Avatar from '../../ui/Avatar';
@@ -53,11 +55,11 @@ export default function GomokuRoom({ room, uid }: { room: Room; uid: string }) {
   };
 
   const outcomeText = () => {
-    if (state.outcome === 3) return "It's a draw — the board is full.";
+    if (state.outcome === 3) return m().draw;
     if (state.outcome === 0) return null;
     const winner = player(state.outcome as Player);
-    if (state.outcome === mySeat) return 'You win! 🎉';
-    return `${winner ? firstName(winner.name) : 'Your opponent'} wins.`;
+    if (state.outcome === mySeat) return t.duel.youWin;
+    return t.duel.wins(winner ? firstName(winner.name) : t.duel.yourOpponent);
   };
 
   const waitingFor = state.rematch.length > 0
@@ -75,9 +77,9 @@ export default function GomokuRoom({ room, uid }: { room: Room; uid: string }) {
               {p ? <Avatar name={p.name} photoURL={p.photoURL} size={26} /> : null}
               <span className="col grow" style={{ gap: 0, minWidth: 0 }}>
                 <strong className="truncate" style={{ fontSize: '0.92rem' }}>
-                  {p ? (p.uid === uid ? 'You' : firstName(p.name)) : 'Waiting…'}
+                  {p ? (p.uid === uid ? t.common.you : firstName(p.name)) : t.duel.waiting}
                 </strong>
-                <small className="muted">{state.wins[p?.uid ?? ''] ?? 0} won</small>
+                <small className="muted">{t.cast.wins(state.wins[p?.uid ?? ''] ?? 0)}</small>
               </span>
             </div>
           );
@@ -89,12 +91,12 @@ export default function GomokuRoom({ room, uid }: { room: Room; uid: string }) {
           {state.outcome !== 0 ? (
             <>{outcomeText()}</>
           ) : !ready ? (
-            <>Waiting for a second player…</>
+            <>{t.duel.waitingSecond}</>
           ) : myTurn ? (
-            <><span className={`stone-dot ${mySeat === 1 ? 'black' : 'white'}`} aria-hidden /> Your turn</>
+            <><span className={`stone-dot ${mySeat === 1 ? 'black' : 'white'}`} aria-hidden /> {t.cast.yourTurn}</>
           ) : (
             <><span className={`stone-dot ${state.turn === 1 ? 'black' : 'white'}`} aria-hidden />
-              {firstName(player(state.turn)?.name ?? 'Opponent')}'s turn</>
+              {t.cast.turnOf(firstName(player(state.turn)?.name ?? t.duel.opponent))}</>
           )}
         </span>
       </div>
@@ -111,10 +113,10 @@ export default function GomokuRoom({ room, uid }: { room: Room; uid: string }) {
 
       {iAsked && (
         <div className="undo-bar" role="status">
-          <span className="grow">Asked to take that move back — waiting for them…</span>
+          <span className="grow">{t.duel.askedTakeback}</span>
           <button type="button" className="small" disabled={busy}
             onClick={() => act({ type: 'respondTakeback', approve: false })}>
-            Never mind
+            {t.duel.neverMind}
           </button>
         </div>
       )}
@@ -127,10 +129,10 @@ export default function GomokuRoom({ room, uid }: { room: Room; uid: string }) {
             <>
               <button type="button" disabled={busy || !canRequestTakeback(state, uid)}
                 onClick={() => act({ type: 'requestTakeback' })}>
-                <Icon name="undo" size={16} /> Take back
+                <Icon name="undo" size={16} /> {t.cast.takeBack}
               </button>
               <button type="button" className="danger" disabled={busy} onClick={() => act({ type: 'resign' })}>
-                <Icon name="flag" size={16} /> Resign
+                <Icon name="flag" size={16} /> {t.duel.resign}
               </button>
             </>
           )
@@ -138,35 +140,34 @@ export default function GomokuRoom({ room, uid }: { room: Room; uid: string }) {
           mySeat !== null && (
             <button type="button" className="primary" disabled={busy || state.rematch.includes(uid)} onClick={() => act({ type: 'rematch' })}>
               <Icon name="undo" size={16} />
-              {state.rematch.includes(uid) ? (waitingFor ? 'Waiting for them…' : 'Ready') : 'Play again'}
+              {state.rematch.includes(uid) ? (waitingFor ? t.duel.waitingThem : t.duel.ready) : t.cast.playAgain}
             </button>
           )
         )}
       </div>
       {mySeat === null && ready && (
-        <p className="empty">You're watching. You'll get a seat if a player leaves.</p>
+        <p className="empty">{t.duel.watching}</p>
       )}
 
-      <Sheet open={!!theyAsked} title="Take that move back?">
+      <Sheet open={!!theyAsked} title={t.duel.takebackTitle}>
         {takeback && (
           <div className="col">
             <p style={{ margin: 0 }}>
-              <strong>{asker ? firstName(asker.name) : 'Your opponent'}</strong> would like to
-              unplay their last move.
+              <strong>{asker ? firstName(asker.name) : t.duel.yourOpponent}</strong>{t.duel.wouldLike}
             </p>
             <p className="muted" style={{ margin: 0, fontSize: '0.9rem' }}>
               {undoes === 2
-                ? 'That takes their stone and your reply back off the board, and the turn returns to them.'
-                : 'That takes their stone back off the board, and the turn returns to them.'}
+                ? m().undoBoth
+                : m().undoOne}
             </p>
             <div className="row" style={{ gap: 8 }}>
               <button type="button" className="grow" disabled={busy}
                 onClick={() => act({ type: 'respondTakeback', approve: false })}>
-                No, play on
+                {t.duel.noPlayOn}
               </button>
               <button type="button" className="primary grow" disabled={busy}
                 onClick={() => act({ type: 'respondTakeback', approve: true })}>
-                Let them
+                {t.duel.letThem}
               </button>
             </div>
           </div>

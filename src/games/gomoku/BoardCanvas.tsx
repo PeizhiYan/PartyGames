@@ -1,3 +1,4 @@
+import { m } from './messages';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { SIZE, colOf, idx, rowOf, type Board, type Player } from './board';
 import './BoardCanvas.css';
@@ -247,7 +248,7 @@ export default function GomokuBoard({ board, placing, lastMove, winLine, heat, p
         className="gomoku-canvas"
         style={{ width: size, height: size }}
         role="img"
-        aria-label={`Gomoku board, ${board.filter((s) => s !== 0).length} stones played`}
+        aria-label={m().boardLabel(board.filter((s) => s !== 0).length)}
         onPointerDown={(e) => { pressed.current = { x: e.clientX, y: e.clientY }; }}
         onPointerUp={(e) => release(e.clientX, e.clientY)}
         onPointerCancel={() => { pressed.current = null; }}

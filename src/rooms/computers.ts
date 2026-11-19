@@ -6,6 +6,7 @@
  * all import it.
  */
 import { PRESENCE_TIMEOUT_MS } from './rules';
+import { t } from '../i18n';
 import { GameRuleError, type GameDefinition, type RoomPlayer, type RoomSummary } from '../types';
 
 /** The most players `firestore.rules` lets a room hold, whatever the game would allow. */
@@ -62,17 +63,17 @@ export function seatComputer(
   nameOf: (uid: string) => string,
   now: number,
 ): RoomPlayer {
-  if (room.ownerUid !== actorUid) throw new GameRuleError('Only the host can seat a computer player.');
-  if (!game.computerPlayers) throw new GameRuleError('This game has no computer players.');
-  if (room.playerUids.length >= Math.min(game.maxPlayers, ROOM_LIMIT)) throw new GameRuleError('The room is full.');
+  if (room.ownerUid !== actorUid) throw new GameRuleError(t.errors.hostSeats);
+  if (!game.computerPlayers) throw new GameRuleError(t.errors.noComputers);
+  if (room.playerUids.length >= Math.min(game.maxPlayers, ROOM_LIMIT)) throw new GameRuleError(t.errors.roomFull);
   const uid = nextComputerUid(room.playerUids);
   return { uid, name: nameOf(uid), joinedAt: now };
 }
 
 /** The checks for taking a computer out again. Returns who stays. */
 export function unseatComputer(room: Pick<RoomSummary, 'ownerUid' | 'players'>, actorUid: string, uid: string): RoomPlayer[] {
-  if (room.ownerUid !== actorUid) throw new GameRuleError('Only the host can do that.');
-  if (!isComputer(uid)) throw new GameRuleError('Only a computer player can be taken out.');
+  if (room.ownerUid !== actorUid) throw new GameRuleError(t.errors.hostOnly);
+  if (!isComputer(uid)) throw new GameRuleError(t.errors.onlyComputers);
   return room.players.filter((p) => p.uid !== uid);
 }
 
@@ -81,10 +82,10 @@ export function unseatComputer(room: Pick<RoomSummary, 'ownerUid' | 'players'>, 
  * same room. Throws if neither is allowed.
  */
 export function actingAs(room: Pick<RoomSummary, 'playerUids'>, actorUid: string, as?: string): string {
-  if (!room.playerUids.includes(actorUid)) throw new GameRuleError('You are not in this room.');
+  if (!room.playerUids.includes(actorUid)) throw new GameRuleError(t.errors.notInRoom);
   if (as === undefined || as === actorUid) return actorUid;
   if (!isComputer(as) || !room.playerUids.includes(as)) {
-    throw new GameRuleError('You can only play for a computer player in this room.');
+    throw new GameRuleError(t.errors.playForComputer);
   }
   return as;
 }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useInstall } from '../hooks/useInstall';
 import Icon from '../ui/Icon';
 import { useToast } from '../ui/Toast';
+import { t } from '../i18n';
 
 /** The iOS share glyph, so the instructions point at the button people are actually looking for. */
 const SHARE_GLYPH = (
@@ -45,7 +46,7 @@ export default function InstallCard({ compact }: { compact?: boolean }) {
     try {
       await state.install();
     } catch {
-      toast({ message: 'Your browser would not open the install dialog.', error: true });
+      toast({ message: t.install.failed, error: true });
     } finally {
       setBusy(false);
     }
@@ -55,28 +56,26 @@ export default function InstallCard({ compact }: { compact?: boolean }) {
     <section className="card install-card">
       <div className="row between">
         <div className="col grow" style={{ gap: 2, minWidth: 0 }}>
-          <strong>Add it to your home screen</strong>
+          <strong>{t.install.title}</strong>
           <small className="muted">
-            {compact
-              ? 'Opens like a normal app, with no browser bars.'
-              : 'PartyGames opens like a normal app — its own icon, no browser bars, and it keeps working while you switch away mid-game.'}
+            {compact ? t.install.short : t.install.long}
           </small>
         </div>
         {state.kind === 'prompt' && (
           <button type="button" className="primary" disabled={busy} onClick={install}>
-            <Icon name="plus" size={16} /> Install
+            <Icon name="plus" size={16} /> {t.install.install}
           </button>
         )}
         {compact && (
-          <button type="button" className="icon-button" aria-label="Not now" onClick={dismiss}>
+          <button type="button" className="icon-button" aria-label={t.install.notNow} onClick={dismiss}>
             <Icon name="close" size={18} />
           </button>
         )}
       </div>
       {state.kind === 'manual' && (
         <ol className="install-steps">
-          <li>Tap {SHARE_GLYPH} <strong>Share</strong> at the bottom of Safari.</li>
-          <li>Scroll down and choose <strong>Add to Home Screen</strong>.</li>
+          <li>{t.install.stepShareBefore}{SHARE_GLYPH} <strong>{t.install.share}</strong>{t.install.stepShareAfter}</li>
+          <li>{t.install.stepAddBefore}<strong>{t.install.addToHome}</strong>{t.install.stepAddAfter}</li>
         </ol>
       )}
     </section>

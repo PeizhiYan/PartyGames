@@ -1,3 +1,4 @@
+import { m } from './messages';
 /** Gomoku's phone icon: five black stones in a row on a wooden board, struck through. */
 export default function AppIcon() {
   const stone = (cx: number, cy: number, black: boolean) => (
@@ -7,7 +8,7 @@ export default function AppIcon() {
     </g>
   );
   return (
-    <svg viewBox="0 0 120 120" className="app-icon" role="img" aria-label="Gomoku">
+    <svg viewBox="0 0 120 120" className="app-icon" role="img" aria-label={m().name}>
       <defs>
         <linearGradient id="gkWood" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#f3d49b" /><stop offset="1" stopColor="#c8914a" />

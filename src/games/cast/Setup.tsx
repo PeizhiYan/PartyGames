@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 import { useState } from 'react';
 import Character from './Character';
 import Seat from './Seat';
@@ -10,7 +11,7 @@ export function finishSeats(seats: LocalSeat[]): LocalSeat[] {
   let computers = 0;
   return seats.map((s, i) => (s.kind === 'computer'
     ? { kind: 'computer', name: names[computers++] }
-    : { kind: 'person', name: s.name.trim() || `Player ${i + 2}` }));
+    : { kind: 'person', name: s.name.trim() || t.cast.playerN(i + 2) }));
 }
 
 /**
@@ -21,7 +22,7 @@ export function finishSeats(seats: LocalSeat[]): LocalSeat[] {
  * `fixed` is for games with one right answer (mahjong is always four): the counts are not
  * offered, only the table and a start button.
  */
-export default function Setup({ title, blurb, min, max, initial, initialSeats, you, fixed, people, startLabel = 'Start', onStart, labelFor }: {
+export default function Setup({ title, blurb, min, max, initial, initialSeats, you, fixed, people, startLabel = t.cast.start, onStart, labelFor }: {
   title: string;
   blurb?: string;
   /** Total players including you. */
@@ -59,8 +60,8 @@ export default function Setup({ title, blurb, min, max, initial, initialSeats, y
       </div>
       {!fixed && (
         <>
-          <strong>How many players?</strong>
-          <div className="setup-counts" role="radiogroup" aria-label="How many players">
+          <strong>{t.cast.howMany}</strong>
+          <div className="setup-counts" role="radiogroup" aria-label={t.cast.howMany}>
             {options.map((n) => (
               <button key={n} type="button" role="radio" aria-checked={n === count}
                 className={n === count ? 'selected' : ''} onClick={() => setCount(n)}>
@@ -75,7 +76,7 @@ export default function Setup({ title, blurb, min, max, initial, initialSeats, y
         <ul className="setup-seats">
           <li>
             <Character uid={you.uid} species={looks[you.uid]} size={44} expression="happy" />
-            <span className="setup-seat-name"><strong>You</strong></span>
+            <span className="setup-seat-name"><strong>{t.common.you}</strong></span>
           </li>
           {others.map((p, i) => (
             <li key={i} style={{ animationDelay: `${i * 0.05}s` }}>
@@ -83,14 +84,14 @@ export default function Setup({ title, blurb, min, max, initial, initialSeats, y
               <span className="setup-seat-name">
                 {chosen[i].kind === 'computer'
                   ? <strong>{p.name}</strong>
-                  : <input type="text" value={seats[i].name} placeholder={`Player ${i + 2}`} maxLength={20}
-                      aria-label={`Name for player ${i + 2}`} onChange={(e) => change(i, { name: e.target.value })} />}
+                  : <input type="text" value={seats[i].name} placeholder={t.cast.playerN(i + 2)} maxLength={20}
+                      aria-label={t.cast.nameFor(i + 2)} onChange={(e) => change(i, { name: e.target.value })} />}
               </span>
-              <div className="setup-kind" role="radiogroup" aria-label={`Who plays seat ${i + 2}`}>
+              <div className="setup-kind" role="radiogroup" aria-label={t.cast.whoPlays(i + 2)}>
                 {(['computer', 'person'] as const).map((kind) => (
                   <button key={kind} type="button" role="radio" aria-checked={seats[i].kind === kind}
                     className={seats[i].kind === kind ? 'selected' : ''} onClick={() => change(i, { kind })}>
-                    {kind === 'computer' ? 'Computer' : 'Person'}
+                    {kind === 'computer' ? t.cast.computer : t.cast.person}
                   </button>
                 ))}
               </div>
@@ -99,7 +100,7 @@ export default function Setup({ title, blurb, min, max, initial, initialSeats, y
         </ul>
       ) : (
         <div className="setup-cast">
-          <Seat key={`you-${count}`} uid={you.uid} species={looks[you.uid]} name="You" expression="happy" size={56} />
+          <Seat key={`you-${count}`} uid={you.uid} species={looks[you.uid]} name={t.common.you} expression="happy" size={56} />
           {others.map((p, i) => (
             <Seat key={`${p.uid}-${count}`} uid={p.uid} species={looks[p.uid]} name={p.name} size={56}
               style={{ animationDelay: `${(i + 1) * 0.06}s` }} />
@@ -107,7 +108,7 @@ export default function Setup({ title, blurb, min, max, initial, initialSeats, y
         </div>
       )}
       {people && chosen.some((s) => s.kind === 'person') && (
-        <p className="muted setup-note">Everyone plays on this device: pass it to whoever's turn it is.</p>
+        <p className="muted setup-note">{t.cast.shared}</p>
       )}
       <button type="button" className="primary" style={{ minWidth: 200 }} onClick={() => onStart(count, chosen)}>{startLabel}</button>
     </div>

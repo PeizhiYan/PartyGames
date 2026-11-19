@@ -1,3 +1,5 @@
+import { t } from '../../i18n';
+import { m } from './messages';
 /**
  * Chinese mahjong as a room game: four seats, 136 tiles, simplified Guangdong-style scoring
  * (`./scoring`).
@@ -31,7 +33,7 @@ import { GameRuleError, type GameContext, type GameDefinition, type RoomPlayer }
 import { shuffle } from '../shuffle';
 import { isWinningHand, type Meld } from './hand';
 import { payments, scoreHand, type FanLine } from './scoring';
-import { TILE_COUNT, countKinds, isSuitKind, kindOf, tileName } from './tiles';
+import { TILE_COUNT, countKinds, isSuitKind, kindOf } from './tiles';
 
 export const SEATS = 4;
 export const HAND_SIZE = 13;
@@ -73,6 +75,16 @@ export interface Result {
   payments: Record<string, number>;
 }
 
+/** What just happened, as data. `who` and `from` are uids; `tile` is a tile id. */
+export type MahjongNote =
+  | { k: 'drawnHand' }
+  | { k: 'selfDrawWin'; who: string; fan: number }
+  | { k: 'discardWin'; who: string; from: string; tile: number; fan: number }
+  | { k: 'call'; who: string; call: 'chow' | 'pong' | 'kong'; tile: number }
+  | { k: 'start'; who: string }
+  | { k: 'discards'; who: string; tile: number }
+  | { k: 'kong'; who: string; tile: number };
+
 export interface MahjongState {
   phase: 'lobby' | 'playing' | 'results';
   seats: Seat[];
@@ -93,7 +105,12 @@ export interface MahjongState {
   seed: number;
   handNumber: number;
   result: Result | null;
-  last: string;
+
+  /**
+   * What just happened, as data rather than a sentence: everyone in the room reads the same
+   * state, and each screen words it in its own language (`noteText` in messages.ts).
+   */
+  last: MahjongNote | null;
 }
 
 export type MahjongAction =
@@ -109,7 +126,7 @@ export type MahjongAction =
 function initial(): MahjongState {
   return {
     phase: 'lobby', seats: [], wall: [], hands: {}, melds: {}, discards: {}, turn: 0, dealer: 0,
-    stage: 'discard', justDrew: false, claim: null, seed: 0, handNumber: 0, result: null, last: '',
+    stage: 'discard', justDrew: false, claim: null, seed: 0, handNumber: 0, result: null, last: null,
   };
 }
 
@@ -119,7 +136,6 @@ export const handOf = (state: MahjongState, uid: string): number[] => state.hand
 export const meldsOf = (state: MahjongState, uid: string): Meld[] => state.melds[uid] ?? [];
 export const currentSeat = (state: MahjongState): Seat | undefined => state.seats[state.turn];
 export const seatIndex = (state: MahjongState, uid: string): number => state.seats.findIndex((s) => s.uid === uid);
-const nameOf = (state: MahjongState, uid: string): string => state.seats.find((s) => s.uid === uid)?.name.split(' ')[0] ?? 'Someone';
 /** The seat after `i` in turn order (anticlockwise at a real table; here simply the next index). */
 const after = (i: number): number => (i + 1) % SEATS;
 /** A seat's wind this hand: the dealer is East. */
@@ -184,7 +200,7 @@ function drawnHand(state: MahjongState): MahjongState {
   return {
     ...state, phase: 'results', claim: null,
     result: { winner: null, from: null, selfDraw: false, hand: [], melds: [], fan: 0, lines: [], payments: {} },
-    last: 'The wall is down to its last tiles — this hand is a draw.',
+    last: { k: 'drawnHand' },
   };
 }
 
@@ -214,9 +230,7 @@ function win(state: MahjongState, winner: string, from: string | null, tile: num
     discards: from && tile !== null ? { ...state.discards, [from]: (state.discards[from] ?? []).filter((t) => t !== tile) } : state.discards,
     seats: state.seats.map((s) => ({ ...s, score: s.score + (paid[s.uid] ?? 0) })),
     result: { winner, from, selfDraw, hand, melds, fan, lines, payments: paid },
-    last: selfDraw
-      ? `${nameOf(state, winner)} draws the winning tile — ${fan} fan.`
-      : `${nameOf(state, winner)} wins on ${nameOf(state, from!)}'s ${tileName(tile!)} — ${fan} fan.`,
+    last: selfDraw ? { k: 'selfDrawWin', who: winner, fan } : { k: 'discardWin', who: winner, from: from!, tile: tile!, fan },
   };
 }
 
@@ -265,7 +279,7 @@ function resolve(state: MahjongState): MahjongState {
     turn: seatIndex(state, taker),
     stage: 'discard',
     justDrew: false,
-    last: `${nameOf(state, taker)} calls ${claim.kind} on ${tileName(w.tile)}.`,
+    last: { k: 'call', who: taker, call: claim.kind, tile: w.tile },
   };
   // A kong takes a replacement tile before discarding.
   return claim.kind === 'kong' ? drawFor(next, next.turn, true) : next;
@@ -299,13 +313,13 @@ function syncSeats(state: MahjongState, ctx: GameContext): MahjongState {
 /* ── Actions ──────────────────────────────────────────────────────────────── */
 
 function requireOwner(ctx: GameContext): void {
-  if (ctx.actorUid !== ctx.ownerUid) throw new GameRuleError('Only the host can do that.');
+  if (ctx.actorUid !== ctx.ownerUid) throw new GameRuleError(t.rules.hostOnly);
 }
 
 function requireToMove(state: MahjongState, uid: string): void {
-  if (state.phase !== 'playing') throw new GameRuleError('The hand is not under way.');
-  if (state.stage !== 'discard') throw new GameRuleError('Wait for the discard to be claimed or passed.');
-  if (currentSeat(state)?.uid !== uid) throw new GameRuleError("It's not your turn.");
+  if (state.phase !== 'playing') throw new GameRuleError(m().errors.notUnderWay);
+  if (state.stage !== 'discard') throw new GameRuleError(m().errors.waitClaims);
+  if (currentSeat(state)?.uid !== uid) throw new GameRuleError(t.rules.notYourTurn);
 }
 
 function deal(state: MahjongState, seed: number, dealer: number, handNumber: number): MahjongState {
@@ -322,7 +336,7 @@ function deal(state: MahjongState, seed: number, dealer: number, handNumber: num
   const dealt: MahjongState = {
     ...state, phase: 'playing', seats: state.seats.map((x) => ({ ...x, absent: false })),
     wall, hands, melds, discards, dealer, handNumber, seed: s, result: null, claim: null,
-    last: `${nameOf(state, state.seats[dealer].uid)} is East and starts.`,
+    last: { k: 'start', who: state.seats[dealer].uid },
   };
   // The dealer starts by drawing a fourteenth tile.
   return drawFor(dealt, dealer);
@@ -330,33 +344,33 @@ function deal(state: MahjongState, seed: number, dealer: number, handNumber: num
 
 function start(state: MahjongState, seed: number, ctx: GameContext): MahjongState {
   requireOwner(ctx);
-  if (state.phase !== 'lobby') throw new GameRuleError('The game has already started.');
-  if (state.seats.length !== SEATS) throw new GameRuleError('Mahjong needs exactly four players.');
+  if (state.phase !== 'lobby') throw new GameRuleError(t.rules.alreadyStarted);
+  if (state.seats.length !== SEATS) throw new GameRuleError(m().errors.needFour);
   return deal(state, seed, 0, 0);
 }
 
 function discard(state: MahjongState, tile: number, uid: string): MahjongState {
   requireToMove(state, uid);
   const hand = handOf(state, uid);
-  if (!hand.includes(tile)) throw new GameRuleError('That tile is not in your hand.');
+  if (!hand.includes(tile)) throw new GameRuleError(m().errors.notInHand);
   const next: MahjongState = {
     ...state,
     hands: { ...state.hands, [uid]: hand.filter((t) => t !== tile) },
     discards: { ...state.discards, [uid]: [...(state.discards[uid] ?? []), tile] },
-    last: `${nameOf(state, uid)} discards ${tileName(tile)}.`,
+    last: { k: 'discards', who: uid, tile },
   };
   return afterDiscard(next, uid, tile);
 }
 
 function declareWin(state: MahjongState, uid: string): MahjongState {
   requireToMove(state, uid);
-  if (!selfOptions(state, uid).win) throw new GameRuleError('That is not a winning hand yet.');
+  if (!selfOptions(state, uid).win) throw new GameRuleError(m().errors.notWinning);
   return win(state, uid, null, null);
 }
 
 function declareKong(state: MahjongState, tile: number, uid: string): MahjongState {
   requireToMove(state, uid);
-  if (!selfOptions(state, uid).kongs.some((t) => kindOf(t) === kindOf(tile))) throw new GameRuleError('You cannot make a kong with that.');
+  if (!selfOptions(state, uid).kongs.some((t) => kindOf(t) === kindOf(tile))) throw new GameRuleError(m().errors.noKong);
   const k = kindOf(tile);
   const hand = handOf(state, uid);
   const melds = meldsOf(state, uid);
@@ -375,12 +389,12 @@ function declareKong(state: MahjongState, tile: number, uid: string): MahjongSta
       melds: { ...state.melds, [uid]: [...melds, { kind: 'kong', tiles: four, concealed: true }] },
     };
   }
-  return drawFor({ ...next, last: `${nameOf(state, uid)} declares a kong of ${tileName(tile)}.` }, state.turn, true);
+  return drawFor({ ...next, last: { k: 'kong', who: uid, tile } }, state.turn, true);
 }
 
 function respond(state: MahjongState, answer: Claim | 'pass', uid: string): MahjongState {
-  if (state.phase !== 'playing' || state.stage !== 'claims' || !state.claim) throw new GameRuleError('There is nothing to claim.');
-  if (state.claim.responses[uid] !== null) throw new GameRuleError('You have already answered.');
+  if (state.phase !== 'playing' || state.stage !== 'claims' || !state.claim) throw new GameRuleError(m().errors.nothingToClaim);
+  if (state.claim.responses[uid] !== null) throw new GameRuleError(m().errors.answered);
   let recorded = answer;
   if (answer !== 'pass') {
     const options = claimOptions(state, uid, state.claim.tile, state.claim.by);
@@ -388,7 +402,7 @@ function respond(state: MahjongState, answer: Claim | 'pass', uid: string): Mahj
       && (o.kind !== 'chow' || (answer.kind === 'chow' && Array.isArray(answer.tiles)
         && answer.tiles.length === 2 && answer.tiles.every((t) => handOf(state, uid).includes(t))
         && [...answer.tiles, state.claim!.tile].map(kindOf).sort((a, b) => a - b).every((v, i, a) => i === 0 || v === a[i - 1] + 1))));
-    if (!ok) throw new GameRuleError('You cannot claim that tile that way.');
+    if (!ok) throw new GameRuleError(m().errors.cannotClaim);
     // The tile completes the hand: whatever set it was called for, it is the win (see the top).
     if (options.some((o) => o.kind === 'win')) recorded = { kind: 'win' };
   }
@@ -400,14 +414,14 @@ function respond(state: MahjongState, answer: Claim | 'pass', uid: string): Mahj
 function cover(state: MahjongState, ctx: GameContext): MahjongState {
   requireOwner(ctx);
   const seat = currentSeat(state);
-  if (state.phase !== 'playing' || state.stage !== 'discard' || !seat?.absent) throw new GameRuleError('There is no turn to cover.');
+  if (state.phase !== 'playing' || state.stage !== 'discard' || !seat?.absent) throw new GameRuleError(m().errors.noCover);
   const hand = handOf(state, seat.uid);
   return discard(state, hand[hand.length - 1], seat.uid);
 }
 
 function again(state: MahjongState, seed: number, ctx: GameContext): MahjongState {
   requireOwner(ctx);
-  if (state.phase !== 'results') throw new GameRuleError('Finish this hand first.');
+  if (state.phase !== 'results') throw new GameRuleError(m().errors.finishHand);
   const resynced = syncSeats({ ...state, phase: 'lobby' }, ctx);
   if (resynced.seats.length !== SEATS) return { ...resynced, phase: 'lobby', result: null };
   return deal(resynced, seed, (state.dealer + 1) % SEATS, state.handNumber + 1);
@@ -417,16 +431,16 @@ export const ranking = (state: MahjongState): Seat[] => [...state.seats].sort((a
 
 export const mahjong: GameDefinition<MahjongState, MahjongAction> = {
   id: 'mahjong',
-  name: 'Mahjong',
-  tagline: '麻将. Four players, Guangdong-style scoring. Play friends, computers, or both.',
+  get name() { return m().name; },
+  get tagline() { return m().tagline; },
   emoji: '🀄',
   minPlayers: 4,
   maxPlayers: SEATS,
   solo: true,
   multiplayer: true,
   computerPlayers: true,
-  soloTitle: 'Play three computers',
-  soloDescription: 'No room needed. You and three computer players.',
+  get soloTitle() { return m().soloTitle; },
+  get soloDescription() { return m().soloDescription; },
   newState: initial,
   onPlayersChanged: syncSeats,
   reduce(state, action, ctx) {
@@ -439,7 +453,7 @@ export const mahjong: GameDefinition<MahjongState, MahjongAction> = {
       case 'pass': return respond(state, 'pass', ctx.actorUid);
       case 'cover': return cover(state, ctx);
       case 'again': return again(state, action.seed, ctx);
-      default: throw new GameRuleError('Unknown move.');
+      default: throw new GameRuleError(t.rules.unknownMove);
     }
   },
 };

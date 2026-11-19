@@ -1,3 +1,4 @@
+import { m } from './messages';
 import { ART_H, ART_W } from '../art';
 
 /** Five black stones running down the middle of the board, with white failing to stop them. */
@@ -27,7 +28,7 @@ export default function Art() {
   const last = at(14, 5);
   return (
     <svg viewBox={`0 0 ${ART_W} ${ART_H}`} className="game-art" preserveAspectRatio="xMidYMid slice"
-      role="img" aria-label="A gomoku board with five black stones in a row">
+      role="img" aria-label={m().art}>
       <defs>
         <linearGradient id="gomokuWood" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#f0cf92" />

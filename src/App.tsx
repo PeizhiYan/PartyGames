@@ -13,6 +13,7 @@ import PrivacyPage from './pages/PrivacyPage';
 import RoomPage from './pages/RoomPage';
 import RoomsPage from './pages/RoomsPage';
 import SettingsPage from './pages/SettingsPage';
+import { t } from './i18n';
 
 /** The one-player screen, for whichever games have one. */
 function SoloGame() {
@@ -43,7 +44,7 @@ export default function App() {
   if (state.status === 'loading') {
     return (
       <div className="center-screen">
-        <img src="/icon.svg" alt="Loading PartyGames" width={72} height={72} className="pulse" />
+        <img src="/icon.svg" alt={t.app.loading} width={72} height={72} className="pulse" />
       </div>
     );
   }

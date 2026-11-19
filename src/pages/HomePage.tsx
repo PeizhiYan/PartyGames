@@ -4,7 +4,8 @@ import InstallCard from '../shell/InstallCard';
 import Icon from '../ui/Icon';
 import { GAMES } from '../games/registry';
 import { useCurrentUser } from '../hooks/useAuth';
-import { firstName } from '../lib/format';
+import { firstName, playersLabel } from '../lib/format';
+import { t } from '../i18n';
 
 /** The hub: pick a game. */
 export default function HomePage() {
@@ -14,8 +15,8 @@ export default function HomePage() {
       <header className="home-hero">
         <img src="/icon.svg" alt="" width={64} height={64} />
         <div>
-          <h1>Hi {firstName(user.displayName)}</h1>
-          <p className="muted" style={{ margin: 0 }}>What are we playing?</p>
+          <h1>{t.home.hi(firstName(user.displayName))}</h1>
+          <p className="muted" style={{ margin: 0 }}>{t.home.question}</p>
         </div>
       </header>
 
@@ -23,9 +24,7 @@ export default function HomePage() {
 
       <div className="game-grid">
         {GAMES.map((game) => {
-          const players = game.minPlayers === game.maxPlayers
-            ? `${game.maxPlayers} ${game.maxPlayers === 1 ? 'player' : 'players'}`
-            : `${game.solo ? 1 : game.minPlayers}–${game.maxPlayers} players`;
+          const players = playersLabel(game);
           return (
             <Link key={game.id} to={`/g/${game.id}`} className="game-card">
               {/* A phone shows the icon and a desktop the cover; CSS picks, so nothing reflows. */}
@@ -37,7 +36,7 @@ export default function HomePage() {
                 <span className="game-card-tagline">{game.tagline}</span>
                 <span className="game-card-meta">
                   <span className="badge badge-accent">{players}</span>
-                  {game.solo && <span className="badge">{game.multiplayer ? 'vs computer' : 'Solo puzzle'}</span>}
+                  {game.solo && <span className="badge">{game.multiplayer ? t.home.vsComputer : t.home.soloPuzzle}</span>}
                   <span className="game-card-go" aria-hidden><Icon name="right" size={18} /></span>
                 </span>
               </span>

@@ -1,3 +1,4 @@
+import { m } from './messages';
 import { ART_H, ART_W } from '../art';
 
 /** Five dice tumbling across green felt, all showing five: a Yahtzee. Inside x 120-520, y 34-166. */
@@ -23,7 +24,7 @@ function DieArt({ x, y, size, tilt, value }: { x: number; y: number; size: numbe
 export default function Art() {
   return (
     <svg viewBox={`0 0 ${ART_W} ${ART_H}`} className="game-art" preserveAspectRatio="xMidYMid slice"
-      role="img" aria-label="Five dice all showing five on green felt">
+      role="img" aria-label={m().art}>
       <defs>
         <radialGradient id="yzFelt" cx="0.5" cy="0.45" r="0.75">
           <stop offset="0" stopColor="#2f8f4e" />

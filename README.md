@@ -88,6 +88,9 @@ and opens the puzzle directly.
   discards in front of them and a compass lighting whose turn it is. 136 tiles,
   simplified Guangdong-style scoring: four sets and a pair, seven pairs or thirteen orphans; chow
   from the player before you, pong or kong on anyone. The fan for every win is itemised.
+- **English, 简体中文 and 日本語.** The app follows the device's language, or the one picked in
+  Settings. Every game is translated, and a room can mix languages: each player sees the table in
+  their own.
 - **A cast of characters.** In Yahtzee, UNO and Mahjong every player is a cartoon face — a robot, a
   frog, a fox, a panda… — that thinks on its turn, beams at a good move and looks crestfallen at a
   bad one. Computer players always look the same, so you learn who you are up against. Solo games

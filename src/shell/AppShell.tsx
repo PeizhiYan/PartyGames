@@ -4,25 +4,26 @@ import { useCurrentUser } from '../hooks/useAuth';
 import { APP_VERSION } from '../lib/version';
 import Icon, { type IconName } from '../ui/Icon';
 import './AppShell.css';
+import { t } from '../i18n';
 
-const NAV: { to: string; label: string; icon: IconName }[] = [
-  { to: '/', label: 'Play', icon: 'gamepad' },
-  { to: '/rooms', label: 'Rooms', icon: 'users' },
-  { to: '/settings', label: 'Settings', icon: 'sliders' },
+const nav = (): { to: string; label: string; icon: IconName }[] => [
+  { to: '/', label: t.nav.play, icon: 'gamepad' },
+  { to: '/rooms', label: t.nav.rooms, icon: 'users' },
+  { to: '/settings', label: t.nav.settings, icon: 'sliders' },
 ];
 
 // Desktop: floating glass sidebar on the left. Mobile: floating glass tab bar at the bottom.
 // Same markup, switched by CSS; in both, a glass lens slides to the current page.
 export default function AppShell() {
   const { isAdmin } = useCurrentUser();
-  const items = isAdmin ? [...NAV, { to: '/admin', label: 'Users', icon: 'lock' as IconName }] : NAV;
+  const items = isAdmin ? [...nav(), { to: '/admin', label: t.nav.users, icon: 'lock' as IconName }] : nav();
   const { pathname } = useLocation();
   // Which item the lens sits under ('/' only matches exactly, like NavLink's `end`).
   const active = items.findIndex((i) => (i.to === '/' ? pathname === '/' : pathname.startsWith(i.to)));
 
   return (
     <div className="shell">
-      <nav className="shell-nav" aria-label="Main"
+      <nav className="shell-nav" aria-label={t.nav.main}
         style={{ '--tabs': items.length, '--active': Math.max(active, 0) } as CSSProperties}>
         <div className="shell-brand">
           <img src="/icon.svg" alt="" width={32} height={32} />

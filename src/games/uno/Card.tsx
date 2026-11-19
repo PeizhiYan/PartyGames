@@ -1,3 +1,4 @@
+import { cardName } from './messages';
 import { useId } from 'react';
 import { cardOf, type Color, type Kind } from './cards';
 
@@ -78,7 +79,7 @@ export default function UnoCard({ id, width = 56, faceDown, className }: {
   const body = wild ? WILD_INK : INK[card.color as Color];
   return (
     <svg className={`uno-card${className ? ` ${className}` : ''}`} width={width} height={height} viewBox="0 0 60 90"
-      role="img" aria-label={`${wild ? '' : `${card.color} `}${card.kind}`}>
+      role="img" aria-label={cardName(id)}>
       <defs>
         <clipPath id={clip}><rect x="3.5" y="3.5" width="53" height="83" rx="5" /></clipPath>
       </defs>
