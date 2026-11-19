@@ -591,19 +591,31 @@ input:focus-visible, select:focus-visible, textarea:focus-visible, button:focus-
   min-height: 100dvh;
   max-width: 640px;
   margin: 0 auto;
-  padding: calc(8px + env(safe-area-inset-top)) 16px calc(24px + env(safe-area-inset-bottom));
+  /* No top padding: the bar carries it (and the notch's inset), so it stays covered when stuck. */
+  padding: 0 16px calc(24px + env(safe-area-inset-bottom));
 }
 /*
  * The sticky header has to be fully opaque. It used to fade out over its bottom 30%
  * (`linear-gradient(var(--bg) 70%, transparent)`), which meant content scrolling underneath
  * showed faintly through the bar — on a phone that reads as the top of the screen being blurred.
- * The soft edge now lives in ::after, below the bar, where there is nothing to show through.
+ *
+ * The soft edge lives in ::after, below the bar — and over the bar's own bottom margin, so at
+ * rest it fades nothing but empty page. It used to hang over the top 14px of whatever came
+ * first (the turn pill, the scorecard's heads), which looked as if the header was covering it.
+ * Only content that has scrolled up under the bar ever passes beneath the fade.
+ *
+ * The bar also carries the top padding and the notch's inset rather than `.room-screen`, so
+ * when it sticks at the very top it still covers the status-bar strip instead of leaving a gap
+ * that content scrolls through above it — and it reaches across the screen's side gutters too.
  */
 .room-bar {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 6px 0 12px;
+  /* Out into `.room-screen`'s 16px gutters: a bar only as wide as the column left content (and
+     its shadow) visible either side of it as it scrolled under. */
+  padding: calc(14px + env(safe-area-inset-top)) 16px 0;
+  margin: 0 -16px 14px;
   position: sticky;
   top: 0;
   z-index: 5;

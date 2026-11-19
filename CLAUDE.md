@@ -514,9 +514,13 @@ the same peg cancels instead of counting a move, and only a successful move adva
 - **`--bg`, `--surface` and `--inset` are three different tiers** and the default theme makes the
   first two the same white. Anything sunken *inside* a card (chips, badges, the segmented control)
   must use `--inset`, or it disappears.
-- **A sticky bar must be opaque.** `.room-bar` used to fade out over its own bottom edge, so
-  content scrolling under it showed through and the top of the screen looked blurred on a phone.
-  The soft edge belongs in `::after`, below the bar.
+- **A sticky bar must be opaque, full width, and fade only over empty page.** `.room-bar` used to
+  fade out over its own bottom edge, so content scrolling under it showed through and the top of
+  the screen looked blurred on a phone. The soft edge belongs in `::after`, below the bar — over
+  the bar's own bottom margin, or at rest it fades the first thing on the page and the header
+  looks as if it covers it. The bar also reaches out over `.room-screen`'s 16px gutters
+  (negative margin), or content and its shadow show either side of it as they scroll under, and
+  it carries the top padding and safe-area inset so a stuck bar covers the status-bar strip.
 - **Cover art has to survive two crops** (`src/games/art.ts`). It is drawn on 640x200 and `slice`-cropped into a 2:1
   card (sides trimmed) and a ~5:1 lobby banner (top and bottom trimmed), so anything that matters
   lives inside x 120-520, y 34-166. The canvas started at 320x160 and the banner cropped three
