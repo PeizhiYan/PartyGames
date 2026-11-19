@@ -1,3 +1,4 @@
+import { m } from './messages';
 import { ART_H, ART_W } from '../art';
 
 /**
@@ -29,7 +30,7 @@ export default function Art() {
   const rows = 5;
   return (
     <svg viewBox={`0 0 ${ART_W} ${ART_H}`} className="game-art" preserveAspectRatio="xMidYMid slice"
-      role="img" aria-label="A Chinese chess board with pieces either side of the river">
+      role="img" aria-label={m().art}>
       <defs>
         <linearGradient id="xqWood" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#f0cf92" />

@@ -78,7 +78,8 @@ src/
 ├─ rooms/          the multiplayer layer games plug into: rules, computers, useRooms, RoomList
 ├─ services/       the backend contract
 ├─ adapters/       firebase/ and memory/ — the only places that know a backend exists
-├─ ui/             design-system primitives: Icon Sheet Toast Segmented Avatar
+├─ i18n/           languages: en (the reference) zh ja, the provider, the privacy policy
+├─ ui/             design-system primitives: Icon Sheet Toast Segmented Avatar Flag
 ├─ shell/          app chrome: AppShell Backdrop ThemePicker InstallCard OfflineNotice
 ├─ pages/          screens that are not a game
 ├─ hooks/          useAuth useInstall useOnline
@@ -493,6 +494,33 @@ the same peg cancels instead of counting a move, and only a successful move adva
 - Deploy **both Firestore rules and indexes** along with hosting for this feature. Otherwise the
   game can play locally, but leaderboard reads/writes cannot work in production. CoffeeGlass's
   existing rules block is unchanged. Emulator tests exercise the real adapter's concurrent writes.
+
+## Languages
+
+English, Simplified Chinese and Japanese, done the CoffeeGlass way: `src/i18n/en.ts` is the
+reference and `zh.ts` / `ja.ts` are typed as `Messages`, so a missing key fails the build. `t` is a
+plain module value swapped by `applyLanguage`; `<LanguageProvider>` holds the choice (the device
+language, or one picked in Settings and kept in localStorage) and `<LanguageScope>` remounts the
+screens when it changes. Sentences with numbers or names are functions, so each language controls
+its own word order; a sentence with a bold part in the middle is split into before and after.
+
+- **A game's words live in its folder**, in `<game>/messages.ts`, all three languages side by
+  side, read through `byLanguage({ en, zh, ja })` as `m()`. A game owns its folder, translations
+  included. Words more than one game uses (turns, takebacks, common rule errors) are in the app's
+  messages under `cast`, `duel` and `rules`.
+- **A game's name, tagline and solo labels are getters** on its `GameDefinition`, so every
+  `game.name` in the app follows the language with no change at the call site.
+- **Rule errors are written in the language of the device that made the move.** A reducer throws
+  `GameRuleError(m().errors.…)`; the error never enters the shared state, and only that player
+  sees it.
+- **Nothing in shared state is a sentence.** A room is read by everyone in it, maybe in three
+  languages, so UNO's and Mahjong's "what just happened" (`last`) is a note — `{ k: 'played', who,
+  card }` — worded on each screen by `noteText`. Where the rules already stored English (chess and
+  Chinese chess end reasons, Mahjong's scoring lines, Monopoly's cards and money notes), the
+  English is the key and the screen translates it (`reasonText`, `fanLine`, `cardText`,
+  `noteText`). An old room holding a plain sentence still shows it as it was.
+- **Left as written:** people's names, room names, what players type, and Monopoly's street names,
+  which are each city's own (the China and Japan boards are already in local script).
 
 ## Gotchas
 

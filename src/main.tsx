@@ -7,6 +7,8 @@ import DevBar from './shell/DevBar';
 import Backdrop from './shell/Backdrop';
 import { ToastProvider } from './ui/Toast';
 import { AuthProvider } from './hooks/useAuth';
+import { t } from './i18n';
+import { LanguageProvider, LanguageScope } from './i18n/LanguageProvider';
 // Imported for its side effect: it has to catch `beforeinstallprompt`, which fires once and early.
 import './hooks/useInstall';
 import { backendInitError } from './services';
@@ -51,7 +53,7 @@ if (backendInitError) {
   root.render(
     <div className="center-screen">
       <div className="narrow">
-        <h1>Setup needed</h1>
+        <h1>{t.app.setupNeeded}</h1>
         <p className="error">{backendInitError.message}</p>
       </div>
     </div>,
@@ -59,15 +61,20 @@ if (backendInitError) {
 } else {
   root.render(
     <StrictMode>
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <ToastProvider>
-          <AuthProvider>
-            <Backdrop />
-            <App />
-            <DevBar />
-          </AuthProvider>
-        </ToastProvider>
-      </BrowserRouter>
+      <LanguageProvider>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <ToastProvider>
+            <AuthProvider>
+              <Backdrop />
+              {/* Remounts the screens when the language changes, keeping the route and the sign-in. */}
+              <LanguageScope>
+                <App />
+              </LanguageScope>
+              <DevBar />
+            </AuthProvider>
+          </ToastProvider>
+        </BrowserRouter>
+      </LanguageProvider>
     </StrictMode>,
   );
 }

@@ -1,7 +1,8 @@
+import { m } from './messages';
 /** Monopoly's phone icon: a green house and a red hotel on a property card's colour band. */
 export default function AppIcon() {
   return (
-    <svg viewBox="0 0 120 120" className="app-icon" role="img" aria-label="Monopoly">
+    <svg viewBox="0 0 120 120" className="app-icon" role="img" aria-label={m().name}>
       <defs>
         <linearGradient id="monoIconBg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#f8f3e6" /><stop offset="1" stopColor="#e6dcc3" /></linearGradient>
         <linearGradient id="monoHouse" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#3fae5c" /><stop offset="1" stopColor="#1f7a3a" /></linearGradient>

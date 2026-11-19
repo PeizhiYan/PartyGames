@@ -1,3 +1,5 @@
+import { t } from '../../i18n';
+import { m } from './messages';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import YahtzeeTable from './Table';
@@ -33,18 +35,18 @@ export default function YahtzeeSoloPage() {
   return (
     <div className="room-screen wide">
       <header className="room-bar">
-        <Link to="/g/yahtzee" className="icon-button" aria-label="Back to the lobby"><Icon name="left" /></Link>
-        <strong className="grow">Yahtzee</strong>
+        <Link to="/g/yahtzee" className="icon-button" aria-label={t.cast.backToLobby}><Icon name="left" /></Link>
+        <strong className="grow">{m().name}</strong>
         {table !== null && (
           <button type="button" className="small" onClick={() => setTable(null)}>
-            <Icon name="users" size={16} /> Players
+            <Icon name="users" size={16} /> {t.cast.players}
           </button>
         )}
       </header>
       {table === null
-        ? <Setup title="Yahtzee" blurb="Five dice, three rolls, thirteen boxes." min={1} max={6} initial={last.players}
-            initialSeats={last.seats} people you={{ uid: user.uid, name: user.displayName }} startLabel="Roll the dice"
-            labelFor={(n) => (n === 1 ? 'just me' : undefined)}
+        ? <Setup title={m().name} blurb={m().setupBlurb} min={1} max={6} initial={last.players}
+            initialSeats={last.seats} people you={{ uid: user.uid, name: user.displayName }} startLabel={m().roll}
+            labelFor={(n) => (n === 1 ? m().justMe : undefined)}
             onStart={(players, seats) => {
               const next = { players, seats };
               try { localStorage.setItem(STORED, JSON.stringify(next)); } catch { /* private mode */ }

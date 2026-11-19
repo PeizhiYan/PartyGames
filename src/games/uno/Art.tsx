@@ -1,3 +1,4 @@
+import { m } from './messages';
 import { ART_H, ART_W } from '../art';
 import UnoCard from './Card';
 import { DECK } from './cards';
@@ -10,7 +11,7 @@ const FAN = [pick('7', 'red'), pick('skip', 'yellow'), pick('wild', 'wild'), pic
 export default function Art() {
   return (
     <svg viewBox={`0 0 ${ART_W} ${ART_H}`} className="game-art" preserveAspectRatio="xMidYMid slice"
-      role="img" aria-label="Five UNO cards fanned out">
+      role="img" aria-label={m().art}>
       <defs>
         <radialGradient id="unoTable" cx="0.5" cy="0.55" r="0.75">
           <stop offset="0" stopColor="#3a2a5c" />

@@ -44,12 +44,3 @@ export function points(id: number): number {
   return 20;
 }
 
-export const KIND_LABEL: Record<Kind, string> = {
-  0: '0', 1: '1', 2: '2', 3: '3', 4: '4', 5: '5', 6: '6', 7: '7', 8: '8', 9: '9',
-  skip: 'Skip', reverse: 'Reverse', draw2: 'Draw two', wild: 'Wild', wild4: 'Wild draw four',
-};
-
-export const describe = (id: number): string => {
-  const c = DECK[id];
-  return c.color === 'wild' ? KIND_LABEL[c.kind] : `${c.color[0].toUpperCase()}${c.color.slice(1)} ${KIND_LABEL[c.kind].toLowerCase()}`;
-};

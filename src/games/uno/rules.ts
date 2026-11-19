@@ -1,3 +1,5 @@
+import { t } from '../../i18n';
+import { m } from './messages';
 /**
  * UNO as a room game, 2-10 players.
  *
@@ -24,7 +26,7 @@
  */
 import { GameRuleError, type GameContext, type GameDefinition, type RoomPlayer } from '../../types';
 import { shuffle } from '../shuffle';
-import { DECK_SIZE, cardOf, isColor, isNumber, isWild, points, describe, type Color } from './cards';
+import { DECK_SIZE, cardOf, isColor, isNumber, isWild, points, type Color } from './cards';
 
 export const HAND_SIZE = 7;
 /** The score at which the table is told someone has won the match. Play may carry on. */
@@ -41,6 +43,19 @@ export interface Seat {
 }
 
 export type Phase = 'lobby' | 'playing' | 'results';
+
+/** What just happened, as data. `who` and `target` are uids; `card` is a card id. */
+export type UnoNote =
+  | { k: 'start'; card: number; who: string }
+  | { k: 'played'; who: string; card: number; color?: Color }
+  | { k: 'out'; who: string; points: number }
+  | { k: 'drewPenalty'; who: string; n: number }
+  | { k: 'nothing'; who: string }
+  | { k: 'drew'; who: string }
+  | { k: 'drewPasses'; who: string }
+  | { k: 'passes'; who: string }
+  | { k: 'uno'; who: string }
+  | { k: 'caught'; who: string; target: string };
 
 export interface UnoState {
   phase: Phase;
@@ -61,8 +76,11 @@ export interface UnoState {
   drawn: number | null;
   /** uid → has called UNO. Only means something while that player holds one or two cards. */
   uno: Record<string, boolean>;
-  /** What just happened, for the table to say out loud. */
-  last: string;
+  /**
+   * What just happened, for the table to say out loud. Stored as data, not a sentence: everyone
+   * in the room reads the same state, and each screen words it in its own language.
+   */
+  last: UnoNote | null;
   seed: number;
   reshuffles: number;
   round: number;
@@ -81,7 +99,7 @@ export type UnoAction =
 function initial(): UnoState {
   return {
     phase: 'lobby', seats: [], hands: {}, deck: [], discard: [], turn: 0, direction: 1,
-    activeColor: 'red', pendingDraw: 0, drawn: null, uno: {}, last: '', seed: 0, reshuffles: 0, round: 0, winner: null,
+    activeColor: 'red', pendingDraw: 0, drawn: null, uno: {}, last: null, seed: 0, reshuffles: 0, round: 0, winner: null,
   };
 }
 
@@ -92,7 +110,6 @@ export const currentSeat = (state: UnoState): Seat | undefined => state.seats[st
 export const isMyTurn = (state: UnoState, uid: string): boolean =>
   state.phase === 'playing' && currentSeat(state)?.uid === uid;
 export const handOf = (state: UnoState, uid: string): number[] => state.hands[uid] ?? [];
-const nameOf = (state: UnoState, uid: string): string => state.seats.find((s) => s.uid === uid)?.name.split(' ')[0] ?? 'Someone';
 
 /** Whether `card` may go on the pile right now for the player to move. */
 export function canPlay(state: UnoState, card: number): boolean {
@@ -186,12 +203,12 @@ function syncSeats(state: UnoState, ctx: GameContext): UnoState {
 /* ── Actions ──────────────────────────────────────────────────────────────── */
 
 function requireOwner(ctx: GameContext): void {
-  if (ctx.actorUid !== ctx.ownerUid) throw new GameRuleError('Only the host can do that.');
+  if (ctx.actorUid !== ctx.ownerUid) throw new GameRuleError(t.rules.hostOnly);
 }
 
 function requireTurn(state: UnoState, ctx: GameContext): void {
-  if (state.phase !== 'playing') throw new GameRuleError('The round is not under way.');
-  if (currentSeat(state)?.uid !== ctx.actorUid) throw new GameRuleError("It's not your turn.");
+  if (state.phase !== 'playing') throw new GameRuleError(m().errors.notUnderWay);
+  if (currentSeat(state)?.uid !== ctx.actorUid) throw new GameRuleError(t.rules.notYourTurn);
 }
 
 /** Shuffles, deals seven each, and turns up a number card to start the pile. */
@@ -219,14 +236,14 @@ function deal(state: UnoState, seed: number, round: number): UnoState {
     turn: starter, direction: 1,
     activeColor: cardOf(first).color as Color,
     pendingDraw: 0, drawn: null, uno: {}, seed: s, reshuffles: 0, round, winner: null,
-    last: `${describe(first)} turned up. ${nameOf(state, state.seats[starter].uid)} starts.`,
+    last: { k: 'start', card: first, who: state.seats[starter].uid },
   };
 }
 
 function start(state: UnoState, seed: number, ctx: GameContext): UnoState {
   requireOwner(ctx);
-  if (state.phase !== 'lobby') throw new GameRuleError('The game has already started.');
-  if (state.seats.length < 2) throw new GameRuleError('UNO needs at least two players.');
+  if (state.phase !== 'lobby') throw new GameRuleError(t.rules.alreadyStarted);
+  if (state.seats.length < 2) throw new GameRuleError(m().errors.needTwo);
   return deal(state, seed, state.round);
 }
 
@@ -234,17 +251,16 @@ function play(state: UnoState, card: number, color: Color | undefined, ctx: Game
   requireTurn(state, ctx);
   const uid = ctx.actorUid;
   const hand = handOf(state, uid);
-  if (!hand.includes(card)) throw new GameRuleError('That card is not in your hand.');
+  if (!hand.includes(card)) throw new GameRuleError(m().errors.notInHand);
   if (!canPlay(state, card)) {
     throw new GameRuleError(state.pendingDraw > 0
-      ? `Stack a matching draw card, or draw ${state.pendingDraw}.`
-      : state.drawn !== null ? 'You can only play the card you just drew — or pass.' : 'That card does not match.');
+      ? m().errors.stackOrDraw(state.pendingDraw)
+      : state.drawn !== null ? m().errors.onlyDrawn : m().errors.noMatch);
   }
-  if (isWild(card) && !isColor(color)) throw new GameRuleError('Name a colour for the wild.');
+  if (isWild(card) && !isColor(color)) throw new GameRuleError(m().errors.nameColour);
 
   const rest = hand.filter((id) => id !== card);
   const c = cardOf(card);
-  const who = nameOf(state, uid);
   let next: UnoState = {
     ...state,
     hands: { ...state.hands, [uid]: rest },
@@ -252,7 +268,7 @@ function play(state: UnoState, card: number, color: Color | undefined, ctx: Game
     activeColor: isWild(card) ? color! : (c.color as Color),
     drawn: null,
     uno: rest.length > 2 ? { ...state.uno, [uid]: false } : state.uno,
-    last: `${who} played ${describe(card)}${isWild(card) ? ` — ${color}` : ''}.`,
+    last: isWild(card) ? { k: 'played', who: uid, card, color: color! } : { k: 'played', who: uid, card },
   };
 
   if (rest.length === 0) {
@@ -265,7 +281,7 @@ function play(state: UnoState, card: number, color: Color | undefined, ctx: Game
       winner: uid,
       pendingDraw: 0,
       seats: next.seats.map((s) => (s.uid === uid ? { ...s, score: s.score + gained } : s)),
-      last: `${who} is out of cards and scores ${gained}.`,
+      last: { k: 'out', who: uid, points: gained },
     };
   }
 
@@ -285,50 +301,49 @@ function play(state: UnoState, card: number, color: Color | undefined, ctx: Game
 
 function draw(state: UnoState, ctx: GameContext): UnoState {
   requireTurn(state, ctx);
-  if (state.drawn !== null) throw new GameRuleError('You already drew — play that card or pass.');
+  if (state.drawn !== null) throw new GameRuleError(m().errors.alreadyDrew);
   const uid = ctx.actorUid;
-  const who = nameOf(state, uid);
   if (state.pendingDraw > 0) {
     const owed = state.pendingDraw;
     const { state: after, got } = drawCards(state, uid, owed);
-    return { ...after, pendingDraw: 0, turn: stepFrom(after, after.turn, 1), last: `${who} drew ${got.length} and loses the turn.` };
+    return { ...after, pendingDraw: 0, turn: stepFrom(after, after.turn, 1), last: { k: 'drewPenalty', who: uid, n: got.length } };
   }
   const { state: after, got } = drawCards(state, uid, 1);
   const card = got[0];
   if (card === undefined) {
-    return { ...after, turn: stepFrom(after, after.turn, 1), last: `${who} had nothing to draw and passes.` };
+    return { ...after, turn: stepFrom(after, after.turn, 1), last: { k: 'nothing', who: uid } };
   }
   const withDrawn = { ...after, drawn: card };
-  if (canPlay(withDrawn, card)) return { ...withDrawn, last: `${who} drew a card.` };
-  return { ...after, drawn: null, turn: stepFrom(after, after.turn, 1), last: `${who} drew a card and passes.` };
+  if (canPlay(withDrawn, card)) return { ...withDrawn, last: { k: 'drew', who: uid } };
+  return { ...after, drawn: null, turn: stepFrom(after, after.turn, 1), last: { k: 'drewPasses', who: uid } };
 }
 
 function pass(state: UnoState, ctx: GameContext): UnoState {
   requireTurn(state, ctx);
-  if (state.drawn === null) throw new GameRuleError('Draw a card first.');
-  return { ...state, drawn: null, turn: stepFrom(state, state.turn, 1), last: `${nameOf(state, ctx.actorUid)} passes.` };
+  if (state.drawn === null) throw new GameRuleError(m().errors.drawFirst);
+  return { ...state, drawn: null, turn: stepFrom(state, state.turn, 1), last: { k: 'passes', who: ctx.actorUid } };
 }
 
 function callUno(state: UnoState, ctx: GameContext): UnoState {
-  if (state.phase !== 'playing') throw new GameRuleError('The round is not under way.');
+  if (state.phase !== 'playing') throw new GameRuleError(m().errors.notUnderWay);
   const n = handOf(state, ctx.actorUid).length;
-  if (n === 0 || n > 2) throw new GameRuleError('UNO is for your last card or two.');
+  if (n === 0 || n > 2) throw new GameRuleError(m().errors.unoCards);
   if (state.uno[ctx.actorUid]) return state;
-  return { ...state, uno: { ...state.uno, [ctx.actorUid]: true }, last: `${nameOf(state, ctx.actorUid)} calls UNO!` };
+  return { ...state, uno: { ...state.uno, [ctx.actorUid]: true }, last: { k: 'uno', who: ctx.actorUid } };
 }
 
 function catchPlayer(state: UnoState, target: string, ctx: GameContext): UnoState {
-  if (state.phase !== 'playing') throw new GameRuleError('The round is not under way.');
-  if (!state.seats.some((s) => s.uid === ctx.actorUid)) throw new GameRuleError('You are not in this round.');
-  if (target === ctx.actorUid) throw new GameRuleError('Call UNO instead.');
-  if (!catchable(state, target)) throw new GameRuleError('Too late — they are covered.');
+  if (state.phase !== 'playing') throw new GameRuleError(m().errors.notUnderWay);
+  if (!state.seats.some((s) => s.uid === ctx.actorUid)) throw new GameRuleError(m().errors.notInRound);
+  if (target === ctx.actorUid) throw new GameRuleError(m().errors.callInstead);
+  if (!catchable(state, target)) throw new GameRuleError(m().errors.tooLate);
   const { state: after } = drawCards(state, target, 2);
-  return { ...after, last: `${nameOf(state, ctx.actorUid)} caught ${nameOf(state, target)} without UNO — two cards.` };
+  return { ...after, last: { k: 'caught', who: ctx.actorUid, target } };
 }
 
 function again(state: UnoState, seed: number, ctx: GameContext): UnoState {
   requireOwner(ctx);
-  if (state.phase !== 'results') throw new GameRuleError('Finish this round first.');
+  if (state.phase !== 'results') throw new GameRuleError(m().errors.finishRound);
   // Between rounds the seats follow the room again.
   const resynced = syncSeats({ ...state, phase: 'lobby' }, ctx);
   if (resynced.seats.length < 2) return { ...resynced, phase: 'lobby' };
@@ -341,16 +356,16 @@ export const matchWinner = (state: UnoState): Seat | undefined => ranking(state)
 
 export const uno: GameDefinition<UnoState, UnoAction> = {
   id: 'uno',
-  name: 'UNO',
-  tagline: 'Match the colour, match the number, and don\'t forget to call it. 2-10 players.',
+  get name() { return m().name; },
+  get tagline() { return m().tagline; },
   emoji: '🃏',
   minPlayers: 2,
   maxPlayers: MAX_PLAYERS,
   solo: true,
   multiplayer: true,
   computerPlayers: true,
-  soloTitle: 'Play the computer',
-  soloDescription: 'No room needed. One to five computer players.',
+  get soloTitle() { return m().soloTitle; },
+  get soloDescription() { return m().soloDescription; },
   newState: initial,
   onPlayersChanged: syncSeats,
   reduce(state, action, ctx) {
@@ -362,7 +377,7 @@ export const uno: GameDefinition<UnoState, UnoAction> = {
       case 'callUno': return callUno(state, ctx);
       case 'catch': return catchPlayer(state, action.uid, ctx);
       case 'again': return again(state, action.seed, ctx);
-      default: throw new GameRuleError('Unknown move.');
+      default: throw new GameRuleError(t.rules.unknownMove);
     }
   },
 };

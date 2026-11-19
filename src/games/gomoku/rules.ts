@@ -1,3 +1,5 @@
+import { t } from '../../i18n';
+import { m } from './messages';
 // Gomoku as a room game: the state two players share and the only ways it may change.
 // Pure and synchronous, so the same reducer runs in the browser, in tests, and inside the
 // backend's transaction. See src/domain/gomoku/ai.ts for the computer opponent.
@@ -106,13 +108,13 @@ function reseat(state: GomokuState, ctx: GameContext): GomokuState {
 }
 
 function place(state: GomokuState, cell: number, ctx: GameContext): GomokuState {
-  if (state.outcome !== 0) throw new GameRuleError('This game is over — ask for a rematch.');
-  if (!bothSeated(state)) throw new GameRuleError('Waiting for a second player.');
+  if (state.outcome !== 0) throw new GameRuleError(t.rules.overAskRematch);
+  if (!bothSeated(state)) throw new GameRuleError(t.rules.waitingSecond);
   const seat = seatOf(state, ctx.actorUid);
-  if (seat === null) throw new GameRuleError('You are watching this game.');
-  if (seat !== state.turn) throw new GameRuleError("It's not your turn.");
-  if (!Number.isInteger(cell) || cell < 0 || cell >= CELLS) throw new GameRuleError('That is not a cell.');
-  if (state.board[cell] !== 0) throw new GameRuleError('There is already a stone there.');
+  if (seat === null) throw new GameRuleError(t.rules.watching);
+  if (seat !== state.turn) throw new GameRuleError(t.rules.notYourTurn);
+  if (!Number.isInteger(cell) || cell < 0 || cell >= CELLS) throw new GameRuleError(m().errors.notACell);
+  if (state.board[cell] !== 0) throw new GameRuleError(m().errors.occupied);
 
   const board = state.board.slice();
   board[cell] = seat;
@@ -134,9 +136,9 @@ function place(state: GomokuState, cell: number, ctx: GameContext): GomokuState 
 }
 
 function resign(state: GomokuState, ctx: GameContext): GomokuState {
-  if (state.outcome !== 0) throw new GameRuleError('This game is already over.');
+  if (state.outcome !== 0) throw new GameRuleError(t.rules.alreadyOver);
   const seat = seatOf(state, ctx.actorUid);
-  if (seat === null) throw new GameRuleError('You are watching this game.');
+  if (seat === null) throw new GameRuleError(t.rules.watching);
   const winner: Player = seat === 1 ? 2 : 1;
   const winnerUid = winner === 1 ? state.black : state.white;
   return {
@@ -150,8 +152,8 @@ function resign(state: GomokuState, ctx: GameContext): GomokuState {
 
 /** A rematch starts once every seated player has asked for one. */
 function rematch(state: GomokuState, ctx: GameContext): GomokuState {
-  if (state.outcome === 0) throw new GameRuleError('This game is still going.');
-  if (seatOf(state, ctx.actorUid) === null) throw new GameRuleError('You are watching this game.');
+  if (state.outcome === 0) throw new GameRuleError(t.rules.stillGoing);
+  if (seatOf(state, ctx.actorUid) === null) throw new GameRuleError(t.rules.watching);
   const votes = state.rematch.includes(ctx.actorUid) ? state.rematch : [...state.rematch, ctx.actorUid];
   const seated = [state.black, state.white].filter((uid): uid is string => uid !== null);
   if (!seated.every((uid) => votes.includes(uid))) return { ...state, rematch: votes };
@@ -169,11 +171,11 @@ function rematch(state: GomokuState, ctx: GameContext): GomokuState {
  * other person's board the moment it is played — so taking one back is a request, not an action.
  */
 function requestTakeback(state: GomokuState, ctx: GameContext): GomokuState {
-  if (state.outcome !== 0) throw new GameRuleError('This game is over — ask for a rematch instead.');
+  if (state.outcome !== 0) throw new GameRuleError(t.rules.overAskRematchInstead);
   const seat = seatOf(state, ctx.actorUid);
-  if (seat === null) throw new GameRuleError('You are watching this game.');
-  if (state.takeback) throw new GameRuleError('There is already a request waiting.');
-  if (lastMoveBy(state, seat) < 0) throw new GameRuleError('You have not played a stone yet.');
+  if (seat === null) throw new GameRuleError(t.rules.watching);
+  if (state.takeback) throw new GameRuleError(t.rules.requestWaiting);
+  if (lastMoveBy(state, seat) < 0) throw new GameRuleError(m().errors.noStone);
   return { ...state, takeback: { by: ctx.actorUid, at: ctx.now } };
 }
 
@@ -188,9 +190,9 @@ function respondTakeback(state: GomokuState, approve: boolean, ctx: GameContext)
   const request = state.takeback;
   if (!request) return state; // already settled by the other player
   const seat = seatOf(state, ctx.actorUid);
-  if (seat === null) throw new GameRuleError('You are watching this game.');
+  if (seat === null) throw new GameRuleError(t.rules.watching);
   // The asker can only withdraw; approving your own request would make it unilateral.
-  if (ctx.actorUid === request.by && approve) throw new GameRuleError('Your opponent has to agree.');
+  if (ctx.actorUid === request.by && approve) throw new GameRuleError(t.rules.opponentAgree);
   if (!approve) return { ...state, takeback: null };
 
   const askerSeat = seatOf(state, request.by);
@@ -213,15 +215,15 @@ function respondTakeback(state: GomokuState, approve: boolean, ctx: GameContext)
 
 export const gomoku: GameDefinition<GomokuState, GomokuAction> = {
   id: 'gomoku',
-  name: 'Gomoku',
-  tagline: 'Five in a row. Play a friend, or take on the computer.',
+  get name() { return m().name; },
+  get tagline() { return m().tagline; },
   emoji: '⚫️',
   minPlayers: 1,
   maxPlayers: 2,
   solo: true,
   multiplayer: true,
-  soloTitle: 'Play on this device',
-  soloDescription: 'The computer at three difficulties, or a friend on the same screen.',
+  get soloTitle() { return m().soloTitle; },
+  get soloDescription() { return m().soloDescription; },
   newState: initial,
   onPlayersChanged: reseat,
   reduce(state, action, ctx) {
@@ -231,7 +233,7 @@ export const gomoku: GameDefinition<GomokuState, GomokuAction> = {
       case 'rematch': return rematch(state, ctx);
       case 'requestTakeback': return requestTakeback(state, ctx);
       case 'respondTakeback': return respondTakeback(state, action.approve, ctx);
-      default: throw new GameRuleError('Unknown move.');
+      default: throw new GameRuleError(t.rules.unknownMove);
     }
   },
 };

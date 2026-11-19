@@ -1,3 +1,5 @@
+import { t } from '../../i18n';
+import { m, reasonText } from './messages';
 import { useMemo } from 'react';
 import ChessBoard from './Board';
 import Avatar from '../../ui/Avatar';
@@ -10,7 +12,7 @@ import type { Room } from '../../types';
 import { useGameAction } from '../../rooms/useRooms';
 import { firstName } from '../../lib/format';
 
-const SIDE_NAME: Record<Side, string> = { 1: 'White', 2: 'Black' };
+const sideName = (side: Side): string => (side === 1 ? m().white : m().black);
 
 /** Chess against another person, in a room. */
 export default function ChessRoom({ room, uid }: { room: Room; uid: string }) {
@@ -32,11 +34,11 @@ export default function ChessRoom({ room, uid }: { room: Room; uid: string }) {
   const player = (side: Side) => room.players.find((p) => p.uid === uidOfSide(state, side));
 
   const outcomeText = () => {
-    if (state.outcome === 3) return `Draw. ${state.reason}`;
+    if (state.outcome === 3) return `${t.cast.draw} ${reasonText(state.reason)}`;
     if (state.outcome === 0) return null;
-    if (state.outcome === mySeat) return `You win! 🎉 ${state.reason}`;
+    if (state.outcome === mySeat) return `${t.duel.youWin} ${reasonText(state.reason)}`;
     const winner = player(state.outcome);
-    return `${winner ? firstName(winner.name) : SIDE_NAME[state.outcome]} wins. ${state.reason}`;
+    return `${t.duel.wins(winner ? firstName(winner.name) : sideName(state.outcome))} ${reasonText(state.reason)}`;
   };
 
   const waitingFor = state.rematch.length > 0
@@ -54,9 +56,9 @@ export default function ChessRoom({ room, uid }: { room: Room; uid: string }) {
               {p ? <Avatar name={p.name} photoURL={p.photoURL} size={26} /> : null}
               <span className="col grow" style={{ gap: 0, minWidth: 0 }}>
                 <strong className="truncate" style={{ fontSize: '0.92rem' }}>
-                  {p ? (p.uid === uid ? 'You' : firstName(p.name)) : 'Waiting…'}
+                  {p ? (p.uid === uid ? t.common.you : firstName(p.name)) : t.duel.waiting}
                 </strong>
-                <small className="muted">{SIDE_NAME[side]} · {state.wins[p?.uid ?? ''] ?? 0} won</small>
+                <small className="muted">{sideName(side)} · {t.cast.wins(state.wins[p?.uid ?? ''] ?? 0)}</small>
               </span>
             </div>
           );
@@ -66,10 +68,10 @@ export default function ChessRoom({ room, uid }: { room: Room; uid: string }) {
       <div className="row center" style={{ marginBottom: 10 }}>
         <span className="turn-pill">
           {state.outcome !== 0 ? outcomeText()
-            : !ready ? 'Waiting for a second player…'
-            : board.inCheck() ? (myTurn ? 'Check — your turn' : `Check — ${firstName(player(turn)?.name ?? '')}'s turn`)
-            : myTurn ? 'Your turn'
-            : `${firstName(player(turn)?.name ?? 'Opponent')}'s turn`}
+            : !ready ? t.duel.waitingSecond
+            : board.inCheck() ? (myTurn ? t.duel.checkYourTurn : t.duel.checkTurnOf(firstName(player(turn)?.name ?? '')))
+            : myTurn ? t.cast.yourTurn
+            : t.cast.turnOf(firstName(player(turn)?.name ?? t.duel.opponent))}
         </span>
       </div>
 
@@ -78,9 +80,9 @@ export default function ChessRoom({ room, uid }: { room: Room; uid: string }) {
 
       {iAsked && (
         <div className="undo-bar" role="status">
-          <span className="grow">Asked to take that move back — waiting for them…</span>
+          <span className="grow">{t.duel.askedTakeback}</span>
           <button type="button" className="small" disabled={busy}
-            onClick={() => act({ type: 'respondTakeback', approve: false })}>Never mind</button>
+            onClick={() => act({ type: 'respondTakeback', approve: false })}>{t.duel.neverMind}</button>
         </div>
       )}
 
@@ -92,10 +94,10 @@ export default function ChessRoom({ room, uid }: { room: Room; uid: string }) {
             <>
               <button type="button" disabled={busy || !canRequestTakeback(state, uid)}
                 onClick={() => act({ type: 'requestTakeback' })}>
-                <Icon name="undo" size={16} /> Take back
+                <Icon name="undo" size={16} /> {t.cast.takeBack}
               </button>
               <button type="button" className="danger" disabled={busy} onClick={() => act({ type: 'resign' })}>
-                <Icon name="flag" size={16} /> Resign
+                <Icon name="flag" size={16} /> {t.duel.resign}
               </button>
             </>
           )
@@ -104,29 +106,29 @@ export default function ChessRoom({ room, uid }: { room: Room; uid: string }) {
             <button type="button" className="primary" disabled={busy || state.rematch.includes(uid)}
               onClick={() => act({ type: 'rematch' })}>
               <Icon name="undo" size={16} />
-              {state.rematch.includes(uid) ? (waitingFor ? 'Waiting for them…' : 'Ready') : 'Play again'}
+              {state.rematch.includes(uid) ? (waitingFor ? t.duel.waitingThem : t.duel.ready) : t.cast.playAgain}
             </button>
           )
         )}
       </div>
-      {mySeat === null && ready && <p className="empty">You're watching. You'll get a seat if a player leaves.</p>}
+      {mySeat === null && ready && <p className="empty">{t.duel.watching}</p>}
 
-      <Sheet open={!!theyAsked} title="Take that move back?">
+      <Sheet open={!!theyAsked} title={t.duel.takebackTitle}>
         {takeback && (
           <div className="col">
             <p style={{ margin: 0 }}>
-              <strong>{asker ? firstName(asker.name) : 'Your opponent'}</strong> would like to unplay their last move.
+              <strong>{asker ? firstName(asker.name) : t.duel.yourOpponent}</strong>{t.duel.wouldLike}
             </p>
             <p className="muted" style={{ margin: 0, fontSize: '0.9rem' }}>
               {undoes === 2
-                ? 'That takes their move and your reply back, and the turn returns to them.'
-                : 'That takes their move back, and the turn returns to them.'}
+                ? t.duel.undoBoth
+                : t.duel.undoOne}
             </p>
             <div className="row" style={{ gap: 8 }}>
               <button type="button" className="grow" disabled={busy}
-                onClick={() => act({ type: 'respondTakeback', approve: false })}>No, play on</button>
+                onClick={() => act({ type: 'respondTakeback', approve: false })}>{t.duel.noPlayOn}</button>
               <button type="button" className="primary grow" disabled={busy}
-                onClick={() => act({ type: 'respondTakeback', approve: true })}>Let them</button>
+                onClick={() => act({ type: 'respondTakeback', approve: true })}>{t.duel.letThem}</button>
             </div>
           </div>
         )}

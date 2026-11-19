@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 import { collection, doc, limit, onSnapshot, orderBy, query, runTransaction, serverTimestamp, Timestamp, type Query } from 'firebase/firestore';
 import { FirebaseError } from 'firebase/app';
 import { LEADERBOARD_LIMIT, compareScores, type HanoiScore } from '../../games/hanoi/leaderboard';
@@ -38,7 +39,7 @@ export function createHanoiLeaderboard({ auth, db }: FirebaseContext): HanoiLead
           }
           onError?.(e instanceof FirebaseError && e.code === 'permission-denied'
             ? mapError(e)
-            : new BackendError('The leaderboard could not load. Please try again.', e));
+            : new BackendError(t.errors.leaderboard, e));
         }));
       };
       listen(query(scores, orderBy('durationMs'), orderBy('moves'), limit(LEADERBOARD_LIMIT)), true);

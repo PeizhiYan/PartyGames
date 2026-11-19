@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { useState } from 'react';
 import Segmented from '../ui/Segmented';
 import {
@@ -18,29 +19,29 @@ export default function ThemePicker() {
 
   return (
     <section className="card">
-      <h3>Appearance</h3>
+      <h3>{t.settings.appearance}</h3>
       <div className="col" style={{ gap: 16 }}>
         <Segmented
-          label="Light or dark"
+          label={t.settings.lightOrDark}
           block
           value={theme.mode}
           onChange={(mode: ModeId) => update({ mode })}
-          options={MODES.map((m) => ({ id: m.id, label: m.label }))}
+          options={MODES.map((m) => ({ id: m.id, label: t.settings.modes[m.id] }))}
         />
         <div>
           <div className="row between" style={{ marginBottom: 8 }}>
-            <small className="muted">Highlight colour</small>
-            <small className="muted">{ACCENTS.find((a) => a.id === theme.accent)?.label}</small>
+            <small className="muted">{t.settings.highlight}</small>
+            <small className="muted">{t.settings.accents[theme.accent]}</small>
           </div>
-          <div className="accent-grid" role="radiogroup" aria-label="Highlight colour">
+          <div className="accent-grid" role="radiogroup" aria-label={t.settings.highlight}>
             {ACCENTS.map((accent) => (
               <button
                 key={accent.id}
                 type="button"
                 role="radio"
                 aria-checked={accent.id === theme.accent}
-                aria-label={accent.label}
-                title={accent.label}
+                aria-label={t.settings.accents[accent.id]}
+                title={t.settings.accents[accent.id]}
                 className={`accent-swatch${accent.id === theme.accent ? ' selected' : ''}`}
                 style={{ background: accent.swatch }}
                 onClick={() => update({ accent: accent.id as AccentId })}
@@ -49,15 +50,14 @@ export default function ThemePicker() {
           </div>
         </div>
         <Segmented
-          label="Backdrop"
+          label={t.settings.backdrop}
           block
           value={theme.backdrop}
           onChange={(backdrop: BackdropId) => update({ backdrop })}
-          options={BACKDROPS.map((b) => ({ id: b.id, label: b.label }))}
+          options={BACKDROPS.map((b) => ({ id: b.id, label: t.settings.backdrops[b.id] }))}
         />
         <small className="muted" style={{ marginTop: -8 }}>
-          What drifts along the bottom of the screen. It takes the highlight colour, and holds
-          still if your device asks for less motion.
+          {t.settings.backdropHelp}
         </small>
       </div>
     </section>

@@ -1,3 +1,5 @@
+import { t } from '../../i18n';
+import { m } from './messages';
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import MahjongTable from './Table';
@@ -18,14 +20,14 @@ export default function MahjongSoloPage() {
   return (
     <div className="room-screen wide">
       <header className="room-bar">
-        <Link to="/g/mahjong" className="icon-button" aria-label="Back to the lobby"><Icon name="left" /></Link>
-        <strong className="grow">Mahjong</strong>
+        <Link to="/g/mahjong" className="icon-button" aria-label={t.cast.backToLobby}><Icon name="left" /></Link>
+        <strong className="grow">{m().name}</strong>
       </header>
       {started
         ? <SoloGame />
-        : <Setup title="Mahjong" blurb="Mahjong is always played four at a table: you and three computer players."
+        : <Setup title={m().name} blurb={m().setupBlurb}
             min={SEATS} max={SEATS} initial={SEATS} fixed you={{ uid: user.uid, name: user.displayName }}
-            startLabel="Sit down and deal" onStart={() => setStarted(true)} />}
+            startLabel={m().sitDown} onStart={() => setStarted(true)} />}
     </div>
   );
 }

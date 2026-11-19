@@ -13,6 +13,8 @@ import { useOnline } from '../hooks/useOnline';
 import { useRooms } from '../rooms/useRooms';
 import { backend } from '../services';
 import { errorMessage } from '../services/errors';
+import { playersLabel } from '../lib/format';
+import { t } from '../i18n';
 
 /** One game's lobby: the rooms that are open, plus the ways in. */
 export default function GameLobbyPage() {
@@ -34,8 +36,8 @@ export default function GameLobbyPage() {
   if (!game) {
     return (
       <>
-        <h1>No such game</h1>
-        <p className="muted">That game isn't in this app. <Link to="/">Back to the games</Link>.</p>
+        <h1>{t.lobby.noGame}</h1>
+        <p className="muted">{t.lobby.noGameBody}<Link to="/">{t.lobby.backToGames}</Link></p>
       </>
     );
   }
@@ -60,14 +62,14 @@ export default function GameLobbyPage() {
     setBusy(true);
     try {
       const room = await backend.rooms.findByCode(wanted);
-      if (!room) { setCodeError('No open room with that code.'); return; }
+      if (!room) { setCodeError(t.lobby.noCode); return; }
       if (isPlayer(room, user.uid)) {
         navigate(`/g/${room.game}/${room.id}`);
         return;
       }
       await backend.rooms.requestJoin(room.id);
       setCode('');
-      toast({ message: `Asked to join ${room.name}. The host has to let you in.` });
+      toast({ message: t.lobby.asked(room.name) });
     } catch (e) {
       setCodeError(errorMessage(e));
     } finally {
@@ -78,10 +80,10 @@ export default function GameLobbyPage() {
   return (
     <>
       <header className="lobby-head">
-        <Link to="/" className="icon-button" aria-label="Back to the games"><Icon name="left" /></Link>
+        <Link to="/" className="icon-button" aria-label={t.lobby.backToGames}><Icon name="left" /></Link>
         <h1 className="grow">{game.name}</h1>
         {game.multiplayer && <button type="button" className="primary" disabled={!online} onClick={() => setCreating(true)}>
-          <Icon name="plus" /> New room
+          <Icon name="plus" /> {t.lobby.newRoom}
         </button>}
       </header>
 
@@ -93,9 +95,7 @@ export default function GameLobbyPage() {
       <p className="lobby-tagline">
         {game.tagline}
         {' · '}
-        {game.minPlayers === game.maxPlayers
-          ? `${game.maxPlayers} ${game.maxPlayers === 1 ? 'player' : 'players'}`
-          : `${game.solo ? 1 : game.minPlayers}–${game.maxPlayers} players`}
+        {playersLabel(game)}
       </p>
 
       {game.solo && (
@@ -103,8 +103,8 @@ export default function GameLobbyPage() {
           <span className="row grow" style={{ flexWrap: 'nowrap' }}>
             <span className="game-card-emoji" style={{ width: 40, height: 40, fontSize: '1.1rem', margin: 0 }} aria-hidden>{game.multiplayer ? '🤖' : game.emoji}</span>
             <span className="col grow" style={{ gap: 0 }}>
-              <strong>{game.soloTitle ?? 'Play solo'}</strong>
-              <small className="muted">{game.soloDescription ?? 'No room needed.'}</small>
+              <strong>{game.soloTitle ?? t.lobby.playSolo}</strong>
+              <small className="muted">{game.soloDescription ?? t.lobby.noRoomNeeded}</small>
             </span>
           </span>
           <Icon name="right" />
@@ -114,7 +114,7 @@ export default function GameLobbyPage() {
       {game.multiplayer && (
         <>
           <section className="card">
-            <h3>Join with a code</h3>
+            <h3>{t.lobby.joinWithCode}</h3>
             <div className="field-row">
               <input
                 className="code-input"
@@ -126,7 +126,7 @@ export default function GameLobbyPage() {
                 autoCapitalize="characters"
                 autoCorrect="off"
                 spellCheck={false}
-                aria-label="Room code"
+                aria-label={t.lobby.roomCode}
               />
               <button
                 type="button"
@@ -134,22 +134,22 @@ export default function GameLobbyPage() {
                 disabled={busy || !online || normalizeCode(code).length < CODE_LENGTH}
                 onClick={joinByCode}
               >
-                Join
+                {t.lobby.join}
               </button>
             </div>
             {codeError && <p className="error" style={{ marginBottom: 0 }}>{codeError}</p>}
           </section>
 
           <section className="card">
-            <h3>Open rooms</h3>
+            <h3>{t.lobby.openRooms}</h3>
             {error && <p className="error">{error}</p>}
-            {rooms === null ? <p className="empty">Looking for rooms…</p> : <RoomList rooms={rooms} uid={user.uid} />}
+            {rooms === null ? <p className="empty">{t.lobby.looking}</p> : <RoomList rooms={rooms} uid={user.uid} />}
           </section>
 
-          <Sheet open={creating} title={`New ${game.name} room`} onClose={() => setCreating(false)}>
+          <Sheet open={creating} title={t.lobby.newRoomTitle(game.name)} onClose={() => setCreating(false)}>
             <div className="col">
               <label className="field">
-                <span>Room name</span>
+                <span>{t.lobby.roomName}</span>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -159,11 +159,10 @@ export default function GameLobbyPage() {
                 />
               </label>
               <p className="muted" style={{ margin: 0, fontSize: '0.9rem' }}>
-                You'll get a short code to share. Friends ask to join and you let them in.
-                The room disappears once everyone has left.
+                {t.lobby.newRoomHelp}
               </p>
               <button type="button" className="primary block" disabled={busy} onClick={createRoom}>
-                {busy ? 'Opening…' : 'Open the room'}
+                {busy ? t.lobby.opening : t.lobby.open}
               </button>
             </div>
           </Sheet>

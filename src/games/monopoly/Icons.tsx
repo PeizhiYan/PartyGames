@@ -1,3 +1,4 @@
+import { m } from './messages';
 /**
  * Drawn marks for the board, in place of emoji.
  *
@@ -120,7 +121,7 @@ export function Token({ token, color, size = 22, ring }: {
       // A custom property rather than width/height, so a media query can scale it up where the
       // tiles are bigger without the component having to know how wide the window is.
       style={{ '--tk': `${size}px`, background: color ?? 'var(--text-muted)' } as CSSProperties}
-      title={art?.label}
+      title={art && token ? (m().tokens[token] ?? art.label) : undefined}
     >
       {art && <svg viewBox="0 0 24 24" fill="#fff" aria-hidden><path d={art.path} /></svg>}
     </span>

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { backend } from '../services';
 import { errorMessage } from '../services/errors';
+import { t } from '../i18n';
 
 const GOOGLE_G = (
   <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
@@ -39,15 +40,15 @@ export default function LoginPage() {
       <div className="login-card">
         <img src="/icon.svg" alt="" width={116} height={116} />
         <h1>PartyGames</h1>
-        <p className="muted">4 You and Your Happy Friends :)</p>
+        <p className="muted">{t.login.tagline}</p>
         <button type="button" className="google-button" onClick={signIn} disabled={busy}>
-          {GOOGLE_G} {busy ? 'Signing in…' : 'Sign in with Google'}
+          {GOOGLE_G} {busy ? t.login.signingIn : t.login.signIn}
         </button>
         {error && <p className="error">{error}</p>}
         {signupOpen === false && (
-          <p className="muted"><small>New sign-ups are closed — ask the admin for an invite.</small></p>
+          <p className="muted"><small>{t.login.closed}</small></p>
         )}
-        <p className="muted"><small><Link to="/privacy">Privacy</Link></small></p>
+        <p className="muted"><small><Link to="/privacy">{t.common.privacy}</Link></small></p>
       </div>
     </div>
   );

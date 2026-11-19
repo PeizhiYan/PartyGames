@@ -10,6 +10,7 @@
  * a game.
  */
 import { GameRuleError, type GameContext, type GameDefinition, type GameId } from '../types';
+import { t } from '../i18n';
 import { gomoku } from './gomoku/rules';
 import { monopoly } from './monopoly/rules';
 import { hanoi } from './hanoi/rules';
@@ -37,7 +38,7 @@ export function findGame(id: string): AnyGame | undefined {
 
 export function getGame(id: string): AnyGame {
   const game = findGame(id);
-  if (!game) throw new GameRuleError(`There is no game called "${id}".`);
+  if (!game) throw new GameRuleError(t.errors.noSuchGame(id));
   return game;
 }
 

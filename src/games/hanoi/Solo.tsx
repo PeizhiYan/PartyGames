@@ -1,3 +1,5 @@
+import { t } from '../../i18n';
+import { m } from './messages';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCurrentUser } from '../../hooks/useAuth';
@@ -15,7 +17,7 @@ export default function Solo() {
   const [state, setState] = useState(initialState);
   const [selected, setSelected] = useState<number | null>(null);
   const [now, setNow] = useState(Date.now);
-  const [message, setMessage] = useState('Move all seven disks to the rightmost peg.');
+  const [message, setMessage] = useState(() => m().messages.intro);
   const [restart, setRestart] = useState(false);
   const score = useScore(user.uid);
   const playing = state.startedAt !== null && state.finishedAt === null;
@@ -33,17 +35,17 @@ export default function Solo() {
     setState({ ...initialState(), startedAt: at });
     setNow(at);
     setSelected(null);
-    setMessage('Pick a peg to lift its top disk, then pick a destination.');
+    setMessage(m().messages.started);
     setRestart(false);
   }
 
   function choosePeg(peg: number) {
     if (!playing) return;
-    if (selected === peg) { setSelected(null); setMessage('Selection cancelled. Pick a peg.'); return; }
+    if (selected === peg) { setSelected(null); setMessage(m().messages.cancelled); return; }
     if (selected === null) {
-      if (state.pegs[peg].disks.length === 0) { setMessage('That peg is empty. Pick one with a disk.'); return; }
+      if (state.pegs[peg].disks.length === 0) { setMessage(m().messages.empty); return; }
       setSelected(peg);
-      setMessage(`Disk ${state.pegs[peg].disks.at(-1)} lifted. Choose its destination, or tap the same peg to cancel.`);
+      setMessage(m().messages.lifted(state.pegs[peg].disks.at(-1)!));
       return;
     }
     try {
@@ -53,54 +55,54 @@ export default function Solo() {
       setNow(at);
       setSelected(null);
       if (next.finishedAt !== null) {
-        setMessage('Tower complete!');
+        setMessage(m().messages.complete);
         score.queue({ moves: next.moves, durationMs: next.finishedAt - next.startedAt! });
-      } else setMessage('Nice move. Pick the next disk.');
+      } else setMessage(m().messages.nice);
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : 'That move is not allowed.');
+      setMessage(e instanceof Error ? e.message : m().messages.notAllowed);
     }
   }
 
   return (
     <div className="room-screen hanoi-screen">
       <header className="room-bar">
-        <Link to="/g/hanoi" className="icon-button" aria-label="Back to Hanoi lobby"><Icon name="left" /></Link>
-        <strong className="grow">Hanoi Tower</strong>
-        <span className="badge">Solo · 7 disks</span>
+        <Link to="/g/hanoi" className="icon-button" aria-label={m().backToLobby}><Icon name="left" /></Link>
+        <strong className="grow">{m().name}</strong>
+        <span className="badge">{m().badge}</span>
       </header>
       <div className="hanoi-stats">
-        <div><span className="muted">Time</span><strong>{formatTime(elapsed)}</strong></div>
-        <div><span className="muted">Moves</span><strong>{state.moves.length}</strong></div>
-        <div><span className="muted">Perfect solve</span><strong>{MIN_MOVES}</strong></div>
+        <div><span className="muted">{m().time}</span><strong>{formatTime(elapsed)}</strong></div>
+        <div><span className="muted">{m().moves}</span><strong>{state.moves.length}</strong></div>
+        <div><span className="muted">{m().perfect}</span><strong>{MIN_MOVES}</strong></div>
       </div>
       <Board state={state} selected={selected} onPeg={choosePeg} />
       <p className="hanoi-message" role="status">{message}</p>
       {solved && <section className="card hanoi-result">
         <Icon name="trophy" size={32} />
-        <h2>{state.moves.length === MIN_MOVES ? 'A perfect solve!' : 'Tower complete!'}</h2>
-        <p>Seven disks in <strong>{formatTime(elapsed)}</strong>, using <strong>{state.moves.length} moves</strong>.</p>
+        <h2>{state.moves.length === MIN_MOVES ? m().perfectSolve : m().messages.complete}</h2>
+        <p>{m().solvedBefore}<strong>{formatTime(elapsed)}</strong>{m().solvedMiddle}<strong>{m().solvedMoves(state.moves.length)}</strong>{m().solvedAfter}</p>
       </section>}
       <button type="button" className={`${playing ? '' : 'primary '}block`} onClick={() => playing ? setRestart(true) : start()}>
-        {playing ? 'Restart' : solved ? 'Play again' : 'Start'}
+        {playing ? m().restart : solved ? t.cast.playAgain : m().start}
       </button>
       {(score.pending || score.status === 'saved' || score.status === 'kept') && (
         <div className="hanoi-score-status" role="status">
-          {!score.online && score.pending ? 'Your completed result is waiting to save. Reconnect and open this game to sync it.'
-            : score.status === 'error' ? <><p className="error">Could not save your result: {score.error}</p><button type="button" onClick={score.retry}>Retry saving</button></>
-            : score.pending ? 'Saving your best result…'
-            : score.status === 'saved' ? 'Your personal best is saved to the leaderboard.' : 'Result checked. Your earlier personal best still stands.'}
+          {!score.online && score.pending ? m().waitingToSave
+            : score.status === 'error' ? <><p className="error">{m().couldNotSave(score.error)}</p><button type="button" onClick={score.retry}>{m().retrySaving}</button></>
+            : score.pending ? m().saving
+            : score.status === 'saved' ? m().saved : m().kept}
         </div>
       )}
       <section className="card" style={{ marginTop: 16 }}>
-        <h3>How to play</h3>
-        <p>Move one disk at a time. Only the top disk can move, and a larger disk cannot sit on a smaller one. Finish on the rightmost peg.</p>
-        <p className="muted">Tap a peg, then its destination. Keyboard: Tab to a peg and press Enter or Space. The clock starts when you press Start and keeps running while you are away.</p>
-        {!score.online && <p className="muted">You’re offline. The puzzle still works; completed results can sync when you reconnect.</p>}
+        <h3>{m().howToPlay}</h3>
+        <p>{m().rules}</p>
+        <p className="muted">{m().controls}</p>
+        {!score.online && <p className="muted">{m().offline}</p>}
       </section>
       <Leaderboard />
-      <Sheet open={restart} title="Restart this game?" onClose={() => setRestart(false)}>
-        <p>Your current moves and time will reset. Any completed result waiting to save is kept.</p>
-        <button type="button" className="primary block" onClick={start}>Restart</button>
+      <Sheet open={restart} title={m().restartTitle} onClose={() => setRestart(false)}>
+        <p>{m().restartBody}</p>
+        <button type="button" className="primary block" onClick={start}>{m().restart}</button>
       </Sheet>
     </div>
   );

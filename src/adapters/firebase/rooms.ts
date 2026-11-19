@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 import {
   collection, deleteDoc, deleteField, doc, getDoc, getDocs, limit, onSnapshot, query,
   runTransaction, serverTimestamp, setDoc, Timestamp, updateDoc, where,
@@ -120,7 +121,7 @@ export function createRoomRepo({ auth, db }: FirebaseContext): RoomRepo {
 
     create: (game, name) => wrap(async () => {
       const definition = getGame(game);
-      if (!definition.multiplayer) throw new GameRuleError('This game is played solo.');
+      if (!definition.multiplayer) throw new GameRuleError(t.errors.soloOnly);
       const owner = me();
       const ref = doc(rooms); // the id is generated locally, so this needs no round trip
       const ctx: GameContext = { actorUid: owner.uid, ownerUid: owner.uid, players: [owner], now: Date.now() };
@@ -156,7 +157,7 @@ export function createRoomRepo({ auth, db }: FirebaseContext): RoomRepo {
       const asker = me();
       if (room.playerUids.includes(asker.uid)) return null; // already in
       const game = getGame(room.game);
-      if (room.playerUids.length >= game.maxPlayers) throw new GameRuleError('That room is full.');
+      if (room.playerUids.length >= game.maxPlayers) throw new GameRuleError(t.errors.full);
       if (room.requests.some((r) => r.uid === asker.uid)) return null; // already asked
       const request: JoinRequest = { uid: asker.uid, name: asker.name, at: Date.now() };
       if (asker.photoURL) request.photoURL = asker.photoURL;
@@ -166,18 +167,18 @@ export function createRoomRepo({ auth, db }: FirebaseContext): RoomRepo {
     cancelRequest: (roomId, who) => edit(roomId, (room) => {
       const actor = uid();
       if (who !== actor && room.ownerUid !== actor) {
-        throw new GameRuleError('Only the host can turn someone down.');
+        throw new GameRuleError(t.errors.hostTurnsDown);
       }
       if (!room.requests.some((r) => r.uid === who)) return null;
       return { requests: clean(room.requests.filter((r) => r.uid !== who)) };
     }),
 
     approve: (roomId, who) => edit(roomId, (room) => {
-      if (room.ownerUid !== uid()) throw new GameRuleError('Only the host can let people in.');
+      if (room.ownerUid !== uid()) throw new GameRuleError(t.errors.hostLetsIn);
       const request = room.requests.find((r) => r.uid === who);
       if (!request) return null;
       const game = getGame(room.game);
-      if (room.playerUids.length >= game.maxPlayers) throw new GameRuleError('The room is full.');
+      if (room.playerUids.length >= game.maxPlayers) throw new GameRuleError(t.errors.roomFull);
       const player: RoomPlayer = { uid: request.uid, name: request.name, joinedAt: Date.now() };
       if (request.photoURL) player.photoURL = request.photoURL;
       return {
@@ -212,7 +213,7 @@ export function createRoomRepo({ auth, db }: FirebaseContext): RoomRepo {
       const snap = await getDoc(roomRef(roomId));
       const room = toRoom(snap);
       if (!room) return;
-      if (room.ownerUid !== uid()) throw new GameRuleError('Only the host can close the room.');
+      if (room.ownerUid !== uid()) throw new GameRuleError(t.errors.hostCloses);
       await deleteDoc(roomRef(roomId));
     }),
 

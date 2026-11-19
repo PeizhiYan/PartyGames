@@ -1,3 +1,4 @@
+import { t } from '../i18n';
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import Avatar from '../ui/Avatar';
 import Icon from '../ui/Icon';
@@ -66,7 +67,7 @@ export default function AdminPage() {
     setSignupOpen(open);
     try {
       await backend.admin.setSignupOpen(open);
-      toast({ message: open ? 'Anyone with a Google account can register.' : 'Registration closed — invites only.' });
+      toast({ message: open ? t.admin.opened : t.admin.closed });
     } catch (e) {
       setSignupOpen(previous);
       toast({ message: errorMessage(e), error: true });
@@ -76,12 +77,12 @@ export default function AdminPage() {
   async function invite(e: FormEvent) {
     e.preventDefault();
     const target = email.trim().toLowerCase();
-    if (!EMAIL_RE.test(target)) { setError('That is not an email address.'); return; }
+    if (!EMAIL_RE.test(target)) { setError(t.admin.notEmail); return; }
     setError('');
     try {
       await backend.admin.allow(target);
       setEmail('');
-      toast({ message: `${target} can sign in now.` });
+      toast({ message: t.admin.canSignIn(target) });
       await refresh();
     } catch (err) {
       setError(errorMessage(err));
@@ -93,8 +94,8 @@ export default function AdminPage() {
       await backend.admin.revoke(row.email);
       await refresh();
       toast({
-        message: `Invite for ${row.email} removed.`,
-        action: { label: 'Undo', run: () => backend.admin.allow(row.email).then(refresh).catch(() => {}) },
+        message: t.admin.uninvited(row.email),
+        action: { label: t.common.undo, run: () => backend.admin.allow(row.email).then(refresh).catch(() => {}) },
       });
     } catch (err) {
       toast({ message: errorMessage(err), error: true });
@@ -107,7 +108,7 @@ export default function AdminPage() {
     try {
       await backend.admin.removeAccount(row.member.uid, row.email);
       setRemoving(null);
-      toast({ message: `${row.email} can no longer use the app.` });
+      toast({ message: t.admin.removed(row.email) });
       await refresh();
     } catch (err) {
       toast({ message: errorMessage(err), error: true });
@@ -126,39 +127,38 @@ export default function AdminPage() {
 
   return (
     <>
-      <header className="page-header"><h1>Users</h1></header>
+      <header className="page-header"><h1>{t.admin.title}</h1></header>
       {error && <p className="error">{error}</p>}
 
       <section className="card">
-        <h3>Registration</h3>
+        <h3>{t.admin.registration}</h3>
         <p className="muted" style={{ margin: '0 0 10px', fontSize: '0.92rem' }}>
-          Open lets anyone with a Google account in. Invites only means just the people on this list
-          (and you) can play.
+          {t.admin.registrationHelp}
         </p>
-        {signupOpen === null ? <p className="muted">Loading…</p> : (
+        {signupOpen === null ? <p className="muted">{t.common.loading}</p> : (
           <Segmented
-            label="Registration"
+            label={t.admin.registration}
             value={signupOpen ? 'open' : 'invite'}
-            options={[{ id: 'invite', label: 'Invites only' }, { id: 'open', label: 'Open' }]}
+            options={[{ id: 'invite', label: t.admin.invitesOnly }, { id: 'open', label: t.admin.open }]}
             onChange={(v) => changeSignup(v === 'open')}
           />
         )}
       </section>
 
       <section className="card">
-        <h3>Invite someone</h3>
+        <h3>{t.admin.inviteSomeone}</h3>
         <form onSubmit={invite} className="field-row">
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-            placeholder="friend@gmail.com" aria-label="Email to invite" autoComplete="off" />
-          <button type="submit" className="primary"><Icon name="plus" size={16} /> Invite</button>
+            placeholder="friend@gmail.com" aria-label={t.admin.emailToInvite} autoComplete="off" />
+          <button type="submit" className="primary"><Icon name="plus" size={16} /> {t.admin.invite}</button>
         </form>
       </section>
 
       <section className="card">
-        <h3>Everyone ({matches.length})</h3>
+        <h3>{t.admin.everyone(matches.length)}</h3>
         <input value={query} onChange={(e) => { setQuery(e.target.value); setPage(0); }}
-          placeholder="Search by name or email" aria-label="Search users" style={{ marginBottom: 10 }} />
-        {users === null ? <p className="empty">Loading…</p> : (
+          placeholder={t.admin.search} aria-label={t.admin.searchUsers} style={{ marginBottom: 10 }} />
+        {users === null ? <p className="empty">{t.common.loading}</p> : (
           <ul className="list">
             {shown.map((row) => {
               const disabled = row.member?.disabled === true;
@@ -173,21 +173,21 @@ export default function AdminPage() {
                       </span>
                       <small className="muted truncate">
                         {row.member
-                          ? `${row.email} · ${row.member.visits ?? 1} visit${(row.member.visits ?? 1) === 1 ? '' : 's'} · last ${shortDate(row.member.lastSeen)}`
-                          : `${row.email} · invited, never signed in`}
+                          ? t.admin.visits(row.email, row.member.visits ?? 1, shortDate(row.member.lastSeen))
+                          : t.admin.neverSignedIn(row.email)}
                       </small>
                     </span>
                   </span>
                   <span className="row" style={{ gap: 6 }}>
-                    {disabled && <span className="badge">Removed</span>}
-                    {row.invited && !disabled && <span className="badge badge-accent">Invited</span>}
-                    {isMe ? <span className="badge badge-gold">You</span> : (
+                    {disabled && <span className="badge">{t.admin.badgeRemoved}</span>}
+                    {row.invited && !disabled && <span className="badge badge-accent">{t.admin.badgeInvited}</span>}
+                    {isMe ? <span className="badge badge-gold">{t.common.you}</span> : (
                       <>
                         {row.invited && (
-                          <button type="button" className="small" onClick={() => revoke(row)}>Uninvite</button>
+                          <button type="button" className="small" onClick={() => revoke(row)}>{t.admin.uninvite}</button>
                         )}
                         {row.member && !disabled && (
-                          <button type="button" className="icon-button" aria-label={`Remove ${row.email}`}
+                          <button type="button" className="icon-button" aria-label={t.admin.remove(row.email)}
                             onClick={() => setRemoving(row)}>
                             <Icon name="trash" size={18} />
                           </button>
@@ -198,34 +198,32 @@ export default function AdminPage() {
                 </li>
               );
             })}
-            {shown.length === 0 && <li><p className="empty">Nobody yet.</p></li>}
+            {shown.length === 0 && <li><p className="empty">{t.admin.nobody}</p></li>}
           </ul>
         )}
         {pages > 1 && (
           <div className="pager">
-            <button type="button" className="icon-button" aria-label="Previous page"
+            <button type="button" className="icon-button" aria-label={t.admin.previous}
               disabled={current === 0} onClick={() => setPage(current - 1)}><Icon name="left" /></button>
             <span>{current + 1} / {pages}</span>
-            <button type="button" className="icon-button" aria-label="Next page"
+            <button type="button" className="icon-button" aria-label={t.admin.next}
               disabled={current >= pages - 1} onClick={() => setPage(current + 1)}><Icon name="right" /></button>
           </div>
         )}
       </section>
 
-      <Sheet open={removing !== null} title="Remove this account?" onClose={() => setRemoving(null)}>
+      <Sheet open={removing !== null} title={t.admin.removeTitle} onClose={() => setRemoving(null)}>
         {removing && (
           <div className="col">
             <p style={{ margin: 0 }}>
-              <strong>{removing.member?.displayName || removing.email}</strong> will be locked out of
-              PartyGames. Their invite and their rooms go too.
+              <strong>{removing.member?.displayName || removing.email}</strong>{t.admin.removeBody}
             </p>
             <p className="muted" style={{ margin: 0, fontSize: '0.9rem' }}>
-              Their Google account itself is not touched — that lives with Google. To delete the
-              sign-in record as well, see the Firebase Auth note in the README.
+              {t.admin.removeNote}
             </p>
             <button type="button" className="danger-fill block" disabled={busy}
               onClick={() => removeAccount(removing)}>
-              {busy ? 'Removing…' : 'Remove the account'}
+              {busy ? t.admin.removing : t.admin.removeAccount}
             </button>
           </div>
         )}

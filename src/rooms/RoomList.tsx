@@ -9,14 +9,15 @@ import { errorMessage } from '../services/errors';
 import { timeAgo } from '../lib/format';
 import Avatar from '../ui/Avatar';
 import { useToast } from '../ui/Toast';
+import { t } from '../i18n';
 
-const LABELS = {
-  owner: 'Your room',
-  player: "You're in",
-  requested: 'Waiting for the host',
+const labels = () => ({
+  owner: t.rooms.yours,
+  player: t.rooms.youreIn,
+  requested: t.rooms.waitingHost,
   joinable: '',
-  full: 'Full',
-} as const;
+  full: t.rooms.full,
+});
 
 /** One tappable row per room. Used by a game's lobby and by the Rooms tab. */
 export default function RoomList({ rooms, uid, showGame }: {
@@ -34,7 +35,7 @@ export default function RoomList({ rooms, uid, showGame }: {
     setBusy(room.id);
     try {
       await backend.rooms.requestJoin(room.id);
-      toast({ message: 'Asked to join — the host has to let you in.' });
+      toast({ message: t.rooms.asked });
     } catch (e) {
       toast({ message: errorMessage(e), error: true });
     } finally {
@@ -66,10 +67,10 @@ export default function RoomList({ rooms, uid, showGame }: {
                   {showGame && game ? `${game.name} · ` : ''}
                   <span className="room-code">{room.code}</span>
                   {' · '}
-                  {room.playerUids.length} {room.playerUids.length === 1 ? 'player' : 'players'}
-                  {here < room.playerUids.length ? ` (${here} online)` : ''}
+                  {t.common.players(room.playerUids.length)}
+                  {here < room.playerUids.length ? t.rooms.online(here) : ''}
                   {room.requests.length > 0 && where === 'owner'
-                    ? ` · ${room.requests.length} waiting`
+                    ? ` · ${t.rooms.waiting(room.requests.length)}`
                     : ` · ${timeAgo(room.updatedAt)}`}
                 </span>
               </span>
@@ -78,18 +79,18 @@ export default function RoomList({ rooms, uid, showGame }: {
                   <Avatar key={p.uid} name={p.name} photoURL={p.photoURL} size={28} />
                 ))}
               </span>
-              {LABELS[where] ? (
+              {labels()[where] ? (
                 <span className={`badge${where === 'owner' || where === 'player' ? ' badge-live' : ''}`}>
-                  {LABELS[where]}
+                  {labels()[where]}
                 </span>
               ) : (
-                <span className="badge badge-accent">Ask to join</span>
+                <span className="badge badge-accent">{t.rooms.askToJoin}</span>
               )}
             </button>
           </li>
         );
       })}
-      {rooms.length === 0 && <li><p className="empty">No rooms open. Start one.</p></li>}
+      {rooms.length === 0 && <li><p className="empty">{t.rooms.none}</p></li>}
     </ul>
   );
 }

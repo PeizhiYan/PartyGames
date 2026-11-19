@@ -1,3 +1,4 @@
+import { m } from './messages';
 import { isOwnable, rentLadder, type BoardDef } from './boards';
 import { hasMonopoly, rentFor, seatOf, type MonopolyState } from './rules';
 import { Token } from './Icons';
@@ -27,7 +28,7 @@ export default function SpaceSheet({ state, board, index, onClose }: {
   const group = space.kind === 'property' ? board.groups[space.group] : undefined;
 
   return (
-    <Sheet open title={space.kind === 'property' || isOwnable(space) ? (space as { name: string }).name : 'Space'} onClose={onClose}>
+    <Sheet open title={space.kind === 'property' || isOwnable(space) ? (space as { name: string }).name : 'name' in space ? space.name : ((m().spaces as Record<string, string>)[space.kind] ?? m().spaces.space)} onClose={onClose}>
       <div className="col">
         {group && (
           <span className="space-band" style={{ background: group.color }} aria-hidden />
@@ -35,61 +36,61 @@ export default function SpaceSheet({ state, board, index, onClose }: {
 
         {!isOwnable(space) && (
           <p style={{ margin: 0 }}>
-            {space.kind === 'tax' ? `Pay ${money(space.amount)}.`
-              : space.kind === 'go' ? `Collect ${money(board.salary)} as you pass.`
-              : space.kind === 'jail' ? 'Just visiting, unless you were sent here.'
-              : space.kind === 'gotojail' ? 'Straight to jail. Do not pass Go.'
-              : space.kind === 'parking' ? 'Nothing happens here.'
-              : 'Draw a card.'}
+            {space.kind === 'tax' ? m().sheet.pay(money(space.amount))
+              : space.kind === 'go' ? m().sheet.collect(money(board.salary))
+              : space.kind === 'jail' ? m().sheet.visiting
+              : space.kind === 'gotojail' ? m().sheet.straightToJail
+              : space.kind === 'parking' ? m().sheet.nothing
+              : m().sheet.drawCard}
           </p>
         )}
 
         {isOwnable(space) && (
           <>
             <ul className="list">
-              <li><span className="muted">Price</span><strong>{money(space.price)}</strong></li>
+              <li><span className="muted">{m().sheet.price}</span><strong>{money(space.price)}</strong></li>
               <li>
-                <span className="muted">Owner</span>
+                <span className="muted">{m().sheet.owner}</span>
                 <strong>
                   {ownerSeat
                     ? <span className="row" style={{ gap: 6 }}>
                         <Token token={ownerSeat.token} color={ownerSeat.color} size={20} />{firstName(ownerSeat.name)}
                       </span>
-                    : 'Unowned'}
+                    : m().sheet.unowned}
                 </strong>
               </li>
               {owner && (
                 <li>
-                  <span className="muted">Rent now</span>
+                  <span className="muted">{m().sheet.rentNow}</span>
                   <strong>
                     {space.kind === 'utility'
-                      ? `${rentFor(state, index, 1)}× the dice`
+                      ? m().sheet.timesDice(rentFor(state, index, 1))
                       : money(rentFor(state, index, 7))}
                   </strong>
                 </li>
               )}
               {group && (
-                <li><span className="muted">Houses</span><strong>{houses >= 5 ? 'Hotel' : houses || 'None'}</strong></li>
+                <li><span className="muted">{m().sheet.houses}</span><strong>{houses >= 5 ? m().sheet.hotel : houses || m().sheet.none}</strong></li>
               )}
               {group && (
-                <li><span className="muted">House costs</span><strong>{money(group.houseCost)}</strong></li>
+                <li><span className="muted">{m().sheet.houseCosts}</span><strong>{money(group.houseCost)}</strong></li>
               )}
               {owner && space.kind === 'property' && (
                 <li>
-                  <span className="muted">Full set?</span>
-                  <strong>{hasMonopoly(state, owner, space.group) ? 'Yes — rent is doubled' : 'No'}</strong>
+                  <span className="muted">{m().sheet.fullSet}</span>
+                  <strong>{hasMonopoly(state, owner, space.group) ? m().sheet.doubled : m().sheet.no}</strong>
                 </li>
               )}
             </ul>
 
             {space.kind === 'property' && (
               <div>
-                <h3>Rent with houses</h3>
+                <h3>{m().sheet.rentWithHouses}</h3>
                 <ul className="list">
                   {rentLadder(space.price).map((rent, built) => (
                     <li key={built} className={built === Math.min(houses, 5) && !!owner ? 'now' : undefined}>
                       <span className="muted">
-                        {built === 0 ? 'No houses' : built === 5 ? 'Hotel' : `${built} house${built > 1 ? 's' : ''}`}
+                        {built === 0 ? m().sheet.noHouses : built === 5 ? m().sheet.hotel : m().houses(built)}
                       </span>
                       <strong className="tabular">{money(rent)}</strong>
                     </li>

@@ -169,7 +169,7 @@ describe('calling on the tile that completes your hand', () => {
       discards: { a: [tile], b: [], c: [], d: [] },
       turn: 0, dealer: 0, stage: 'claims', justDrew: false,
       claim: { tile, by: 'a', responses: { b: null, c: 'pass', d: 'pass' } },
-      seed: 1, handNumber: 0, result: null, last: '',
+      seed: 1, handNumber: 0, result: null, last: null,
     };
     return { s, tile };
   }

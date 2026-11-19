@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react';
 import Icon from './Icon';
+import { t } from '../i18n';
 
 /** A modal built on <dialog>: a bottom sheet on phones, a centred dialog on desktop (see global.css). */
 export default function Sheet({ open, title, onClose, children }: {
@@ -32,7 +33,7 @@ export default function Sheet({ open, title, onClose, children }: {
           <header className="sheet-header">
             <h2>{title}</h2>
             {onClose && (
-              <button type="button" className="icon-button" aria-label="Close" onClick={onClose}>
+              <button type="button" className="icon-button" aria-label={t.common.close} onClick={onClose}>
                 <Icon name="close" />
               </button>
             )}

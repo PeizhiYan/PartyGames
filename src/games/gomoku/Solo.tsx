@@ -1,3 +1,5 @@
+import { t } from '../../i18n';
+import { m } from './messages';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import GomokuBoard from './BoardCanvas';
@@ -7,20 +9,15 @@ import { OpponentCard, useRemembered, type Opponent } from '../cast/Opponent';
 import { chooseMove, heatMap, type Difficulty } from './ai';
 import { emptyBoard, fiveThrough, isFull, type Board } from './board';
 
-const DIFFICULTY_LABELS: { id: Difficulty; label: string }[] = [
-  { id: 'easy', label: 'Easy' },
-  { id: 'normal', label: 'Normal' },
-  { id: 'hard', label: 'Hard' },
+const difficultyLabels = (): { id: Difficulty; label: string }[] => [
+  { id: 'easy', label: t.cast.easy },
+  { id: 'normal', label: t.cast.normal },
+  { id: 'hard', label: t.cast.hard },
 ];
-const DIFFICULTY_HELP: Record<Difficulty, string> = {
-  easy: 'One move ahead, and it will let things slide.',
-  normal: 'Looks two moves ahead, including your reply.',
-  hard: 'Looks four moves ahead. Takes a moment to think.',
-};
 /** Against the computer you are black and move first, as in the original game. */
 const YOU = 1;
 const COMPUTER = 2;
-const STONE: Record<1 | 2, string> = { 1: 'Black', 2: 'White' };
+const stone = (p: 1 | 2): string => (p === 1 ? m().black : m().white);
 
 interface Position {
   board: Board;
@@ -117,29 +114,29 @@ function GomokuGame({ opponent, onOpponent }: { opponent: Opponent; onOpponent: 
     [insight, position, vsComputer],
   );
 
-  const status = position.outcome === 3 ? "It's a draw — the board is full."
-    : !vsComputer && position.outcome !== 0 ? `${STONE[position.outcome]} wins! 🎉`
-    : position.outcome === YOU ? 'You win! 🎉'
-    : position.outcome === COMPUTER ? 'The computer wins.'
-    : thinking ? 'Thinking…'
-    : !vsComputer ? `${STONE[toMove(position)]} to play`
-    : 'Your turn';
+  const status = position.outcome === 3 ? m().draw
+    : !vsComputer && position.outcome !== 0 ? t.duel.sideWins(stone(position.outcome))
+    : position.outcome === YOU ? t.cast.youWin
+    : position.outcome === COMPUTER ? m().computerWins
+    : thinking ? t.cast.thinking
+    : !vsComputer ? m().toPlay(stone(toMove(position)))
+    : t.cast.yourTurn;
 
   return (
     <div className="room-screen">
       <header className="room-bar">
-        <Link to="/g/gomoku" className="icon-button" aria-label="Back to the lobby"><Icon name="left" /></Link>
+        <Link to="/g/gomoku" className="icon-button" aria-label={t.cast.backToLobby}><Icon name="left" /></Link>
         <div className="grow col" style={{ gap: 0 }}>
-          <strong>{vsComputer ? 'Gomoku vs the computer' : 'Gomoku · two players'}</strong>
+          <strong>{vsComputer ? m().vsComputer : m().twoPlayers}</strong>
           <small className="muted tabular">
-            {vsComputer ? `You ${score.you} — ${score.computer} Computer` : `Black ${score.you} — ${score.computer} White`}
+            {vsComputer ? t.cast.tally(t.common.you, score.you, score.computer, m().computer) : t.cast.tally(m().black, score.you, score.computer, m().white)}
           </small>
         </div>
-        <button type="button" className="icon-button" aria-label={vsComputer ? 'Undo your last move' : 'Undo the last stone'}
+        <button type="button" className="icon-button" aria-label={vsComputer ? t.cast.undoMine : m().undoStone}
           disabled={thinking || position.moves.length === 0} onClick={undo}>
           <Icon name="undo" />
         </button>
-        <button type="button" className="icon-button" aria-label="Start over" onClick={reset}>
+        <button type="button" className="icon-button" aria-label={t.cast.startOver} onClick={reset}>
           <Icon name="plus" />
         </button>
       </header>
@@ -165,30 +162,30 @@ function GomokuGame({ opponent, onOpponent }: { opponent: Opponent; onOpponent: 
       </div>
       {vsComputer && (
         <section className="card">
-          <h3>Difficulty</h3>
-          <Segmented label="Difficulty" value={difficulty} onChange={setDifficulty} options={DIFFICULTY_LABELS} block />
-          <p className="muted" style={{ margin: '8px 0 0', fontSize: '0.88rem' }}>{DIFFICULTY_HELP[difficulty]}</p>
+          <h3>{t.cast.difficulty}</h3>
+          <Segmented label={t.cast.difficulty} value={difficulty} onChange={setDifficulty} options={difficultyLabels()} block />
+          <p className="muted" style={{ margin: '8px 0 0', fontSize: '0.88rem' }}>{m().help[difficulty]}</p>
         </section>
       )}
 
       <section className="card">
         <div className="row between">
           <div className="col" style={{ gap: 2 }}>
-            <strong style={{ fontSize: '0.95rem' }}>Insight</strong>
-            <small className="muted">Shade the board by how much each point is worth.</small>
+            <strong style={{ fontSize: '0.95rem' }}>{m().insight}</strong>
+            <small className="muted">{m().insightHelp}</small>
           </div>
           <Segmented
-            label="Insight"
+            label={m().insight}
             value={insight ? 'on' : 'off'}
             onChange={(v) => setInsight(v === 'on')}
-            options={[{ id: 'off', label: 'Off' }, { id: 'on', label: 'On' }]}
+            options={[{ id: 'off', label: m().off }, { id: 'on', label: m().on }]}
             size="small"
           />
         </div>
       </section>
 
       {position.outcome !== 0 && (
-        <button type="button" className="primary block" onClick={reset}>Play again</button>
+        <button type="button" className="primary block" onClick={reset}>{t.cast.playAgain}</button>
       )}
     </div>
   );

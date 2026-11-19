@@ -16,6 +16,7 @@ import { useRoom } from '../rooms/useRooms';
 import { firstName } from '../lib/format';
 import { backend } from '../services';
 import { errorMessage } from '../services/errors';
+import { t } from '../i18n';
 
 /**
  * One room, full screen. Decides what the visitor sees — the game, the waiting room, or the "ask
@@ -30,16 +31,16 @@ export default function RoomPage() {
   const { room, error } = useRoom(roomId, user.uid);
   const [busy, setBusy] = useState(false);
 
-  if (!game) return <Gone message="That game isn't in this app." />;
+  if (!game) return <Gone message={t.room.noGame} />;
   if (room === undefined) {
     return (
       <div className="center-screen">
-        <img src="/icon.svg" alt="Opening the room" width={64} height={64} className="pulse" />
+        <img src="/icon.svg" alt={t.room.opening} width={64} height={64} className="pulse" />
       </div>
     );
   }
   if (room === null) {
-    return <Gone message={error || 'That room is closed — everyone left.'} game={gameParam} />;
+    return <Gone message={error || t.room.gone} game={gameParam} />;
   }
 
   const mine = isPlayer(room, user.uid);
@@ -67,22 +68,22 @@ export default function RoomPage() {
           <p className="muted">
             {game.name} · <span className="room-code">{room.code}</span>
             <br />
-            {room.players.map((p) => firstName(p.name)).join(', ') || 'Nobody'} in the room.
+            {t.room.inTheRoom(t.common.list(room.players.map((p) => firstName(p.name))))}
           </p>
           {waiting ? (
-            <p className="row center"><span className="badge badge-accent">Waiting for the host to let you in…</span></p>
+            <p className="row center"><span className="badge badge-accent">{t.room.waitingHost}</span></p>
           ) : full ? (
-            <p className="muted">This room is full.</p>
+            <p className="muted">{t.room.full}</p>
           ) : (
-            <button type="button" className="primary" disabled={busy} onClick={ask}>Ask to join</button>
+            <button type="button" className="primary" disabled={busy} onClick={ask}>{t.room.askToJoin}</button>
           )}
           <div className="row center">
             {waiting && (
               <button type="button" className="small" onClick={() => backend.rooms.cancelRequest(room.id, user.uid)}>
-                Cancel
+                {t.room.cancel}
               </button>
             )}
-            <Link to={`/g/${game.id}`} className="button small">Back to the lobby</Link>
+            <Link to={`/g/${game.id}`} className="button small">{t.room.backToLobby}</Link>
           </div>
         </div>
       </div>
@@ -92,7 +93,7 @@ export default function RoomPage() {
   const screens = screensFor(game.id);
   const Game = screens?.Room;
   const wide = screens?.wide?.(room) === true;
-  if (!Game) return <Gone message="That game has no screen yet." game={game.id} />;
+  if (!Game) return <Gone message={t.room.noScreen} game={game.id} />;
 
   return (
     <div className={`room-screen${wide ? ' wide' : ''}`}>
@@ -107,9 +108,9 @@ function Gone({ message, game }: { message: string; game?: string }) {
   return (
     <div className="center-screen">
       <div className="narrow col">
-        <h1>Room closed</h1>
+        <h1>{t.room.closed}</h1>
         <p className="muted">{message}</p>
-        <Link to={game ? `/g/${game}` : '/'} className="button primary">Back to the lobby</Link>
+        <Link to={game ? `/g/${game}` : '/'} className="button primary">{t.room.backToLobby}</Link>
       </div>
     </div>
   );
@@ -146,12 +147,12 @@ function RoomHeader({ room, uid, onLeave }: { room: Room; uid: string; onLeave: 
   }
 
   async function share() {
-    const text = `Join my ${room.name} room in PartyGames — code ${room.code}`;
+    const text = t.room.invite(room.name, room.code);
     try {
       if (navigator.share) await navigator.share({ title: 'PartyGames', text, url: window.location.href });
       else {
         await navigator.clipboard.writeText(`${text}\n${window.location.href}`);
-        toast({ message: 'Invite copied.' });
+        toast({ message: t.room.inviteCopied });
       }
     } catch { /* the share sheet was dismissed */ }
   }
@@ -159,19 +160,19 @@ function RoomHeader({ room, uid, onLeave }: { room: Room; uid: string; onLeave: 
   return (
     <>
       <header className="room-bar">
-        <button type="button" className="icon-button" aria-label="Leave the room" onClick={() => setMenu(true)}>
+        <button type="button" className="icon-button" aria-label={t.room.leaveRoom} onClick={() => setMenu(true)}>
           <Icon name="left" />
         </button>
         <div className="grow col" style={{ gap: 0, minWidth: 0 }}>
           <strong className="truncate">{room.name}</strong>
-          <button type="button" className="link-button row" style={{ gap: 6 }} onClick={share}>
+          <button type="button" className="link-button row" style={{ gap: 6 }} title={t.room.copyCode} onClick={share}>
             <span className="room-code">{room.code}</span>
             <Icon name="copy" size={14} />
           </button>
         </div>
-        <span className="faces" aria-label={`${room.players.length} in the room`}>
+        <span className="faces" aria-label={t.room.inRoom(room.players.length)}>
           {room.players.map((p) => (isComputer(p.uid)
-            ? <span key={p.uid} className="avatar-computer" title={`${p.name} (computer)`}><Character uid={p.uid} size={30} /></span>
+            ? <span key={p.uid} className="avatar-computer" title={t.room.computer(p.name)}><Character uid={p.uid} size={30} /></span>
             : <Avatar key={p.uid} name={p.name} photoURL={p.photoURL} size={30} />))}
         </span>
       </header>
@@ -180,16 +181,16 @@ function RoomHeader({ room, uid, onLeave }: { room: Room; uid: string; onLeave: 
         <div className="room-banner">
           <div className="grow col" style={{ gap: 6 }}>
             <strong style={{ fontSize: '0.95rem' }}>
-              {room.requests.length === 1 ? 'Someone wants in' : `${room.requests.length} want in`}
+              {room.requests.length === 1 ? t.room.wantsIn : t.room.wantIn(room.requests.length)}
             </strong>
             {room.requests.map((r) => (
               <div key={r.uid} className="row" style={{ gap: 8 }}>
                 <Avatar name={r.name} photoURL={r.photoURL} size={28} />
                 <span className="grow truncate">{r.name}</span>
                 <button type="button" className="small success-fill" onClick={() => decide(r.uid, true)}>
-                  <Icon name="check" size={16} /> Let in
+                  <Icon name="check" size={16} /> {t.room.letIn}
                 </button>
-                <button type="button" className="small" aria-label={`Turn down ${r.name}`} onClick={() => decide(r.uid, false)}>
+                <button type="button" className="small" aria-label={t.room.turnDown(r.name)} onClick={() => decide(r.uid, false)}>
                   <Icon name="close" size={16} />
                 </button>
               </div>
@@ -198,17 +199,17 @@ function RoomHeader({ room, uid, onLeave }: { room: Room; uid: string; onLeave: 
         </div>
       )}
 
-      <Sheet open={menu} title="Leave the room" onClose={() => setMenu(false)}>
+      <Sheet open={menu} title={t.room.leaveRoom} onClose={() => setMenu(false)}>
         <div className="col">
           <p className="muted" style={{ margin: 0 }}>
             {owner
-              ? 'If you leave, the next player becomes the host. Closing the room ends it for everyone.'
-              : 'You can come back with the room code, as long as somebody is still in there.'}
+              ? t.room.leaveHost
+              : t.room.leaveGuest}
           </p>
-          <button type="button" className="block" disabled={busy} onClick={() => act('leave')}>Leave</button>
+          <button type="button" className="block" disabled={busy} onClick={() => act('leave')}>{t.room.leave}</button>
           {owner && (
             <button type="button" className="block danger-fill" disabled={busy} onClick={() => act('close')}>
-              Close the room for everyone
+              {t.room.closeForAll}
             </button>
           )}
         </div>

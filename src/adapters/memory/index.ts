@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 /**
  * An in-browser backend, so the app can be developed and demoed with no cloud at all:
  * `npm run dev:memory`.
@@ -170,7 +171,7 @@ export function createMemoryBackend(): Backend & { dev: MemoryDevTools } {
     async create(game: GameId, name: string) {
       const owner = requireUser();
       const definition = getGame(game);
-      if (!definition.multiplayer) throw new GameRuleError('This game is played solo.');
+      if (!definition.multiplayer) throw new GameRuleError(t.errors.soloOnly);
       const id = `room-${Math.random().toString(36).slice(2, 10)}`;
       const player = asPlayer(owner);
       update((store) => {
@@ -201,7 +202,7 @@ export function createMemoryBackend(): Backend & { dev: MemoryDevTools } {
     requestJoin: (roomId) => editRoom(roomId, (room) => {
       const asker = requireUser();
       if (room.playerUids.includes(asker.uid)) return;
-      if (room.playerUids.length >= getGame(room.game).maxPlayers) throw new GameRuleError('That room is full.');
+      if (room.playerUids.length >= getGame(room.game).maxPlayers) throw new GameRuleError(t.errors.full);
       if (room.requests.some((r) => r.uid === asker.uid)) return;
       const request: JoinRequest = { uid: asker.uid, name: asker.displayName, at: Date.now() };
       room.requests = [...room.requests, request];
@@ -210,16 +211,16 @@ export function createMemoryBackend(): Backend & { dev: MemoryDevTools } {
     cancelRequest: (roomId, who) => editRoom(roomId, (room) => {
       const actor = requireUser();
       if (who !== actor.uid && room.ownerUid !== actor.uid) {
-        throw new GameRuleError('Only the host can turn someone down.');
+        throw new GameRuleError(t.errors.hostTurnsDown);
       }
       room.requests = room.requests.filter((r) => r.uid !== who);
     }),
 
     approve: (roomId, who) => editRoom(roomId, (room) => {
-      if (room.ownerUid !== requireUser().uid) throw new GameRuleError('Only the host can let people in.');
+      if (room.ownerUid !== requireUser().uid) throw new GameRuleError(t.errors.hostLetsIn);
       const request = room.requests.find((r) => r.uid === who);
       if (!request) return;
-      if (room.playerUids.length >= getGame(room.game).maxPlayers) throw new GameRuleError('The room is full.');
+      if (room.playerUids.length >= getGame(room.game).maxPlayers) throw new GameRuleError(t.errors.roomFull);
       room.requests = room.requests.filter((r) => r.uid !== who);
       setPlayers(room, [...room.players, { uid: request.uid, name: request.name, joinedAt: Date.now() }], room.ownerUid);
     }),
@@ -245,7 +246,7 @@ export function createMemoryBackend(): Backend & { dev: MemoryDevTools } {
       update((store) => {
         const room = store.rooms[roomId];
         if (!room) return;
-        if (room.ownerUid !== actor.uid) throw new GameRuleError('Only the host can close the room.');
+        if (room.ownerUid !== actor.uid) throw new GameRuleError(t.errors.hostCloses);
         delete store.rooms[roomId];
       });
     },

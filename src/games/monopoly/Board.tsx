@@ -1,3 +1,4 @@
+import { m } from './messages';
 import { Fragment, type CSSProperties } from 'react';
 import { isOwnable, type BoardDef, type Space } from './boards';
 import { ThrownDice } from './Dice';
@@ -8,12 +9,12 @@ import { seatOf, type MonopolyState } from './rules';
 import './Board.css';
 
 /** What a space with no name of its own is called. */
-const SHORT: Partial<Record<Space['kind'], string>> = {
-  go: 'GO', jail: 'Jail', parking: 'Free parking', gotojail: 'Go to jail',
-  chance: 'Chance', chest: 'Chest',
+const short = (kind: Space['kind']): string => {
+  const sp = m().spaces;
+  return kind === 'go' ? sp.goShort : kind === 'chest' ? sp.chestShort : (sp as Record<string, string>)[kind] ?? kind;
 };
 
-const label = (space: Space): string => ('name' in space ? space.name : SHORT[space.kind] ?? space.kind);
+const label = (space: Space): string => ('name' in space ? space.name : short(space.kind));
 
 /** Which side of the ring a tile is on, so its colour band can face inwards. */
 function ringEdge({ row, col }: { row: number; col: number }, side: number): string {
@@ -122,7 +123,7 @@ export default function Board({ state, board, uid, onSelect }: {
                   {ownerSeat
                     ? <span className="mono-owner">
                         <Token token={ownerSeat.token} color={ownerSeat.color} size={13} />
-                        {houses > 0 && <b>{houses >= 5 ? 'H' : houses}</b>}
+                        {houses > 0 && <b>{houses >= 5 ? m().hotelMark : houses}</b>}
                       </span>
                     : `${board.currency}${space.price.toLocaleString()}`}
                 </span>

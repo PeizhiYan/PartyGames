@@ -1,3 +1,4 @@
+import { m } from './messages';
 /** Chinese chess's phone icon: the red general, 帥, large on the board, the black general behind. */
 const CJK = "'Noto Serif CJK SC', 'Songti SC', 'STSong', 'SimSun', serif";
 
@@ -15,7 +16,7 @@ function Piece({ cx, cy, r, char, red }: { cx: number; cy: number; r: number; ch
 
 export default function AppIcon() {
   return (
-    <svg viewBox="0 0 120 120" className="app-icon" role="img" aria-label="Chinese Chess">
+    <svg viewBox="0 0 120 120" className="app-icon" role="img" aria-label={m().name}>
       <defs>
         <linearGradient id="xqiWood" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#f0cf92" /><stop offset="1" stopColor="#b9853f" />

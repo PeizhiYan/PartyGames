@@ -1,3 +1,4 @@
+import { m } from './messages';
 /** Hanoi Tower's phone icon: a rainbow stack of disks on one peg. */
 const DISKS = [
   { w: 88, c: '#7b4fd6' }, { w: 74, c: '#2f7fe0' }, { w: 60, c: '#2bb673' }, { w: 46, c: '#f2c230' }, { w: 32, c: '#ef6c2f' },
@@ -5,7 +6,7 @@ const DISKS = [
 
 export default function AppIcon() {
   return (
-    <svg viewBox="0 0 120 120" className="app-icon" role="img" aria-label="Hanoi Tower">
+    <svg viewBox="0 0 120 120" className="app-icon" role="img" aria-label={m().name}>
       <defs>
         <radialGradient id="hnIconBg" cx="0.5" cy="0.4" r="0.8"><stop offset="0" stopColor="#3b5372" /><stop offset="1" stopColor="#101925" /></radialGradient>
         <linearGradient id="hnIconWood" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#c58b4a" /><stop offset="1" stopColor="#7e4f22" /></linearGradient>

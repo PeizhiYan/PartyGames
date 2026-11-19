@@ -1,3 +1,4 @@
+import { m } from './messages';
 import { ART_H, ART_W } from '../art';
 
 const DICE_FACES: Record<number, number[]> = {
@@ -39,7 +40,7 @@ export default function Art() {
   ];
   return (
     <svg viewBox={`0 0 ${ART_W} ${ART_H}`} className="game-art" preserveAspectRatio="xMidYMid slice"
-      role="img" aria-label="Dice, banknotes and a house from a Monopoly board">
+      role="img" aria-label={m().art}>
       <defs>
         <linearGradient id="monoFelt" x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#faf5e8" />

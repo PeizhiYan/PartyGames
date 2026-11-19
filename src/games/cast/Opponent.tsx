@@ -1,3 +1,4 @@
+import { t } from '../../i18n';
 import { useEffect, useState } from 'react';
 import Segmented from '../../ui/Segmented';
 
@@ -23,7 +24,7 @@ export function useRemembered<T extends string>(key: string, allowed: readonly T
 }
 
 /** The card that switches between the computer and a friend sharing this device. */
-export function OpponentCard({ value, onChange, computer = 'The computer' }: {
+export function OpponentCard({ value, onChange, computer = t.cast.theComputer }: {
   value: Opponent;
   onChange: (o: Opponent) => void;
   /** What the computer is called in this game. */
@@ -31,13 +32,11 @@ export function OpponentCard({ value, onChange, computer = 'The computer' }: {
 }) {
   return (
     <section className="card">
-      <h3>Opponent</h3>
-      <Segmented label="Opponent" value={value} onChange={onChange} block
-        options={[{ id: 'computer', label: computer }, { id: 'friend', label: 'A friend, here' }]} />
+      <h3>{t.cast.opponent}</h3>
+      <Segmented label={t.cast.opponent} value={value} onChange={onChange} block
+        options={[{ id: 'computer', label: computer }, { id: 'friend', label: t.cast.aFriend }]} />
       <p className="muted" style={{ margin: '8px 0 0', fontSize: '0.88rem' }}>
-        {value === 'computer'
-          ? 'Play against the computer at the strength below.'
-          : 'Two people, one device: take turns on the same board. Switching starts a new game.'}
+        {value === 'computer' ? t.cast.vsComputerHelp : t.cast.vsFriendHelp}
       </p>
     </section>
   );
@@ -49,13 +48,11 @@ export type Turning = 'turn' | 'still';
 export function TurningCard({ value, onChange }: { value: Turning; onChange: (t: Turning) => void }) {
   return (
     <section className="card">
-      <h3>The board</h3>
-      <Segmented label="The board" value={value} onChange={onChange} block
-        options={[{ id: 'turn', label: 'Turns each move' }, { id: 'still', label: 'Stays put' }]} />
+      <h3>{t.cast.board}</h3>
+      <Segmented label={t.cast.board} value={value} onChange={onChange} block
+        options={[{ id: 'turn', label: t.cast.turns }, { id: 'still', label: t.cast.still }]} />
       <p className="muted" style={{ margin: '8px 0 0', fontSize: '0.88rem' }}>
-        {value === 'turn'
-          ? 'For passing the device: whoever is to move always has their pieces at the bottom.'
-          : 'For a device lying flat between you: the board never moves.'}
+        {value === 'turn' ? t.cast.turnsHelp : t.cast.stillHelp}
       </p>
     </section>
   );

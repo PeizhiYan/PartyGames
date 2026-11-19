@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { GAMES } from '../games/registry';
 import { useOnline } from '../hooks/useOnline';
 import Icon from '../ui/Icon';
+import { t } from '../i18n';
 
 /**
  * Says so when there is no connection, and points at what still works.
@@ -18,11 +19,11 @@ export default function OfflineNotice({ suggestSolo = true }: { suggestSolo?: bo
     <div className="offline-notice" role="status">
       <Icon name="info" size={18} />
       <span className="grow">
-        <strong>You're offline.</strong>{' '}
-        Rooms need a connection — what you can see here may be out of date.
+        <strong>{t.offline.title}</strong>{' '}
+        {t.offline.body}
       </span>
       {suggestSolo && solo && (
-        <Link to={`/g/${solo.id}/solo`} className="button small">Play the computer</Link>
+        <Link to={`/g/${solo.id}/solo`} className="button small">{t.offline.playComputer}</Link>
       )}
     </div>
   );

@@ -1,3 +1,5 @@
+import { t } from '../../i18n';
+import { cardName, m, noteText } from './messages';
 import { useMemo, useState, type CSSProperties } from 'react';
 import Icon from '../../ui/Icon';
 import Sheet from '../../ui/Sheet';
@@ -40,7 +42,10 @@ const sortHand = (hand: number[]) => [...hand].sort((a, b) => {
 /** A card's resting tilt on the pile, from its id, so the pile looks thrown-down and stays put. */
 const tilt = (id: number) => ((id * 47) % 31) - 15;
 
-const SHOUT: Record<string, string> = { skip: 'Skip!', reverse: 'Reverse!', draw2: '+2!', wild4: '+4!' };
+const shout = (kind: string): string | undefined => {
+  const s = m().shouts;
+  return kind === 'skip' ? s.skip : kind === 'reverse' ? s.reverse : kind === 'draw2' ? s.draw2 : kind === 'wild4' ? s.wild4 : undefined;
+};
 
 /**
  * What just happened at the table, for the bubbles, faces and flying cards. Reads the viewer's own
@@ -57,7 +62,7 @@ const detector = (viewer: string): Detect<UnoState> => (prev, next) => {
     if (by) {
       out.push({
         kind: 'play', uid: by, data: { card }, ttl: 900,
-        text: isWild(card) ? `${next.activeColor[0].toUpperCase()}${next.activeColor.slice(1)}!` : SHOUT[c.kind],
+        text: isWild(card) ? m().shouts.color(m().colors[next.activeColor]) : shout(c.kind),
         tone: c.kind === 'wild4' || c.kind === 'draw2' ? 'hot' : undefined,
         expression: c.kind === 'wild4' || c.kind === 'draw2' || c.kind === 'skip' ? 'happy' : undefined,
       });
@@ -75,14 +80,14 @@ const detector = (viewer: string): Detect<UnoState> => (prev, next) => {
       const fresh = s.uid === viewer ? handOf(next, viewer).filter((id) => !handOf(prev, viewer).includes(id)) : [];
       out.push({
         kind: 'draw', uid: s.uid, data: { n: after - before, cards: fresh }, ttl: 1200,
-        text: ownTurn ? undefined : 'Caught!', tone: ownTurn ? undefined : 'hot',
+        text: ownTurn ? undefined : m().shouts.caught, tone: ownTurn ? undefined : 'hot',
         expression: after - before >= 2 ? 'sad' : undefined,
       });
     }
-    if (next.uno[s.uid] && !prev.uno[s.uid]) out.push({ kind: 'uno', uid: s.uid, text: 'UNO!', tone: 'hot', expression: 'happy', ttl: 1800 });
+    if (next.uno[s.uid] && !prev.uno[s.uid]) out.push({ kind: 'uno', uid: s.uid, text: m().shouts.uno, tone: 'hot', expression: 'happy', ttl: 1800 });
   }
   if (next.phase === 'results' && prev.phase === 'playing' && next.winner) {
-    out.push({ kind: 'win', uid: next.winner, text: 'Out!', tone: 'gold', expression: 'happy', ttl: 3000 });
+    out.push({ kind: 'win', uid: next.winner, text: m().shouts.out, tone: 'gold', expression: 'happy', ttl: 3000 });
   }
   return out;
 };
@@ -105,6 +110,7 @@ export default function UnoTable({ state, uid, act, busy, error, owner, seating 
   const detect = useMemo(() => detector(uid), [uid]);
   const moments = useMoments(state, detect);
   const looks = assignSpecies(state.seats.map((s) => s.uid));
+  const nameOf = (u: string) => (u === uid ? t.common.you : firstName(state.seats.find((s) => s.uid === u)?.name ?? m().someone));
   const seated = state.seats.some((s) => s.uid === uid);
   const n = state.seats.length;
   const myIndex = Math.max(0, state.seats.findIndex((s) => s.uid === uid));
@@ -153,13 +159,13 @@ export default function UnoTable({ state, uid, act, busy, error, owner, seating 
 
         {state.phase !== 'lobby' && top !== null && (
           <div className="ut-centre">
-            <button type="button" className="ut-deck" aria-label="Draw a card"
+            <button type="button" className="ut-deck" aria-label={m().drawCard}
               disabled={!myTurn || state.drawn !== null || busy || state.phase !== 'playing'} onClick={() => act({ type: 'draw' })}>
               <span className="ut-deck-stack" aria-hidden><UnoCard faceDown width={50} /><UnoCard faceDown width={50} /></span>
               <UnoCard faceDown width={50} />
               <span className="ut-deck-count">{state.deck.length}</span>
             </button>
-            <div className="ut-pile" aria-label={`On the pile: ${cardOf(top).kind}`}>
+            <div className="ut-pile" aria-label={m().onPile(cardName(top))}>
               {pile.map((id, i) => {
                 const newest = i === pile.length - 1;
                 const flying = newest && from && playMoment?.data?.card === id;
@@ -182,13 +188,13 @@ export default function UnoTable({ state, uid, act, busy, error, owner, seating 
 
         {state.phase === 'lobby' && (
           <div className="ut-centre ut-lobby-centre">
-            <strong>{n} at the table</strong>
+            <strong>{m().atTable(n)}</strong>
             {owner
               ? <button type="button" className="primary" disabled={busy || n < 2} onClick={() => act({ type: 'start', seed: newSeed() })}>
-                  {n < 2 ? 'Waiting for a second player…' : 'Deal'}
+                  {n < 2 ? m().waitingSecond : m().deal}
                 </button>
-              : <span className="muted">Waiting for the host to deal…</span>}
-            {seating?.add && <button type="button" className="small ut-add" onClick={seating.add}><Icon name="plus" size={14} /> Add a computer</button>}
+              : <span className="muted">{m().waitingDeal}</span>}
+            {seating?.add && <button type="button" className="small ut-add" onClick={seating.add}><Icon name="plus" size={14} /> {t.cast.addComputer}</button>}
           </div>
         )}
 
@@ -210,13 +216,13 @@ export default function UnoTable({ state, uid, act, busy, error, owner, seating 
           const isMe = s.uid === uid;
           return (
             <div key={s.uid} className={`ut-seat${isMe ? ' me' : ''}`} style={{ left: `${pos.x}%`, top: `${pos.y}%` }}>
-              <Seat uid={s.uid} species={looks[s.uid]} name={isMe ? 'You' : firstName(s.name)} size={seatSize}
+              <Seat uid={s.uid} species={looks[s.uid]} name={isMe ? t.common.you : firstName(s.name)} size={seatSize}
                 expression={face(s.uid)} turn={state.phase === 'playing' && current?.uid === s.uid} away={s.absent}
                 bubble={bubbleFor(moments, s.uid)}
                 corner={seating && state.phase === 'lobby' && isComputer(s.uid) ? <RemoveComputer name={s.name} onRemove={() => seating.remove(s.uid)} /> : undefined}
-                meta={state.phase === 'lobby' || !anyScore ? undefined : `${s.score} pts`}>
+                meta={state.phase === 'lobby' || !anyScore ? undefined : m().pts(s.score)}>
                 {state.phase === 'playing' && !isMe && (
-                  <span className="ut-backs" aria-label={`${count} cards`}>
+                  <span className="ut-backs" aria-label={m().cardsCount(count)}>
                     {Array.from({ length: Math.min(count, 7) }, (_, k) => (
                       <span key={k} style={{ '--k': k - Math.min(count, 7) / 2 } as CSSProperties}><UnoCard faceDown width={16} /></span>
                     ))}
@@ -225,7 +231,7 @@ export default function UnoTable({ state, uid, act, busy, error, owner, seating 
                 )}
                 {state.phase === 'playing' && state.uno[s.uid] && count <= 2 && <span className="uno-badge ut-uno">UNO</span>}
                 {seated && !isMe && catchable(state, s.uid) && (
-                  <button type="button" className="ut-catch" disabled={busy} onClick={() => act({ type: 'catch', uid: s.uid })}>Catch!</button>
+                  <button type="button" className="ut-catch" disabled={busy} onClick={() => act({ type: 'catch', uid: s.uid })}>{m().catch}</button>
                 )}
               </Seat>
             </div>
@@ -234,7 +240,7 @@ export default function UnoTable({ state, uid, act, busy, error, owner, seating 
         {state.phase === 'results' && <Confetti />}
       </div>
 
-      <p className="uno-last" role="status">{state.phase === 'lobby' ? 'Seven cards each. Match the colour or the face — first out wins the round.' : state.last}</p>
+      <p className="uno-last" role="status">{state.phase === 'lobby' ? m().lobbyLine : noteText(state.last, nameOf)}</p>
       {error && <p className="error row center">{error}</p>}
 
       {state.phase === 'playing' && (seated ? (
@@ -242,11 +248,11 @@ export default function UnoTable({ state, uid, act, busy, error, owner, seating 
           <div className="ut-me-head">
             <span className="turn-pill">
               {myTurn
-                ? (state.pendingDraw > 0 ? `Stack it, or draw ${state.pendingDraw}` : state.drawn !== null ? 'Play the card you drew, or pass' : 'Your turn')
-                : `${firstName(current?.name ?? '')}'s turn`}
+                ? (state.pendingDraw > 0 ? m().stackOrDraw(state.pendingDraw) : state.drawn !== null ? m().playDrawn : t.cast.yourTurn)
+                : t.cast.turnOf(firstName(current?.name ?? ''))}
             </span>
             <span className="ut-color" style={{ color: INK[state.activeColor] }}>
-              <i style={{ background: INK[state.activeColor] }} />{state.activeColor}
+              <i style={{ background: INK[state.activeColor] }} />{m().colors[state.activeColor]}
             </span>
           </div>
           <div className={`uno-hand${myTurn ? ' mine-to-play' : ''}`}>
@@ -261,22 +267,22 @@ export default function UnoTable({ state, uid, act, busy, error, owner, seating 
           <div className="uno-actions">
             {myTurn && state.drawn === null && (
               <button type="button" disabled={busy} onClick={() => act({ type: 'draw' })}>
-                {state.pendingDraw > 0 ? `Draw ${state.pendingDraw}` : 'Draw a card'}
+                {state.pendingDraw > 0 ? m().drawN(state.pendingDraw) : m().drawCard}
               </button>
             )}
             {myTurn && state.drawn !== null && (
-              <button type="button" disabled={busy} onClick={() => act({ type: 'pass' })}>Pass</button>
+              <button type="button" disabled={busy} onClick={() => act({ type: 'pass' })}>{m().pass}</button>
             )}
             {hand.length > 0 && hand.length <= 2 && !state.uno[uid] && (
-              <button type="button" className="uno-call" disabled={busy} onClick={() => act({ type: 'callUno' })}>UNO!</button>
+              <button type="button" className="uno-call" disabled={busy} onClick={() => act({ type: 'callUno' })}>{m().callUno}</button>
             )}
           </div>
         </section>
-      ) : <p className="empty">You're watching this round. You'll be dealt in next round.</p>)}
+      ) : <p className="empty">{m().watching}</p>)}
 
       {state.phase === 'results' && <Results state={state} uid={uid} owner={owner} busy={busy} act={act} />}
 
-      <Sheet open={wildCard !== null} title="Choose a colour" onClose={() => setWildCard(null)}>
+      <Sheet open={wildCard !== null} title={m().chooseColour} onClose={() => setWildCard(null)}>
         <div className="uno-colors">
           {COLORS.map((color: Color) => (
             <button key={color} type="button" style={{ background: INK[color] }} disabled={busy}
@@ -284,7 +290,7 @@ export default function UnoTable({ state, uid, act, busy, error, owner, seating 
                 if (wildCard !== null) act({ type: 'play', card: wildCard, color });
                 setWildCard(null);
               }}>
-              {color}
+              {m().colors[color]}
             </button>
           ))}
         </div>
@@ -298,21 +304,21 @@ function Results({ state, uid, owner, busy, act }: Pick<TableProps, 'state' | 'u
   const roundWinner = state.seats.find((s) => s.uid === state.winner);
   return (
     <section className="ut-results">
-      <h2 style={{ margin: 0 }}>{roundWinner?.uid === uid ? 'You win the round!' : `${firstName(roundWinner?.name ?? '')} wins the round`}</h2>
-      {champ && <p style={{ margin: 0 }}><strong>{champ.uid === uid ? 'You have' : `${firstName(champ.name)} has`} reached {TARGET} — match won.</strong></p>}
+      <h2 style={{ margin: 0 }}>{roundWinner?.uid === uid ? m().youWinRound : m().winsRound(firstName(roundWinner?.name ?? ''))}</h2>
+      {champ && <p style={{ margin: 0 }}><strong>{champ.uid === uid ? m().youReached(TARGET) : m().reached(firstName(champ.name), TARGET)}</strong></p>}
       <ol className="ut-scores">
         {ranking(state).map((s) => (
           <li key={s.uid}>
-            <span>{s.uid === uid ? 'You' : firstName(s.name)}</span>
+            <span>{s.uid === uid ? t.common.you : firstName(s.name)}</span>
             <strong className="tabular">{s.score}</strong>
           </li>
         ))}
       </ol>
       {owner
         ? <button type="button" className="primary" disabled={busy} onClick={() => act({ type: 'again', seed: newSeed() })}>
-            <Icon name="undo" size={16} /> Deal the next round
+            <Icon name="undo" size={16} /> {m().dealNext}
           </button>
-        : <p className="empty" style={{ margin: 0 }}>Waiting for the host to deal the next round…</p>}
+        : <p className="empty" style={{ margin: 0 }}>{m().waitingNext}</p>}
     </section>
   );
 }

@@ -1,3 +1,5 @@
+import { t } from '../../i18n';
+import { m } from './messages';
 /**
  * Chinese chess as a room game: the state two players share and the only ways it may change.
  *
@@ -133,16 +135,16 @@ function credit(state: XiangqiState, winner: Side | null): Record<string, number
 }
 
 function move(state: XiangqiState, mv: number, ctx: GameContext): XiangqiState {
-  if (state.outcome !== 0) throw new GameRuleError('This game is over — ask for a rematch.');
-  if (!bothSeated(state)) throw new GameRuleError('Waiting for a second player.');
+  if (state.outcome !== 0) throw new GameRuleError(t.rules.overAskRematch);
+  if (!bothSeated(state)) throw new GameRuleError(t.rules.waitingSecond);
   const seat = seatOf(state, ctx.actorUid);
-  if (seat === null) throw new GameRuleError('You are watching this game.');
-  if (seat !== sideToMove(state.moves)) throw new GameRuleError("It's not your turn.");
-  if (!Number.isInteger(mv) || mv < 0 || mv > 0xffff) throw new GameRuleError('That is not a move.');
+  if (seat === null) throw new GameRuleError(t.rules.watching);
+  if (seat !== sideToMove(state.moves)) throw new GameRuleError(t.rules.notYourTurn);
+  if (!Number.isInteger(mv) || mv < 0 || mv > 0xffff) throw new GameRuleError(m().errors.notAMove);
 
   const pos = positionOf(state.moves);
-  if (!pos.legalMove(mv)) throw new GameRuleError('That piece cannot move there.');
-  if (!pos.makeMove(mv)) throw new GameRuleError('That would leave your general in check.');
+  if (!pos.legalMove(mv)) throw new GameRuleError(m().errors.cannotMove);
+  if (!pos.makeMove(mv)) throw new GameRuleError(m().errors.inCheck);
 
   const ended = settle(pos, seat);
   return {
@@ -156,16 +158,16 @@ function move(state: XiangqiState, mv: number, ctx: GameContext): XiangqiState {
 }
 
 function resign(state: XiangqiState, ctx: GameContext): XiangqiState {
-  if (state.outcome !== 0) throw new GameRuleError('This game is already over.');
+  if (state.outcome !== 0) throw new GameRuleError(t.rules.alreadyOver);
   const seat = seatOf(state, ctx.actorUid);
-  if (seat === null) throw new GameRuleError('You are watching this game.');
+  if (seat === null) throw new GameRuleError(t.rules.watching);
   const winner: Side = seat === 1 ? 2 : 1;
   return { ...state, outcome: winner, reason: `${seat === 1 ? 'Red' : 'Black'} resigned.`, takeback: null, wins: credit(state, winner) };
 }
 
 function rematch(state: XiangqiState, ctx: GameContext): XiangqiState {
-  if (state.outcome === 0) throw new GameRuleError('This game is still going.');
-  if (seatOf(state, ctx.actorUid) === null) throw new GameRuleError('You are watching this game.');
+  if (state.outcome === 0) throw new GameRuleError(t.rules.stillGoing);
+  if (seatOf(state, ctx.actorUid) === null) throw new GameRuleError(t.rules.watching);
   const votes = state.rematch.includes(ctx.actorUid) ? state.rematch : [...state.rematch, ctx.actorUid];
   const seated = [state.red, state.black].filter((uid): uid is string => uid !== null);
   if (!seated.every((uid) => votes.includes(uid))) return { ...state, rematch: votes };
@@ -173,11 +175,11 @@ function rematch(state: XiangqiState, ctx: GameContext): XiangqiState {
 }
 
 function requestTakeback(state: XiangqiState, ctx: GameContext): XiangqiState {
-  if (state.outcome !== 0) throw new GameRuleError('This game is over — ask for a rematch instead.');
+  if (state.outcome !== 0) throw new GameRuleError(t.rules.overAskRematchInstead);
   const seat = seatOf(state, ctx.actorUid);
-  if (seat === null) throw new GameRuleError('You are watching this game.');
-  if (state.takeback) throw new GameRuleError('There is already a request waiting.');
-  if (lastMoveBy(state, seat) < 0) throw new GameRuleError('You have not moved yet.');
+  if (seat === null) throw new GameRuleError(t.rules.watching);
+  if (state.takeback) throw new GameRuleError(t.rules.requestWaiting);
+  if (lastMoveBy(state, seat) < 0) throw new GameRuleError(t.rules.notMovedYet);
   return { ...state, takeback: { by: ctx.actorUid, at: ctx.now } };
 }
 
@@ -186,8 +188,8 @@ function respondTakeback(state: XiangqiState, approve: boolean, ctx: GameContext
   const request = state.takeback;
   if (!request) return state;
   const seat = seatOf(state, ctx.actorUid);
-  if (seat === null) throw new GameRuleError('You are watching this game.');
-  if (ctx.actorUid === request.by && approve) throw new GameRuleError('Your opponent has to agree.');
+  if (seat === null) throw new GameRuleError(t.rules.watching);
+  if (ctx.actorUid === request.by && approve) throw new GameRuleError(t.rules.opponentAgree);
   if (!approve) return { ...state, takeback: null };
   const askerSeat = seatOf(state, request.by);
   const cut = askerSeat === null ? -1 : lastMoveBy(state, askerSeat);
@@ -197,15 +199,15 @@ function respondTakeback(state: XiangqiState, approve: boolean, ctx: GameContext
 
 export const xiangqi: GameDefinition<XiangqiState, XiangqiAction> = {
   id: 'xiangqi',
-  name: 'Chinese Chess',
-  tagline: '象棋. Generals, cannons and the river. Play a friend, or the engine.',
+  get name() { return m().name; },
+  get tagline() { return m().tagline; },
   emoji: '帥',
   minPlayers: 1,
   maxPlayers: 2,
   solo: true,
   multiplayer: true,
-  soloTitle: 'Play on this device',
-  soloDescription: 'The engine at three strengths, or a friend on the same screen.',
+  get soloTitle() { return m().soloTitle; },
+  get soloDescription() { return m().soloDescription; },
   newState: initial,
   onPlayersChanged: reseat,
   reduce(state, action, ctx) {
@@ -215,7 +217,7 @@ export const xiangqi: GameDefinition<XiangqiState, XiangqiAction> = {
       case 'rematch': return rematch(state, ctx);
       case 'requestTakeback': return requestTakeback(state, ctx);
       case 'respondTakeback': return respondTakeback(state, action.approve, ctx);
-      default: throw new GameRuleError('Unknown move.');
+      default: throw new GameRuleError(t.rules.unknownMove);
     }
   },
 };

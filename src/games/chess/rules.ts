@@ -1,3 +1,5 @@
+import { t } from '../../i18n';
+import { m } from './messages';
 /**
  * Chess as a room game. Same shape as Chinese Chess: two seats that swap colours each round, a
  * rematch both have to ask for, an opponent-approved takeback, and a state that is nothing but
@@ -111,15 +113,15 @@ function credit(state: ChessState, winner: Side): Record<string, number> {
 }
 
 function move(state: ChessState, mv: number, ctx: GameContext): ChessState {
-  if (state.outcome !== 0) throw new GameRuleError('This game is over — ask for a rematch.');
-  if (!bothSeated(state)) throw new GameRuleError('Waiting for a second player.');
+  if (state.outcome !== 0) throw new GameRuleError(t.rules.overAskRematch);
+  if (!bothSeated(state)) throw new GameRuleError(t.rules.waitingSecond);
   const seat = seatOf(state, ctx.actorUid);
-  if (seat === null) throw new GameRuleError('You are watching this game.');
-  if (seat !== sideToMove(state.moves)) throw new GameRuleError("It's not your turn.");
-  if (!Number.isInteger(mv) || mv < 0 || mv > 0x7fff) throw new GameRuleError('That is not a move.');
+  if (seat === null) throw new GameRuleError(t.rules.watching);
+  if (seat !== sideToMove(state.moves)) throw new GameRuleError(t.rules.notYourTurn);
+  if (!Number.isInteger(mv) || mv < 0 || mv > 0x7fff) throw new GameRuleError(m().errors.notAMove);
 
   const { board, keys } = replay(state.moves);
-  if (!board.isLegal(mv)) throw new GameRuleError('That move is not allowed.');
+  if (!board.isLegal(mv)) throw new GameRuleError(m().errors.notAllowed);
   board.make(mv);
   keys.push(board.key());
   const ended = settle(board, keys, seat);
@@ -134,16 +136,16 @@ function move(state: ChessState, mv: number, ctx: GameContext): ChessState {
 }
 
 function resign(state: ChessState, ctx: GameContext): ChessState {
-  if (state.outcome !== 0) throw new GameRuleError('This game is already over.');
+  if (state.outcome !== 0) throw new GameRuleError(t.rules.alreadyOver);
   const seat = seatOf(state, ctx.actorUid);
-  if (seat === null) throw new GameRuleError('You are watching this game.');
+  if (seat === null) throw new GameRuleError(t.rules.watching);
   const winner: Side = seat === 1 ? 2 : 1;
   return { ...state, outcome: winner, reason: `${seat === 1 ? 'White' : 'Black'} resigned.`, takeback: null, wins: credit(state, winner) };
 }
 
 function rematch(state: ChessState, ctx: GameContext): ChessState {
-  if (state.outcome === 0) throw new GameRuleError('This game is still going.');
-  if (seatOf(state, ctx.actorUid) === null) throw new GameRuleError('You are watching this game.');
+  if (state.outcome === 0) throw new GameRuleError(t.rules.stillGoing);
+  if (seatOf(state, ctx.actorUid) === null) throw new GameRuleError(t.rules.watching);
   const votes = state.rematch.includes(ctx.actorUid) ? state.rematch : [...state.rematch, ctx.actorUid];
   const seated = [state.white, state.black].filter((uid): uid is string => uid !== null);
   if (!seated.every((uid) => votes.includes(uid))) return { ...state, rematch: votes };
@@ -151,11 +153,11 @@ function rematch(state: ChessState, ctx: GameContext): ChessState {
 }
 
 function requestTakeback(state: ChessState, ctx: GameContext): ChessState {
-  if (state.outcome !== 0) throw new GameRuleError('This game is over — ask for a rematch instead.');
+  if (state.outcome !== 0) throw new GameRuleError(t.rules.overAskRematchInstead);
   const seat = seatOf(state, ctx.actorUid);
-  if (seat === null) throw new GameRuleError('You are watching this game.');
-  if (state.takeback) throw new GameRuleError('There is already a request waiting.');
-  if (lastMoveBy(state, seat) < 0) throw new GameRuleError('You have not moved yet.');
+  if (seat === null) throw new GameRuleError(t.rules.watching);
+  if (state.takeback) throw new GameRuleError(t.rules.requestWaiting);
+  if (lastMoveBy(state, seat) < 0) throw new GameRuleError(t.rules.notMovedYet);
   return { ...state, takeback: { by: ctx.actorUid, at: ctx.now } };
 }
 
@@ -163,8 +165,8 @@ function respondTakeback(state: ChessState, approve: boolean, ctx: GameContext):
   const request = state.takeback;
   if (!request) return state;
   const seat = seatOf(state, ctx.actorUid);
-  if (seat === null) throw new GameRuleError('You are watching this game.');
-  if (ctx.actorUid === request.by && approve) throw new GameRuleError('Your opponent has to agree.');
+  if (seat === null) throw new GameRuleError(t.rules.watching);
+  if (ctx.actorUid === request.by && approve) throw new GameRuleError(t.rules.opponentAgree);
   if (!approve) return { ...state, takeback: null };
   const askerSeat = seatOf(state, request.by);
   const cut = askerSeat === null ? -1 : lastMoveBy(state, askerSeat);
@@ -174,15 +176,15 @@ function respondTakeback(state: ChessState, approve: boolean, ctx: GameContext):
 
 export const chess: GameDefinition<ChessState, ChessAction> = {
   id: 'chess',
-  name: 'Chess',
-  tagline: 'The classic. Play a friend, or the computer at three strengths.',
+  get name() { return m().name; },
+  get tagline() { return m().tagline; },
   emoji: '♞',
   minPlayers: 1,
   maxPlayers: 2,
   solo: true,
   multiplayer: true,
-  soloTitle: 'Play on this device',
-  soloDescription: 'The computer at three strengths, or a friend on the same screen.',
+  get soloTitle() { return m().soloTitle; },
+  get soloDescription() { return m().soloDescription; },
   newState: initial,
   onPlayersChanged: reseat,
   reduce(state, action, ctx) {
@@ -192,7 +194,7 @@ export const chess: GameDefinition<ChessState, ChessAction> = {
       case 'rematch': return rematch(state, ctx);
       case 'requestTakeback': return requestTakeback(state, ctx);
       case 'respondTakeback': return respondTakeback(state, action.approve, ctx);
-      default: throw new GameRuleError('Unknown move.');
+      default: throw new GameRuleError(t.rules.unknownMove);
     }
   },
 };
