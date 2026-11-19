@@ -435,6 +435,10 @@ scoring**. The rule choices are at the top of `mahjong/rules.ts`; the fan table 
   (win > kong/pong > chow, nearest to the discarder on a tie), or the next player draws on their
   own. So a room never taps "pass" thirty times a hand. The cost: the table can see that someone
   is thinking about a discard.
+- **A set called on the tile that completes your hand is the win.** Strictly, a pong then leaves
+  you holding a complete hand you may not declare — a win after a call needs a drawn tile — so a
+  player who tapped Pong instead of Mahjong was stuck discarding out of a finished hand. `respond`
+  records such a call as `win`, and the call bar offers only Mahjong and Pass on that tile.
 - **The newest tile is last in its hand**, so "the tile just drawn" needs no field naming a tile
   in a hand — which would break the hidden-hands rule. `justDrew` (a boolean) is what enables a
   self-drawn win.

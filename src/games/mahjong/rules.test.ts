@@ -3,6 +3,8 @@ import type { GameContext, RoomPlayer } from '../../types';
 import { chooseClaim, chooseTurn } from './ai';
 import { DEAD_WALL, HAND_SIZE, claimOptions, currentSeat, handOf, mahjong, meldsOf, myClaimOptions, selfOptions, type MahjongState } from './rules';
 import { TILE_COUNT, kindOf } from './tiles';
+import type { Meld } from './hand';
+import { E, G, N, R, S, W, Wh, b, c, d, fresh } from './testTiles';
 
 const people: RoomPlayer[] = ['a', 'b', 'c', 'd'].map((uid, i) => ({ uid, name: uid.toUpperCase(), joinedAt: i }));
 const ctx = (actorUid: string, players = people): GameContext => ({ actorUid, ownerUid: 'a', players, now: 1 });
@@ -141,5 +143,60 @@ describe('mahjong played out by computers', () => {
     expect(s.dealer).toBe(1);
     expect(currentSeat(s)?.uid).toBe('b');
     expect(s.seats.map((x) => x.score)).toEqual(scores);
+  });
+});
+
+describe('calling on the tile that completes your hand', () => {
+  /**
+   * The position from a real game: b has two pongs down and holds a pair of 9 bamboo, a run and
+   * another pair, so a's 9 bamboo completes four sets and a pair. b tapped Pong rather than
+   * Mahjong, and was left holding a complete hand that the rules then made them break up.
+   */
+  function waitingOnNineBamboo(): { s: MahjongState; tile: number } {
+    fresh();
+    const melds: Meld[] = [
+      { kind: 'pong', tiles: [d(9), d(9), d(9)], from: 'c' },
+      { kind: 'pong', tiles: [d(3), d(3), d(3)], from: 'd' },
+    ];
+    const handB = [b(9), b(9), c(2), c(3), c(4), E(), E()];
+    const tile = b(9);
+    const s: MahjongState = {
+      phase: 'playing',
+      seats: people.map((p) => ({ uid: p.uid, name: p.name, score: 0 })),
+      wall: [c(7), c(7), c(8), c(8), c(9), c(9), d(1), d(1), d(2), d(2), d(4), d(4), d(5), d(5), d(6), d(6), b(1), b(1)],
+      hands: { a: [], b: handB, c: [N(), W(), S(), Wh()], d: [G(), G(), R(), R()] },
+      melds: { a: [], b: melds, c: [], d: [] },
+      discards: { a: [tile], b: [], c: [], d: [] },
+      turn: 0, dealer: 0, stage: 'claims', justDrew: false,
+      claim: { tile, by: 'a', responses: { b: null, c: 'pass', d: 'pass' } },
+      seed: 1, handNumber: 0, result: null, last: '',
+    };
+    return { s, tile };
+  }
+
+  it('offers the win alongside the pong', () => {
+    const { s } = waitingOnNineBamboo();
+    expect(myClaimOptions(s, 'b').map((o) => o.kind)).toEqual(['win', 'pong']);
+  });
+
+  it('takes a pong on that tile as the win, paid by the discarder', () => {
+    const { s, tile } = waitingOnNineBamboo();
+    const after = mahjong.reduce(s, { type: 'claim', claim: { kind: 'pong' } }, ctx('b'));
+    expect(after.phase).toBe('results');
+    expect(after.result?.winner).toBe('b');
+    expect(after.result?.from).toBe('a');
+    expect(after.result?.hand).toContain(tile);
+    expect(after.discards.a).toEqual([]);
+    expect(after.seats.find((x) => x.uid === 'a')!.score).toBeLessThan(0);
+  });
+
+  it('still lets a pong that does not complete the hand stay a pong', () => {
+    const { s } = waitingOnNineBamboo();
+    // Without the run, the 9 bamboo makes a pong but not a winning hand.
+    const hands = { ...s.hands, b: [s.hands.b[0], s.hands.b[1], c(6), c(9), S(), E(), E()] };
+    const after = mahjong.reduce({ ...s, hands }, { type: 'claim', claim: { kind: 'pong' } }, ctx('b'));
+    expect(after.phase).toBe('playing');
+    expect(meldsOf(after, 'b')).toHaveLength(3);
+    expect(after.stage).toBe('discard');
   });
 });

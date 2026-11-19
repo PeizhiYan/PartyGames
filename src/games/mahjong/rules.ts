@@ -18,6 +18,9 @@
  * - Players with no possible claim on a discard are passed automatically, so a room is not asked
  *   to tap "pass" thirty times a hand. The table can tell that someone is thinking about it.
  * - Two players claiming a win: the first after the discarder takes it.
+ * - A pong, kong or chow on the tile that completes your hand is taken as the win. Otherwise the
+ *   hand would be complete but stuck — after a call you may only win on a tile you draw — and
+ *   tapping Pong instead of Mahjong is far easier to do than to mean.
  * - No robbing a kong; no flowers; no dead-wall subtlety beyond keeping the last 14 tiles back.
  *   When only those are left, the hand is a draw.
  * - The dealer rotates every hand, win or lose.
@@ -378,6 +381,7 @@ function declareKong(state: MahjongState, tile: number, uid: string): MahjongSta
 function respond(state: MahjongState, answer: Claim | 'pass', uid: string): MahjongState {
   if (state.phase !== 'playing' || state.stage !== 'claims' || !state.claim) throw new GameRuleError('There is nothing to claim.');
   if (state.claim.responses[uid] !== null) throw new GameRuleError('You have already answered.');
+  let recorded = answer;
   if (answer !== 'pass') {
     const options = claimOptions(state, uid, state.claim.tile, state.claim.by);
     const ok = options.some((o) => o.kind === answer.kind
@@ -385,8 +389,10 @@ function respond(state: MahjongState, answer: Claim | 'pass', uid: string): Mahj
         && answer.tiles.length === 2 && answer.tiles.every((t) => handOf(state, uid).includes(t))
         && [...answer.tiles, state.claim!.tile].map(kindOf).sort((a, b) => a - b).every((v, i, a) => i === 0 || v === a[i - 1] + 1))));
     if (!ok) throw new GameRuleError('You cannot claim that tile that way.');
+    // The tile completes the hand: whatever set it was called for, it is the win (see the top).
+    if (options.some((o) => o.kind === 'win')) recorded = { kind: 'win' };
   }
-  const next: MahjongState = { ...state, claim: { ...state.claim, responses: { ...state.claim.responses, [uid]: answer } } };
+  const next: MahjongState = { ...state, claim: { ...state.claim, responses: { ...state.claim.responses, [uid]: recorded } } };
   return Object.values(next.claim!.responses).every((r) => r !== null) ? resolve(next) : next;
 }
 
