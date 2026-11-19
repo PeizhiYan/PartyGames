@@ -1,3 +1,4 @@
+import { buzz } from './haptics';
 /**
  * Sound effects, synthesised with the Web Audio API — no audio files, so they cost nothing to
  * download, work offline, and can be tuned in code.
@@ -184,9 +185,14 @@ const RECIPES: Record<SoundName, (c: BaseAudioContext, o: AudioNode) => void> = 
   error: (c, o) => tone(c, o, { type: 'square', freq: 150, to: 120, dur: 0.14, gain: 0.07 }),
 };
 
-/** Plays a sound now, if sound is on and the page can be heard. Never throws. */
+/**
+ * Plays an event's feedback now: its sound, if sound is on and the page can be heard, and its buzz
+ * (`./haptics`), if haptics are on — each with its own switch. Never throws.
+ */
 export function play(name: SoundName): void {
-  if (!enabled || typeof document === 'undefined' || document.hidden) return;
+  if (typeof document === 'undefined') return;
+  buzz(name);
+  if (!enabled || document.hidden) return;
   try {
     const c = audio();
     if (!c || !master) return;

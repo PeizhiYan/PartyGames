@@ -1,3 +1,4 @@
+import { play } from '../lib/sound';
 /**
  * A game played entirely on this device: the same `GameDefinition` a room would run, driven
  * locally, with the computer taking the other seats.
@@ -88,6 +89,7 @@ export function useLocalGame<S, A>(definition: GameDefinition<S, A>, players: Ro
       return next;
     } catch (e) {
       if (!(e instanceof GameRuleError)) throw e;
+      play('error');
       setError(e.message);
       return null;
     }

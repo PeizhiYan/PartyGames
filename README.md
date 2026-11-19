@@ -94,6 +94,9 @@ and opens the puzzle directly.
 - **Sound effects.** Dice rattle, cards swish, tiles clack, stones knock, and a chime tells you it
   is your turn. All synthesised in the browser, so nothing to download. The speaker in each game's
   header, or Settings, turns them off.
+- **Haptics.** On a phone, a small buzz with each move, roll and card, and on your turn — a full
+  set of patterns on Android, a tick for your own moves on an iPhone (iOS 18 and later). Settings
+  turns it off.
 - **A cast of characters.** In Yahtzee, UNO and Mahjong every player is a cartoon face — a robot, a
   frog, a fox, a panda… — that thinks on its turn, beams at a good move and looks crestfallen at a
   bad one. Computer players always look the same, so you learn who you are up against. Solo games

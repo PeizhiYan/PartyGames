@@ -1,13 +1,19 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 import { play, soundEnabled, subscribeSound, type SoundName } from '../lib/sound';
+import { hapticsEnabled, subscribeHaptics } from '../lib/haptics';
 
 /** Whether sound is on, kept in step across every toggle on the page. */
 export function useSoundEnabled(): boolean {
   return useSyncExternalStore(subscribeSound, soundEnabled, () => false);
 }
 
+/** Whether haptics are on, kept in step with Settings. */
+export function useHapticsEnabled(): boolean {
+  return useSyncExternalStore(subscribeHaptics, hapticsEnabled, () => false);
+}
+
 /**
- * Plays `sound` whenever `key` changes — a move count, a roll's timestamp, the last card on the
+ * Plays `sound` (and its buzz) whenever `key` changes — a move count, a roll's timestamp, the last card on the
  * pile. Not on the first render, so opening a game mid-way is silent, and not when `sound` is
  * null, so a caller can decide per change ("a capture, or just a move?").
  */

@@ -543,6 +543,20 @@ becomes your turn.
   an `OfflineAudioContext` in headless Chrome and read the peaks: they sit between 0.1 and 0.3 at
   the app's master level, with nothing clipping and nothing longer than 0.7 s.
 
+## Haptics
+
+`src/lib/haptics.ts` buzzes on the same events as the sounds: `play(name)` in `lib/sound.ts` calls
+`buzz(name)` first, so every place that makes a sound also makes a buzz, each with its own switch.
+A move the rules refuse also buzzes and sounds (`'error'`), from `useGameAction` and `useLocalGame`.
+
+- **Android** has the Vibration API, and each event has its own short pattern (`PATTERNS`).
+  Desktop Chrome has `navigator.vibrate` too, with nothing to vibrate, so only a touch screen counts.
+- **iPhone has no Vibration API.** Since iOS 18, toggling a switch-style checkbox
+  (`<input type="checkbox" switch>`) gives a haptic tick, so a hidden one is clicked once per pulse.
+  iOS only allows it while handling the person's own tap: on an iPhone you feel your own moves
+  and what they cause, not other players' moves arriving. There is no way round that.
+- The Settings card is only shown where one of the two works. On by default, per device.
+
 ## Gotchas
 
 - **`clean()`** in the Firebase adapter is a JSON round trip that strips `undefined` (Firestore

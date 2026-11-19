@@ -259,6 +259,10 @@ const zh: Messages = {
     turnOn: '打开音效',
     turnOff: '关闭音效',
   },
+  haptics: {
+    title: '振动反馈',
+    help: '每次落子、掷骰、出牌和轮到你时轻轻振动一下。关掉音效时也有效。',
+  },
   die: (value, held) => `骰子 ${value} 点${held ? '，已留下' : ''}`,
   duel: {
     youWin: '你赢了！🎉',
