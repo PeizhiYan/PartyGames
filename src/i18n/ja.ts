@@ -251,6 +251,14 @@ const ja: Messages = {
     turnOf: (name) => `${name}の番`,
     waitingFor: (name) => `${name}を待っています…`,
   },
+  sound: {
+    title: 'サウンド',
+    help: 'サイコロ、カード、牌、石の音と、自分の番を知らせるチャイム。この端末だけの設定です。',
+    on: 'オン',
+    off: 'オフ',
+    turnOn: 'サウンドをオンにする',
+    turnOff: 'サウンドをオフにする',
+  },
   die: (value, held) => `サイコロ ${value}${held ? '（キープ）' : ''}`,
   duel: {
     youWin: 'あなたの勝ち！🎉',

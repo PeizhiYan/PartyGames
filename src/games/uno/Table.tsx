@@ -7,7 +7,8 @@ import Seat from '../cast/Seat';
 import { RemoveComputer, type Seating } from '../cast/Seating';
 import Confetti from '../cast/Confetti';
 import { assignSpecies } from '../cast/cast';
-import { bubbleFor, expressionFor, useMoments, type Detect, type Moment } from '../cast/moments';
+import { bubbleFor, expressionFor, useMomentSounds, useMoments, type Detect, type Moment } from '../cast/moments';
+import { useSoundOn } from '../../hooks/useSound';
 import { isComputer } from '../local';
 import UnoCard, { INK } from './Card';
 import { COLORS, cardOf, isWild, type Color } from './cards';
@@ -110,6 +111,10 @@ export default function UnoTable({ state, uid, act, busy, error, owner, seating 
   const detect = useMemo(() => detector(uid), [uid]);
   const moments = useMoments(state, detect);
   const looks = assignSpecies(state.seats.map((s) => s.uid));
+  // A card thrown, cards dealt, an UNO called, a round won or lost — and a chime on your turn.
+  useMomentSounds(moments, (mo) => (mo.kind === 'play' ? 'card' : mo.kind === 'draw' ? 'deal' : mo.kind === 'uno' ? 'uno'
+    : mo.kind === 'win' ? (mo.uid === uid ? 'win' : 'lose') : null));
+  useSoundOn(state.phase === 'playing' && currentSeat(state)?.uid === uid, (on) => (on ? 'turn' : null));
   const nameOf = (u: string) => (u === uid ? t.common.you : firstName(state.seats.find((s) => s.uid === u)?.name ?? m().someone));
   const seated = state.seats.some((s) => s.uid === uid);
   const n = state.seats.length;

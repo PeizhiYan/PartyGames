@@ -1,3 +1,4 @@
+import { useSoundOn } from '../../hooks/useSound';
 import { t } from '../../i18n';
 import { m, reasonText } from './messages';
 import { useMemo } from 'react';
@@ -22,6 +23,8 @@ export default function XiangqiRoom({ room, uid }: { room: Room; uid: string }) 
   const ready = bothSeated(state);
   const turn = sideToMove(state.moves);
   const myTurn = state.outcome === 0 && ready && mySeat !== null && mySeat === turn;
+  useSoundOn(myTurn, (on) => (on ? 'turn' : null));
+  useSoundOn(state.outcome, (o) => (o === 0 ? null : o === mySeat ? 'win' : o === 3 || mySeat === null ? 'tap' : 'lose'));
   const position = useMemo(() => positionOf(state.moves), [state.moves]);
   const lastMove = state.moves.length ? state.moves[state.moves.length - 1] : null;
 

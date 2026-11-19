@@ -1,3 +1,5 @@
+import SoundToggle from '../../ui/SoundToggle';
+import { useSoundOn } from '../../hooks/useSound';
 import { t } from '../../i18n';
 import { m } from './messages';
 import { useCallback, useMemo, useRef, useState } from 'react';
@@ -109,6 +111,9 @@ function GomokuGame({ opponent, onOpponent }: { opponent: Opponent; onOpponent: 
   }
 
   // Only computed while the heat map is on: it scores every empty cell.
+  // The end of a game: a fanfare for a win (any win, between two friends), a sigh for a loss.
+  useSoundOn(position.outcome, (o) => (o === 0 ? null : o === 3 ? 'tap' : !vsComputer || o === YOU ? 'win' : 'lose'));
+
   const heat = useMemo(
     () => (insight && position.outcome === 0 ? heatMap(position.board, vsComputer ? YOU : toMove(position)) : null),
     [insight, position, vsComputer],
@@ -132,6 +137,7 @@ function GomokuGame({ opponent, onOpponent }: { opponent: Opponent; onOpponent: 
             {vsComputer ? t.cast.tally(t.common.you, score.you, score.computer, m().computer) : t.cast.tally(m().black, score.you, score.computer, m().white)}
           </small>
         </div>
+        <SoundToggle />
         <button type="button" className="icon-button" aria-label={vsComputer ? t.cast.undoMine : m().undoStone}
           disabled={thinking || position.moves.length === 0} onClick={undo}>
           <Icon name="undo" />

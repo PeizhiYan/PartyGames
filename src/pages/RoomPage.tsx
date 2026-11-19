@@ -1,3 +1,4 @@
+import SoundToggle from '../ui/SoundToggle';
 import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import OfflineNotice from '../shell/OfflineNotice';
@@ -170,6 +171,7 @@ function RoomHeader({ room, uid, onLeave }: { room: Room; uid: string; onLeave: 
             <Icon name="copy" size={14} />
           </button>
         </div>
+        <SoundToggle />
         <span className="faces" aria-label={t.room.inRoom(room.players.length)}>
           {room.players.map((p) => (isComputer(p.uid)
             ? <span key={p.uid} className="avatar-computer" title={t.room.computer(p.name)}><Character uid={p.uid} size={30} /></span>

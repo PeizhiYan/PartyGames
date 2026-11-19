@@ -262,6 +262,14 @@ const en = {
     turnOf: (name: string) => `${name}'s turn`,
     waitingFor: (name: string) => `Waiting for ${name}…`,
   },
+  sound: {
+    title: 'Sound',
+    help: 'Dice, cards, tiles and stones, and a chime when it is your turn. On this device only.',
+    on: 'On',
+    off: 'Off',
+    turnOn: 'Turn sound on',
+    turnOff: 'Turn sound off',
+  },
   die: (value: number, held: boolean) => `Die showing ${value}${held ? ', held' : ''}`,
   /** Two-player board games in a room: Gomoku, Chess, Chinese Chess. */
   duel: {

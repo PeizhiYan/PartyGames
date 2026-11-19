@@ -251,6 +251,14 @@ const zh: Messages = {
     turnOf: (name) => `轮到${name}`,
     waitingFor: (name) => `等待${name}……`,
   },
+  sound: {
+    title: '音效',
+    help: '骰子、纸牌、麻将牌和棋子的声音，轮到你时还有提示音。只在这台设备上生效。',
+    on: '开',
+    off: '关',
+    turnOn: '打开音效',
+    turnOff: '关闭音效',
+  },
   die: (value, held) => `骰子 ${value} 点${held ? '，已留下' : ''}`,
   duel: {
     youWin: '你赢了！🎉',

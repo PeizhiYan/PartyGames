@@ -1,3 +1,5 @@
+import SoundToggle from '../../ui/SoundToggle';
+import { useSoundOn } from '../../hooks/useSound';
 import { t } from '../../i18n';
 import { m, reasonText } from './messages';
 import { useEffect, useMemo, useState } from 'react';
@@ -46,6 +48,8 @@ function ChessGame({ opponent, onOpponent }: { opponent: Opponent; onOpponent: (
   const [score, setScore] = useState({ you: 0, computer: 0, white: 0, black: 0 });
 
   const mySeat = seatOf(state, user.uid);
+  // The end of a game: a fanfare for a win (any win, between two friends), a sigh for a loss.
+  useSoundOn(state.outcome, (o) => (o === 0 ? null : o === 3 ? 'tap' : !vsComputer || o === mySeat ? 'win' : 'lose'));
   const turn = sideToMove(state.moves);
   const otherSeat = seatOf(state, other);
   const computersTurn = vsComputer && state.outcome === 0 && turn === otherSeat;
@@ -125,6 +129,7 @@ function ChessGame({ opponent, onOpponent }: { opponent: Opponent; onOpponent: (
               : t.cast.tally(m().white, score.white, score.black, m().black)}
           </small>
         </div>
+        <SoundToggle />
         <button type="button" className="icon-button" aria-label={vsComputer ? t.cast.undoMine : t.cast.undoLast}
           disabled={thinking || state.outcome !== 0 || state.moves.length === 0} onClick={undo}>
           <Icon name="undo" />

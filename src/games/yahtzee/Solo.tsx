@@ -1,3 +1,4 @@
+import SoundToggle from '../../ui/SoundToggle';
 import { t } from '../../i18n';
 import { m } from './messages';
 import { useEffect, useMemo, useState } from 'react';
@@ -37,6 +38,7 @@ export default function YahtzeeSoloPage() {
       <header className="room-bar">
         <Link to="/g/yahtzee" className="icon-button" aria-label={t.cast.backToLobby}><Icon name="left" /></Link>
         <strong className="grow">{m().name}</strong>
+        <SoundToggle />
         {table !== null && (
           <button type="button" className="small" onClick={() => setTable(null)}>
             <Icon name="users" size={16} /> {t.cast.players}
