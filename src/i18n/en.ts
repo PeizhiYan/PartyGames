@@ -270,6 +270,10 @@ const en = {
     turnOn: 'Turn sound on',
     turnOff: 'Turn sound off',
   },
+  haptics: {
+    title: 'Haptics',
+    help: 'A small buzz with each move, roll and card, and on your turn. Works with the sound off.',
+  },
   die: (value: number, held: boolean) => `Die showing ${value}${held ? ', held' : ''}`,
   /** Two-player board games in a room: Gomoku, Chess, Chinese Chess. */
   duel: {

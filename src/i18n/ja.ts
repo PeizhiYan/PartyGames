@@ -259,6 +259,10 @@ const ja: Messages = {
     turnOn: 'サウンドをオンにする',
     turnOff: 'サウンドをオフにする',
   },
+  haptics: {
+    title: '振動',
+    help: '手を打つ、サイコロを振る、カードを出す、自分の番になる — そのたびに小さく振動します。サウンドがオフでも使えます。',
+  },
   die: (value, held) => `サイコロ ${value}${held ? '（キープ）' : ''}`,
   duel: {
     youWin: 'あなたの勝ち！🎉',

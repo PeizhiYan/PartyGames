@@ -1,3 +1,4 @@
+import { play } from '../lib/sound';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { PRESENCE_INTERVAL_MS, sortRooms } from './rules';
 import type { GameId, Room, RoomSummary } from '../types';
@@ -77,6 +78,7 @@ export function useGameAction(roomId: string | undefined) {
       await backend.rooms.act(roomId, action);
       return true;
     } catch (e) {
+      play('error');
       if (current === run.current) setError(errorMessage(e));
       return false;
     } finally {

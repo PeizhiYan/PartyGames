@@ -9,7 +9,8 @@ import { LANGUAGES, t, type LangSetting } from '../i18n';
 import { useLanguage } from '../i18n/LanguageProvider';
 import { APP_VERSION } from '../lib/version';
 import { setSoundEnabled } from '../lib/sound';
-import { useSoundEnabled } from '../hooks/useSound';
+import { useHapticsEnabled, useSoundEnabled } from '../hooks/useSound';
+import { hapticsSupported, setHapticsEnabled } from '../lib/haptics';
 import Segmented from '../ui/Segmented';
 import { backend } from '../services';
 
@@ -17,6 +18,7 @@ export default function SettingsPage() {
   const { user, isAdmin } = useCurrentUser();
   const language = useLanguage();
   const sound = useSoundEnabled();
+  const haptics = useHapticsEnabled();
   const languageOptions: { id: LangSetting; mark: JSX.Element; name: string }[] = [
     { id: 'system', mark: <Icon name="globe" size={22} />, name: t.settings.automatic },
     ...LANGUAGES.map((l) => ({ id: l.id, mark: <Flag lang={l.id} />, name: l.name })),
@@ -65,6 +67,20 @@ export default function SettingsPage() {
             options={[{ id: 'off', label: t.sound.off }, { id: 'on', label: t.sound.on }]} />
         </div>
       </section>
+
+      {hapticsSupported() && (
+        <section className="card">
+          <div className="row between">
+            <div className="col" style={{ gap: 2, minWidth: 0 }}>
+              <h3 style={{ margin: 0 }}>{t.haptics.title}</h3>
+              <small className="muted">{t.haptics.help}</small>
+            </div>
+            <Segmented label={t.haptics.title} size="small" value={haptics ? 'on' : 'off'}
+              onChange={(v) => setHapticsEnabled(v === 'on')}
+              options={[{ id: 'off', label: t.sound.off }, { id: 'on', label: t.sound.on }]} />
+          </div>
+        </section>
+      )}
 
       <ThemePicker />
 
