@@ -1,3 +1,4 @@
+import { useSoundOn } from '../../hooks/useSound';
 import { useEffect, useMemo, useState } from 'react';
 import Icon from '../../ui/Icon';
 import Seat from '../cast/Seat';
@@ -5,7 +6,7 @@ import { AddComputer, RemoveComputer, type Seating } from '../cast/Seating';
 import Character from '../cast/Character';
 import Confetti from '../cast/Confetti';
 import { assignSpecies } from '../cast/cast';
-import { bubbleFor, expressionFor, useMoments, type Detect, type Moment } from '../cast/moments';
+import { bubbleFor, expressionFor, useMomentSounds, useMoments, type Detect, type Moment } from '../cast/moments';
 import { isComputer } from '../local';
 import MahjongTile from './Tile';
 import type { Meld } from './hand';
@@ -91,6 +92,11 @@ export default function MahjongTable({ state, uid, act, busy, error, owner, seat
   const detect = useMemo(() => detector(uid), [uid]);
   const moments = useMoments(state, detect);
   const looks = assignSpecies(state.seats.map((s) => s.uid));
+  // Tiles clacking down, calls, and the end of a hand — and a chime when it is yours to play.
+  useMomentSounds(moments, (mo) => (mo.kind === 'discard' ? 'tile' : mo.kind === 'call' ? 'call'
+    : mo.kind === 'win' ? (mo.uid === uid ? 'win' : 'lose') : null));
+  useSoundOn((state.phase === 'playing' && state.stage === 'discard' && currentSeat(state)?.uid === uid) || myClaimOptions(state, uid).length > 0,
+    (on) => (on ? 'turn' : null));
   const nameOf = (u: string) => (u === uid ? t.common.you : firstName(state.seats.find((s) => s.uid === u)?.name ?? m().someone));
   const myIndex = Math.max(0, state.seats.findIndex((s) => s.uid === uid));
   const seated = state.seats.some((s) => s.uid === uid);

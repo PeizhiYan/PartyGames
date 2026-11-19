@@ -1,3 +1,4 @@
+import { useSoundOn } from '../../hooks/useSound';
 import { t } from '../../i18n';
 import { cardText, m, noteText } from './messages';
 import { useEffect, useRef, useState } from 'react';
@@ -31,6 +32,14 @@ export default function MonopolyRoom({ room, uid }: Props) {
   const me = seatOf(state, uid);
   const owner = isOwner(room, uid);
   const shared = { state, uid, me, owner, act, busy };
+
+  // Dice on every roll, a coin whenever money moves, a card when one is drawn, a chime on your
+  // turn on the board, and a fanfare for the final standings.
+  useSoundOn(state.lastRoll?.at ?? null, (at) => (at ? 'dice' : null));
+  useSoundOn(state.log.length, () => 'coin');
+  useSoundOn(state.card?.at ?? null, (at) => (at ? 'card' : null));
+  useSoundOn(isBoardMode(state) && state.phase === 'playing' && state.turn === uid, (on) => (on ? 'turn' : null));
+  useSoundOn(state.phase === 'results', (done) => (done ? 'win' : null));
 
   // Someone let into the room after the game started has no seat in it. The host starting a new
   // game picks them up (see `syncSeats`), so they wait rather than seeing an empty wallet.

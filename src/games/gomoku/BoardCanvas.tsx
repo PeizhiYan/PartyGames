@@ -1,3 +1,4 @@
+import { useSoundOn } from '../../hooks/useSound';
 import { m } from './messages';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { SIZE, colOf, idx, rowOf, type Board, type Player } from './board';
@@ -39,6 +40,8 @@ export default function GomokuBoard({ board, placing, lastMove, winLine, heat, p
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [size, setSize] = useState(0);
+  // A stone meeting the board.
+  useSoundOn(lastMove, (cell) => (cell === null ? null : 'stone'));
   /** Where a mouse is pointing. Stays null on a touchscreen, which has no hover. */
   const [hover, setHover] = useState<number | null>(null);
   /** Where the current press started, to tell a tap from a drag across the board. */

@@ -1,3 +1,4 @@
+import { useSoundOn } from '../../hooks/useSound';
 import { t } from '../../i18n';
 import { m } from './messages';
 import { useEffect, useState } from 'react';
@@ -18,6 +19,8 @@ export default function GomokuRoom({ room, uid }: { room: Room; uid: string }) {
   const mySeat = seatOf(state, uid);
   const ready = bothSeated(state);
   const myTurn = state.outcome === 0 && mySeat !== null && mySeat === state.turn;
+  useSoundOn(myTurn, (on) => (on ? 'turn' : null));
+  useSoundOn(state.outcome, (o) => (o === 0 ? null : o === mySeat ? 'win' : o === 3 || mySeat === null ? 'tap' : 'lose'));
 
   /**
    * The stone this player just played, drawn locally until the shared state catches up. Purely a

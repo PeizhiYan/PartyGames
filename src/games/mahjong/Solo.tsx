@@ -1,3 +1,4 @@
+import SoundToggle from '../../ui/SoundToggle';
 import { t } from '../../i18n';
 import { m } from './messages';
 import { useEffect, useMemo, useState } from 'react';
@@ -22,6 +23,7 @@ export default function MahjongSoloPage() {
       <header className="room-bar">
         <Link to="/g/mahjong" className="icon-button" aria-label={t.cast.backToLobby}><Icon name="left" /></Link>
         <strong className="grow">{m().name}</strong>
+        <SoundToggle />
       </header>
       {started
         ? <SoloGame />

@@ -1,3 +1,4 @@
+import SoundToggle from '../../ui/SoundToggle';
 import { t } from '../../i18n';
 import { m } from './messages';
 import { useEffect, useMemo, useState } from 'react';
@@ -26,6 +27,7 @@ export default function UnoSoloPage() {
       <header className="room-bar">
         <Link to="/g/uno" className="icon-button" aria-label={t.cast.backToLobby}><Icon name="left" /></Link>
         <strong className="grow">{m().name}</strong>
+        <SoundToggle />
         {players !== null && (
           <button type="button" className="small" onClick={() => setPlayers(null)}>
             <Icon name="users" size={16} /> {t.cast.players}

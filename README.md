@@ -91,6 +91,9 @@ and opens the puzzle directly.
 - **English, 简体中文 and 日本語.** The app follows the device's language, or the one picked in
   Settings. Every game is translated, and a room can mix languages: each player sees the table in
   their own.
+- **Sound effects.** Dice rattle, cards swish, tiles clack, stones knock, and a chime tells you it
+  is your turn. All synthesised in the browser, so nothing to download. The speaker in each game's
+  header, or Settings, turns them off.
 - **A cast of characters.** In Yahtzee, UNO and Mahjong every player is a cartoon face — a robot, a
   frog, a fox, a panda… — that thinks on its turn, beams at a good move and looks crestfallen at a
   bad one. Computer players always look the same, so you learn who you are up against. Solo games

@@ -8,6 +8,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 import type { Expression } from './cast';
+import { play, type SoundName } from '../../lib/sound';
 
 export interface Moment {
   id: number;
@@ -68,4 +69,22 @@ export function expressionFor(moments: Moment[], uid: string, base: Expression =
     if (m.uid === uid && m.expression) return m.expression;
   }
   return base;
+}
+
+/**
+ * A sound for each new moment, played once: `pick` chooses which, or none. Moments are already
+ * what a table animates, so the sounds land on the same beats as the cards and bubbles.
+ */
+export function useMomentSounds(moments: Moment[], pick: (m: Moment) => SoundName | null): void {
+  const heard = useRef(new Set<number>());
+  const pickRef = useRef(pick);
+  pickRef.current = pick;
+  useEffect(() => {
+    for (const m of moments) {
+      if (heard.current.has(m.id)) continue;
+      heard.current.add(m.id);
+      const sound = pickRef.current(m);
+      if (sound) play(sound);
+    }
+  }, [moments]);
 }

@@ -8,7 +8,8 @@ import Seat from '../cast/Seat';
 import { AddComputer, RemoveComputer, type Seating } from '../cast/Seating';
 import { isComputer } from '../local';
 import { assignSpecies } from '../cast/cast';
-import { bubbleFor, expressionFor, useMoments, type Detect } from '../cast/moments';
+import { bubbleFor, expressionFor, useMomentSounds, useMoments, type Detect } from '../cast/moments';
+import { useSoundOn } from '../../hooks/useSound';
 import { EXAMPLES } from './help';
 import { m } from './messages';
 import { t } from '../../i18n';
@@ -83,6 +84,16 @@ export default function YahtzeeTable({ state, uid, act, busy, error, owner, seat
   const moments = useMoments(state, detect);
   const looks = assignSpecies(state.seats.map((s) => s.uid));
   const nameOf = (s: { uid: string; name: string }) => (!hotseat && s.uid === uid ? t.common.you : firstName(s.name));
+  // The dice rattle on every roll; a box filled clicks, a big one rings; a Yahtzee is a fanfare.
+  useSoundOn(state.rolls > 0 ? `${state.turn}-${state.round}-${state.rolls}` : null, (k) => (k ? 'dice' : null));
+  useMomentSounds(moments, (mo) => (mo.kind === 'yahtzee' ? 'win'
+    : mo.kind === 'score' ? (((mo.data?.points as number) ?? 0) >= 25 ? 'coin' : 'tap') : null));
+  useSoundOn(state.phase === 'playing' && currentSeat(state)?.uid === uid && state.rolls === 0, (on) => (on ? 'turn' : null));
+  useSoundOn(state.phase === 'results', (done) => {
+    if (!done) return null;
+    const top = Math.max(...state.seats.map(grandTotal));
+    return hotseat || state.seats.some((s) => s.uid === uid && grandTotal(s) === top) ? 'win' : 'lose';
+  });
 
   if (state.phase === 'lobby') {
     return (

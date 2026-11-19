@@ -79,11 +79,11 @@ src/
 ├─ services/       the backend contract
 ├─ adapters/       firebase/ and memory/ — the only places that know a backend exists
 ├─ i18n/           languages: en (the reference) zh ja, the provider, the privacy policy
-├─ ui/             design-system primitives: Icon Sheet Toast Segmented Avatar Flag
+├─ ui/             design-system primitives: Icon Sheet Toast Segmented Avatar Flag SoundToggle
 ├─ shell/          app chrome: AppShell Backdrop ThemePicker InstallCard OfflineNotice
 ├─ pages/          screens that are not a game
 ├─ hooks/          useAuth useInstall useOnline
-└─ lib/ styles/    formatting, theme, version · global CSS
+└─ lib/ styles/    formatting, theme, sound, version · global CSS
 ```
 
 | Thing | File |
@@ -521,6 +521,27 @@ its own word order; a sentence with a bold part in the middle is split into befo
   `noteText`). An old room holding a plain sentence still shows it as it was.
 - **Left as written:** people's names, room names, what players type, and Monopoly's street names,
   which are each city's own (the China and Japan boards are already in local script).
+
+## Sound
+
+`src/lib/sound.ts` synthesises every sound with the Web Audio API — no audio files, so nothing to
+download and it works offline. Each is a few oscillators and bursts of filtered noise: a woody
+knock for stones and pieces (two for a capture), a rattle for dice, a swish for cards, a clack for
+mahjong tiles, a few notes for coins, calls, UNO, a win and a loss, and a two-note chime when it
+becomes your turn.
+
+- **On or off is per device** (localStorage, default on): the speaker in every game's header
+  (`ui/SoundToggle`) and a card in Settings, kept in step through `subscribeSound`.
+- **Browsers stay silent until the person taps something**, so the first tap anywhere unlocks
+  the audio context. A hidden tab plays nothing.
+- **Sounds hang off changes the screen already sees**, never off the reducer: `useSoundOn(key,
+  sound)` plays when a value changes (a move, a roll's time, a card's time) but not on the first
+  render, so opening a game mid-way is quiet; table games use `useMomentSounds`, so a card's sound
+  lands on the same beat as its animation. The board components (`ChessBoard`, `XiangqiBoard`,
+  `GomokuBoard`) make their own move sounds, so a room and a solo game sound the same.
+- `renderSound` schedules a sound into any context. To check levels without ears, render each into
+  an `OfflineAudioContext` in headless Chrome and read the peaks: they sit between 0.1 and 0.3 at
+  the app's master level, with nothing clipping and nothing longer than 0.7 s.
 
 ## Gotchas
 

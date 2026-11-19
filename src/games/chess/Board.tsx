@@ -1,5 +1,6 @@
+import { useSoundOn } from '../../hooks/useSound';
 import { m } from './messages';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   BISHOP, KNIGHT, QUEEN, ROOK, fileOf, makeMoveCode, moveFrom, movePromotion, moveTo, rankOf, type Board,
 } from './engine';
@@ -28,6 +29,14 @@ interface Props {
  */
 export default function ChessBoard({ board, viewer, canMove, lastMove, onMove }: Props) {
   const [selected, setSelected] = useState<number | null>(null);
+  // A knock for every move, two for a capture — a capture is the move that leaves fewer pieces.
+  const pieces = board.squares.reduce((n: number, p: number) => n + (p !== 0 ? 1 : 0), 0);
+  const counted = useRef(pieces);
+  useSoundOn(lastMove, () => {
+    const took = pieces < counted.current;
+    counted.current = pieces;
+    return took ? 'capture' : 'piece';
+  });
   /** A pawn move that needs a promotion choice before it can be played. */
   const [promoting, setPromoting] = useState<{ from: number; to: number } | null>(null);
   const flipped = viewer === 2;

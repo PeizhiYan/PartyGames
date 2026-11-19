@@ -1,3 +1,5 @@
+import SoundToggle from '../../ui/SoundToggle';
+import { useSoundOn } from '../../hooks/useSound';
 import { t } from '../../i18n';
 import { m } from './messages';
 import { useEffect, useState } from 'react';
@@ -22,6 +24,9 @@ export default function Solo() {
   const score = useScore(user.uid);
   const playing = state.startedAt !== null && state.finishedAt === null;
   const solved = state.finishedAt !== null;
+  // A wooden knock for each disk set down, a fanfare when the tower is home.
+  useSoundOn(state.moves.length, (n) => ((n as number) > 0 ? 'piece' : null));
+  useSoundOn(solved, (done) => (done ? 'win' : null));
   const elapsed = state.startedAt === null ? 0 : Math.max(0, (state.finishedAt ?? now) - state.startedAt);
 
   useEffect(() => {
@@ -68,6 +73,7 @@ export default function Solo() {
       <header className="room-bar">
         <Link to="/g/hanoi" className="icon-button" aria-label={m().backToLobby}><Icon name="left" /></Link>
         <strong className="grow">{m().name}</strong>
+        <SoundToggle />
         <span className="badge">{m().badge}</span>
       </header>
       <div className="hanoi-stats">
